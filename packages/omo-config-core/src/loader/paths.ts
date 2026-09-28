@@ -29,6 +29,8 @@ export function resolveUserOmoConfigPath(env: OmoConfigEnv = process.env): strin
 }
 
 export function resolveUserOmoConfigDirectory(env: OmoConfigEnv = process.env): string {
+  const override = env.OMO_CONFIG_DIR?.trim()
+  if (override) return override.startsWith("/") ? posix.resolve(override) : toPosixPath(resolve(override))
   return join(resolveHomeDir(env), ".omo")
 }
 
