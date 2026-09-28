@@ -372,6 +372,8 @@ describe("createBuiltinSkills", () => {
 		expect(names).not.toContain("playwright-cli")
 		expect(browser?.description).toContain("openchamber_web")
 		expect(browser?.template).toContain("browser.requestHelp")
+		expect(browser?.template).toContain("browser.saveProfile")
+		expect(browser?.template).toContain('kind')
 		expect(browser?.template).toContain("Never load the `playwright` skill, Playwright MCP, or omowright")
 		expect(skills).toHaveLength(10)
 	})

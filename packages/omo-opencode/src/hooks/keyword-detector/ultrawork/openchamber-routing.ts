@@ -6,8 +6,8 @@ const OPENCHAMBER_BROWSER_TASK_GUIDANCE =
 	"`browser.snapshot` to read text/selectors/console, `browser.click` / `browser.type` / " +
 	"`browser.scroll` to act, `browser.capture` to save a screenshot into the project. For a " +
 	"login, CAPTCHA, or 2FA the page needs, call `browser.requestHelp({ reason, timeoutSeconds })` " +
-	"and wait for `handed-back` or stop on `timeout`; never ask for passwords or codes in chat, " +
-	"never read cookies or storage."
+	"(`kind: \"login\"` for an account sign-in) and wait for `handed-back` / `signed-in` or stop on " +
+	"`timeout`; never ask for passwords or codes in chat, never read cookies or storage."
 
 const OMOWRIGHT_SURFACE_MENTION_PATTERN = /browser \(omowright\)/g
 const OPENCHAMBER_SURFACE_MENTION = "browser (openchamber_web)"
