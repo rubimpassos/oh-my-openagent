@@ -1,0 +1,108 @@
+name: Fork sync (v2-support)
+# Default branch of this fork: schedules only run from here.
+
+# Keeps this fork's `v2-support` branch current with its two sources:
+#   - upstream `dev` (code-yeongyu/oh-my-openagent)
+#   - the OpenCode V2 port in upstream PR #9016, while it is open
+# `v2-support` is rebuilt as <base> + every commit carrying the trailer
+# `Fork-Patch: v2-support`. The base is the PR head while the PR is open, and
+# upstream `dev` once it is merged or closed. A conflict or a failing V2 test
+# leaves the branch untouched and opens (or updates) an issue.
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: fork-sync-v2-support
+  cancel-in-progress: false
+
+env:
+  UPSTREAM: code-yeongyu/oh-my-openagent
+  PR_NUMBER: '9016'
+  BRANCH: v2-support
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v2-support
+          fetch-depth: 0
+
+      - name: Fetch sources
+        id: sources
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "fork-sync"
+          git config user.email "fork-sync@users.noreply.github.com"
+          git remote add upstream "https://github.com/${UPSTREAM}.git"
+          git fetch --no-tags upstream dev "pull/${PR_NUMBER}/head:refs/remotes/upstream/pr"
+          state=$(gh pr view "$PR_NUMBER" -R "$UPSTREAM" --json state -q .state)
+          echo "pr_state=$state" >> "$GITHUB_OUTPUT"
+          if [ "$state" = "OPEN" ]; then base=upstream/pr; else base=upstream/dev; fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "base_sha=$(git rev-parse "$base")" >> "$GITHUB_OUTPUT"
+
+      - name: Rebuild v2-support
+        id: rebuild
+        run: |
+          patches=$(git log --reverse --format=%H --grep='^Fork-Patch: v2-support' "origin/${BRANCH}")
+          git checkout -q -B candidate "${{ steps.sources.outputs.base }}"
+          for sha in $patches; do
+            subject=$(git log -1 --format=%s "$sha")
+            if git merge-base --is-ancestor "$sha" HEAD; then continue; fi
+            if ! git cherry-pick -x "$sha" >/dev/null 2>&1; then
+              git cherry-pick --abort || true
+              echo "conflict=$subject" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          # Upstream's own workflows (CI, publish, cron jobs) must never run in this
+          # fork; the branch carries only this sync workflow.
+          find .github/workflows -type f ! -name 'fork-sync-v2-support.yml' -print0 | xargs -0 -r git rm -q
+          git diff --cached --quiet || git commit -q -m "ci(fork): drop upstream workflows from the fork branch"
+          if [ "$(git rev-parse HEAD^{tree})" = "$(git rev-parse "origin/${BRANCH}^{tree}")" ]; then
+            echo "unchanged=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: oven-sh/setup-bun@v2
+        if: steps.rebuild.outputs.conflict == '' && steps.rebuild.outputs.unchanged != 'true'
+
+      - name: Test the V2 adapter
+        id: test
+        if: steps.rebuild.outputs.conflict == '' && steps.rebuild.outputs.unchanged != 'true'
+        continue-on-error: true
+        run: |
+          bun install --frozen-lockfile || bun install
+          bun test packages/omo-opencode/src/v2 packages/omo-config-core/src/loader
+
+      - name: Push
+        if: steps.rebuild.outputs.conflict == '' && steps.rebuild.outputs.unchanged != 'true' && steps.test.outcome == 'success'
+        run: git push --force-with-lease="${BRANCH}:origin/${BRANCH}" origin "candidate:${BRANCH}"
+
+      - name: Report failure
+        if: steps.rebuild.outputs.conflict != '' || steps.test.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONFLICT: ${{ steps.rebuild.outputs.conflict }}
+          BASE: ${{ steps.sources.outputs.base }}
+          BASE_SHA: ${{ steps.sources.outputs.base_sha }}
+        run: |
+          title="fork-sync: v2-support needs attention"
+          if [ -n "$CONFLICT" ]; then reason="Cherry-pick conflict on: $CONFLICT"; else reason="V2 adapter tests failed after rebase"; fi
+          body="$reason
+
+          Base: \`$BASE\` @ \`$BASE_SHA\` (PR #${PR_NUMBER} state: ${{ steps.sources.outputs.pr_state }})
+          Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+
+          \`${BRANCH}\` was left unchanged."
+          existing=$(gh issue list -R "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number -q '.[0].number')
+          if [ -n "$existing" ]; then gh issue comment "$existing" -R "$GITHUB_REPOSITORY" --body "$body"; else gh issue create -R "$GITHUB_REPOSITORY" --title "$title" --body "$body"; fi
+          exit 1
