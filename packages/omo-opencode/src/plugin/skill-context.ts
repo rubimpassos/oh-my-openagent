@@ -24,6 +24,7 @@ import {
 import { resolveActiveBuiltinSkills } from "@oh-my-opencode/skills-loader-core/builtin-skills"
 import { getSystemMcpServerNames } from "../features/claude-code-mcp-loader"
 import { adaptHostSkillConfig } from "../shared/host-skill-config"
+import { isRunningUnderOpenChamber } from "../shared/openchamber-runtime"
 
 export type SkillContext = {
   mergedSkills: LoadedSkill[]
@@ -94,6 +95,7 @@ export async function createSkillContext(args: {
     disabledSkills,
     teamModeEnabled: pluginConfig.team_mode?.enabled ?? false,
     playwrightMcpArgs,
+    openChamberBrowserSkillEnabled: isRunningUnderOpenChamber(),
     systemMcpNames: getSystemMcpServerNames(),
   })
 

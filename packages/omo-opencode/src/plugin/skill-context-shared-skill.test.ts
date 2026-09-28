@@ -165,13 +165,16 @@ describe("plugin-wired shared skills", () => {
   let testDirectory: string
   let originalOpenCodeConfigDir: string | undefined
   let originalClaudeConfigDir: string | undefined
+  let originalOpenChamberAgentToolUrl: string | undefined
 
   beforeEach(() => {
     testDirectory = mkdtempSync(join(tmpdir(), "omo-plugin-shared-skill-"))
     originalOpenCodeConfigDir = process.env.OPENCODE_CONFIG_DIR
     originalClaudeConfigDir = process.env.CLAUDE_CONFIG_DIR
+    originalOpenChamberAgentToolUrl = process.env.OPENCHAMBER_AGENT_TOOL_URL
     process.env.OPENCODE_CONFIG_DIR = join(testDirectory, "isolated-opencode-config")
     process.env.CLAUDE_CONFIG_DIR = join(testDirectory, "isolated-claude-config")
+    delete process.env.OPENCHAMBER_AGENT_TOOL_URL
 
     writeSkill(
       join(testDirectory, ".opencode", "skills", "ulw-plan"),
@@ -191,6 +194,11 @@ describe("plugin-wired shared skills", () => {
       delete process.env.CLAUDE_CONFIG_DIR
     } else {
       process.env.CLAUDE_CONFIG_DIR = originalClaudeConfigDir
+    }
+    if (originalOpenChamberAgentToolUrl === undefined) {
+      delete process.env.OPENCHAMBER_AGENT_TOOL_URL
+    } else {
+      process.env.OPENCHAMBER_AGENT_TOOL_URL = originalOpenChamberAgentToolUrl
     }
     rmSync(testDirectory, { recursive: true, force: true })
   })

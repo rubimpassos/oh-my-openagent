@@ -15,6 +15,11 @@ describe("createSkillContext", () => {
   // ~/.config/opencode/opencode.jsonc never leaks into these tests.
   let mockGlobalConfigDir: string
   let getOpenCodeConfigDirSpy: ReturnType<typeof spyOn>
+  // These tests assert on which browser-provider builtin skill loads, so they
+  // must not inherit a real OPENCHAMBER_AGENT_TOOL_URL from the ambient shell
+  // (e.g. this repo's own dev session running under OpenChamber) - that would
+  // swap the provider skill for the `browser` skill regardless of provider.
+  let originalOpenChamberAgentToolUrl: string | undefined
 
   beforeEach(() => {
     mkdirSync(testDirectory, { recursive: true })
@@ -22,12 +27,19 @@ describe("createSkillContext", () => {
     getOpenCodeConfigDirSpy = spyOn(opencodeConfigDir, "getOpenCodeConfigDir").mockReturnValue(
       mockGlobalConfigDir,
     )
+    originalOpenChamberAgentToolUrl = process.env.OPENCHAMBER_AGENT_TOOL_URL
+    delete process.env.OPENCHAMBER_AGENT_TOOL_URL
   })
 
   afterEach(() => {
     getOpenCodeConfigDirSpy.mockRestore()
     rmSync(testDirectory, { recursive: true, force: true })
     rmSync(mockGlobalConfigDir, { recursive: true, force: true })
+    if (originalOpenChamberAgentToolUrl === undefined) {
+      delete process.env.OPENCHAMBER_AGENT_TOOL_URL
+    } else {
+      process.env.OPENCHAMBER_AGENT_TOOL_URL = originalOpenChamberAgentToolUrl
+    }
   })
 
   it("exposes security skills to the OMO skill tool context", async () => {
