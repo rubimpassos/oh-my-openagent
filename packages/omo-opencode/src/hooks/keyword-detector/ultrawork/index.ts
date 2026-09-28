@@ -36,8 +36,10 @@ import { getGptUltraworkMessage } from "./gpt";
 import { getDefaultUltraworkMessage } from "./default";
 import { getGeminiUltraworkMessage } from "./gemini";
 import { getGlmUltraworkMessage } from "./glm";
+import { applyOpenChamberManualQaRouting } from "./openchamber-routing";
+import { isRunningUnderOpenChamber } from "../../../shared/openchamber-runtime";
 
-export function getUltraworkMessageForSource(source: UltraworkSource): string {
+function selectUltraworkMessage(source: UltraworkSource): string {
   switch (source) {
     case "planner":
       return getPlannerUltraworkMessage();
@@ -51,6 +53,11 @@ export function getUltraworkMessageForSource(source: UltraworkSource): string {
     default:
       return getDefaultUltraworkMessage();
   }
+}
+
+export function getUltraworkMessageForSource(source: UltraworkSource): string {
+  const message = selectUltraworkMessage(source);
+  return isRunningUnderOpenChamber() ? applyOpenChamberManualQaRouting(message) : message;
 }
 
 /**
