@@ -23,6 +23,7 @@ builtin-skills/
 │   ├── playwright-mcp-skill.ts        # createPlaywrightSkill() factory (mcp_args)
 │   ├── playwright-cli.ts              # CLI variant
 │   ├── dev-browser.ts                 # Persistent page state
+│   ├── openchamber-browser.ts         # `browser` skill for openchamber_web (OpenChamber only, see below)
 │   ├── debugging.ts                   # Debugging methodology
 │   ├── visual-qa.ts                   # Visual QA
 │   ├── frontend.ts              # Design-first UI guidance
@@ -58,6 +59,7 @@ Selected skills; the provider registry is defined in `skills.ts`.
 | `security-research` | — | Team Mode exploitability-driven security research |
 | `security-review` | — | Reuses security-research |
 | `team-mode` | — | **Conditional** — only rendered when `team_mode.enabled`; documents the 12 `team_*` tools and lifecycle |
+| `browser` | — | **Conditional** — only rendered when `openChamberBrowserSkillEnabled` (OpenChamber); replaces the `browserProvider` skill and documents `openchamber_web` |
 
 ## BROWSER VARIANT SELECTION
 
@@ -71,6 +73,15 @@ Config `browser_automation_engine` selects which browser skill loads. Selected v
 Only one browser skill is active per session; non-selected variants are skipped.
 `resolveActiveBuiltinSkills({ systemMcpNames })` additionally filters out builtin
 skills whose declared MCP names collide with system MCP names.
+
+### OpenChamber override
+
+`openChamberBrowserSkillEnabled: true` (threaded by `omo-opencode/src/plugin/skill-context.ts` from
+`isRunningUnderOpenChamber()`) replaces whichever `browserSkills[browserProvider]` skill would have
+loaded with `openchamber-browser.ts`'s `browser` skill, which documents the `openchamber_web` tool
+instead of playwright/omowright. It also routes the `visual-qa` skill's web capture step (Step 2)
+through `openchamber_web` (`browser.resize` + `browser.capture`) via
+`routeVisualQaWebCaptureForOpenChamber()`. Off by default; outside OpenChamber nothing changes.
 
 For the `playwright` (MCP) variant, `browser_automation_engine.playwright_mcp_args` (string array) appends extra CLI flags after the default `npx @playwright/mcp@latest` invocation, e.g. `--executable-path` or `--no-sandbox` for sandboxed envs lacking a system Chrome. Threaded via `createBuiltinSkills({ playwrightMcpArgs })` into `createPlaywrightSkill({ mcp_args })` (`skills/playwright-mcp-skill.ts`); absent or empty leaves the default singleton byte-identical.
 

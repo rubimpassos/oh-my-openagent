@@ -355,4 +355,57 @@ describe("createBuiltinSkills", () => {
 		// #then
 		expect(playwright?.mcpConfig?.playwright?.args).toEqual(["@playwright/mcp@latest"])
 	})
+
+	test("#given openChamberBrowserSkillEnabled is true #when creating builtin skills #then the browser-provider skill is replaced by the OpenChamber browser skill", () => {
+		// #given
+		const options = { openChamberBrowserSkillEnabled: true }
+
+		// #when
+		const skills = createBuiltinSkills(options)
+		const names = skills.map((s) => s.name)
+		const browser = skills.find((s) => s.name === "browser")
+
+		// #then
+		expect(names).toContain("browser")
+		expect(names).not.toContain("playwright")
+		expect(names).not.toContain("dev-browser")
+		expect(names).not.toContain("playwright-cli")
+		expect(browser?.description).toContain("openchamber_web")
+		expect(browser?.template).toContain("browser.requestHelp")
+		expect(browser?.template).toContain("Never load the `playwright` skill, Playwright MCP, or omowright")
+		expect(skills).toHaveLength(10)
+	})
+
+	test("#given openChamberBrowserSkillEnabled is true #when creating builtin skills #then the visual-qa web capture step is routed to openchamber_web", () => {
+		// #given
+		const options = { openChamberBrowserSkillEnabled: true }
+
+		// #when
+		const skills = createBuiltinSkills(options)
+		const visualQa = skills.find((s) => s.name === "visual-qa")
+
+		// #then
+		expect(visualQa?.template).toContain("browser.resize({ viewport })")
+		expect(visualQa?.template).toContain("browser.capture({ label })")
+		expect(visualQa?.template).not.toContain("with omowright from js eval")
+	})
+
+	test("#given openChamberBrowserSkillEnabled is false or omitted #when creating builtin skills #then the default provider skill and the unmodified visual-qa skill are used", () => {
+		// #given
+		const omittedOptions = {}
+		const explicitFalseOptions = { openChamberBrowserSkillEnabled: false }
+
+		// #when
+		const defaultSkills = createBuiltinSkills(omittedOptions)
+		const explicitFalseSkills = createBuiltinSkills(explicitFalseOptions)
+
+		// #then
+		for (const skills of [defaultSkills, explicitFalseSkills]) {
+			const names = skills.map((s) => s.name)
+			expect(names).toContain("playwright")
+			expect(names).not.toContain("browser")
+			const visualQa = skills.find((s) => s.name === "visual-qa")
+			expect(visualQa?.template).not.toContain("openchamber_web")
+		}
+	})
 })

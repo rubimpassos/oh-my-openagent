@@ -8,6 +8,7 @@ import {
   frontendSkill,
   gitMasterSkill,
   devBrowserSkill,
+  openchamberBrowserSkill,
   initDeepSkill,
   debuggingSkill,
   removeAiSlopsSkill,
@@ -17,6 +18,7 @@ import {
   visualQaSkill,
   teamModeSkill,
 } from "./skills/index"
+import { routeVisualQaWebCaptureForOpenChamber } from "./openchamber-visual-qa-routing"
 
 export interface CreateBuiltinSkillsOptions {
   browserProvider?: BrowserAutomationProvider
@@ -30,6 +32,14 @@ export interface CreateBuiltinSkillsOptions {
    * ignore this option.
    */
   playwrightMcpArgs?: readonly string[]
+  /**
+   * True when this OpenCode instance runs under OpenChamber (see
+   * `isRunningUnderOpenChamber` in `omo-opencode/src/shared`). Swaps the
+   * `browserProvider` skill for the OpenChamber `browser` skill
+   * (`openchamber_web`) and routes the `visual-qa` web capture step through
+   * `openchamber_web` instead of omowright.
+   */
+  openChamberBrowserSkillEnabled?: boolean
 }
 
 export function createBuiltinSkills(options: CreateBuiltinSkillsOptions = {}): BuiltinSkill[] {
@@ -38,6 +48,7 @@ export function createBuiltinSkills(options: CreateBuiltinSkillsOptions = {}): B
     disabledSkills,
     teamModeEnabled = false,
     playwrightMcpArgs,
+    openChamberBrowserSkillEnabled = false,
   } = options
 
   const browserSkills = {
@@ -48,8 +59,12 @@ export function createBuiltinSkills(options: CreateBuiltinSkillsOptions = {}): B
       : playwrightSkill,
   } satisfies Record<BrowserAutomationProvider, BuiltinSkill>
 
+  const routedVisualQaSkill: BuiltinSkill = openChamberBrowserSkillEnabled
+    ? { ...visualQaSkill, template: routeVisualQaWebCaptureForOpenChamber(visualQaSkill.template) }
+    : visualQaSkill
+
 	const skills = [
-		browserSkills[browserProvider],
+		openChamberBrowserSkillEnabled ? openchamberBrowserSkill : browserSkills[browserProvider],
 		frontendSkill,
 		gitMasterSkill,
 		reviewWorkSkill,
@@ -58,7 +73,7 @@ export function createBuiltinSkills(options: CreateBuiltinSkillsOptions = {}): B
 		debuggingSkill,
 		securityResearchSkill,
 		securityReviewSkill,
-		visualQaSkill,
+		routedVisualQaSkill,
 	]
 
   if (teamModeEnabled && !disabledSkills?.has("team-mode")) {
