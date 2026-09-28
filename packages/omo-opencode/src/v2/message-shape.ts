@@ -28,6 +28,14 @@ function contentFromParts(parts: Array<Record<string, unknown>>): Array<Record<s
 }
 
 function storedMessage(message: Record<string, unknown>, sessionID: string): V1Message | undefined {
+  const translated = storedMessageWithoutTime(message, sessionID)
+  // V1 consumers order and window messages by info.time.created (parent wake
+  // recovery, continuation); V2 keeps the same timestamps on the record.
+  if (translated && isRecord(message.time)) translated.info.time = { ...message.time }
+  return translated
+}
+
+function storedMessageWithoutTime(message: Record<string, unknown>, sessionID: string): V1Message | undefined {
   const type = message.type
   const id = message.id
   if (typeof type !== "string" || OMITTED_STORED_TYPES.has(type)) return undefined
@@ -112,17 +120,50 @@ export function hookMessagesToV1(messages: readonly unknown[], sessionID: string
 }
 
 export function writeHookMessagesBack<T>(original: readonly T[], edited: readonly V1Message[]): T[] {
-  return edited.map((message, index) => {
-    const current = original[index]
-    const content = contentFromParts(message.parts)
-    if (isRecord(current) && Array.isArray(current.content)) {
-      current.content.splice(0, current.content.length, ...content)
-      return current
+  // Match edited messages back to the V2 originals by id, not by position:
+  // V1 hooks insert messages (the team-mode injectors prepend one), which would
+  // otherwise shift every later message and write an assistant's tool-call
+  // into the following tool message. V2 tool messages carry no id, so id-less
+  // originals are matched in order by role; anything unmatched is new.
+  const byID = new Map<string, number>()
+  original.forEach((message, index) => {
+    if (isRecord(message) && typeof message.id === "string") byID.set(message.id, index)
+  })
+  const used = new Set<number>()
+  let cursor = -1
+  const findIDLess = (role: unknown): number | undefined => {
+    for (let index = cursor + 1; index < original.length; index += 1) {
+      const candidate = original[index]
+      if (used.has(index) || !isRecord(candidate) || typeof candidate.id === "string") continue
+      if (candidate.role === role) return index
     }
-    return {
-      ...(typeof message.info.id === "string" ? { id: message.info.id } : {}),
-      role: message.info.role,
-      content,
-    } as T
+    return undefined
+  }
+
+  return edited.flatMap((message) => {
+    const content = contentFromParts(message.parts)
+    const id = typeof message.info.id === "string" ? message.info.id : undefined
+    const matchedIndex = id !== undefined ? byID.get(id) : findIDLess(message.info.role)
+    const current = matchedIndex !== undefined && !used.has(matchedIndex) ? original[matchedIndex] : undefined
+    if (matchedIndex !== undefined && isRecord(current) && Array.isArray(current.content)) {
+      used.add(matchedIndex)
+      cursor = Math.max(cursor, matchedIndex)
+      // Providers accept only tool-result content in a tool message; injected
+      // text moves into a user message right after it.
+      if (current.role === "tool") {
+        const results = content.filter((part) => part.type === "tool-result")
+        const extras = content.filter((part) => part.type === "text")
+        current.content.splice(0, current.content.length, ...results)
+        return extras.length > 0 ? [current, { role: "user", content: extras } as T] : [current]
+      }
+      current.content.splice(0, current.content.length, ...content)
+      return [current]
+    }
+    const role = message.info.role === "assistant" ? "assistant" : "user"
+    return [{
+      ...(id !== undefined ? { id } : {}),
+      role,
+      content: role === "user" ? content.filter((part) => part.type === "text" || part.type === "media") : content,
+    } as T]
   })
 }

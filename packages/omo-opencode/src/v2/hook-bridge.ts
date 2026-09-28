@@ -98,6 +98,29 @@ function copyRecord(target: Record<string, unknown>, source: Record<string, unkn
   Object.assign(target, source)
 }
 
+// V2 reports a turn's lifecycle as session.execution.* events and never emits
+// the V1 session.status / session.idle events that many V1 hooks wait for
+// (todo continuation, team mailbox delivery, notifications). Synthesize them.
+function withV1Lifecycle(event: ReturnType<typeof toV1Event>): Array<ReturnType<typeof toV1Event>> {
+  const sessionID = event.properties.sessionID
+  if (typeof sessionID !== "string") return [event]
+  if (event.type === "session.execution.started") {
+    return [event, { type: "session.status", properties: { sessionID, status: { type: "busy" } } }]
+  }
+  if (
+    event.type === "session.execution.succeeded"
+    || event.type === "session.execution.interrupted"
+    || event.type === "session.error"
+  ) {
+    return [
+      event,
+      { type: "session.status", properties: { sessionID, status: { type: "idle" } } },
+      { type: "session.idle", properties: { sessionID } },
+    ]
+  }
+  return [event]
+}
+
 export async function registerV1Hooks(ctx: V2Context, hooks: V1HookMap, state?: AdapterState): Promise<() => void> {
   const controller = new AbortController()
   const chatMessage = asHandler(hooks["chat.message"])
@@ -270,10 +293,16 @@ export async function registerV1Hooks(ctx: V2Context, hooks: V1HookMap, state?: 
     void (async () => {
       try {
         for await (const raw of ctx.event.subscribe({ signal: controller.signal })) {
-          const event = toV1Event(raw)
-          noteRuntimeEvent(state, event)
-          if (eventHandler) await safeCall("event", () => eventHandler({ event }))
-          await safeCall("compaction.autocontinue", () => continueAfterManualCompaction(ctx, state, event, autocontinue))
+          // OpenCode V1 scoped its event bus to one instance directory; V2 hands
+          // every plugin instance the events of every location. Handle only this
+          // instance's location so each hook runs once per event.
+          const location = isRecord(raw) && isRecord(raw.location) ? raw.location.directory : undefined
+          if (typeof location === "string" && location !== ctx.location.directory) continue
+          for (const event of withV1Lifecycle(toV1Event(raw))) {
+            noteRuntimeEvent(state, event)
+            if (eventHandler) await safeCall("event", () => eventHandler({ event }))
+            await safeCall("compaction.autocontinue", () => continueAfterManualCompaction(ctx, state, event, autocontinue))
+          }
         }
       } catch (error) {
         if (controller.signal.aborted) return

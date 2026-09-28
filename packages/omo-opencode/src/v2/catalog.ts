@@ -19,7 +19,9 @@ function rowsFrom(value: unknown): Array<Record<string, unknown>> {
 export function agentsFrom(value: unknown): { data: Array<Record<string, unknown>> } {
   return {
     data: rowsFrom(value).map((agent) => ({
-      name: typeof agent.name === "string" ? agent.name : agent.id,
+      // V1 addressed agents by name; V2 by id, with name only for display
+      // (the builtin explore agent is id "explore", name "Explore").
+      name: typeof agent.id === "string" ? agent.id : agent.name,
       mode: agent.mode,
       hidden: agent.hidden,
       ...(agent.model !== undefined ? { model: agent.model } : {}),
@@ -185,8 +187,11 @@ export async function sessionStatusMap(input: {
       if (typeof session.id === "string" && status[session.id] === undefined) status[session.id] = { type: "idle" }
     }
     Object.assign(status, active)
+    // /api/session/active only covers the server's default location, so a
+    // session running in another directory reads as idle there. The status
+    // tracked from this instance's own lifecycle events is authoritative.
     for (const [sessionID, value] of input.state.status) {
-      if (value.type === "retry") status[sessionID] = value
+      if (value.type === "retry" || value.type === "busy") status[sessionID] = value
     }
     return status
   } catch (error) {

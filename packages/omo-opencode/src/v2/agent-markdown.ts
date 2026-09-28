@@ -3,8 +3,6 @@ import { join } from "node:path"
 
 import { getOpenCodeConfigDir } from "../shared/opencode-config-dir"
 
-const AGENT_DIRECTORY = "oh-my-openagent"
-
 export type AgentPermissionEffect = "allow" | "deny" | "ask"
 
 export type AgentPermissionRule = {
@@ -19,7 +17,10 @@ const ACTION_ALIASES: Record<string, string> = {
 
 export function agentMarkdownDirectory(override?: string): string {
   if (override) return override
-  return join(getOpenCodeConfigDir({ binary: "opencode" }), "agents", AGENT_DIRECTORY)
+  // Flat directory: OpenCode V2 turns a subdirectory into an ID prefix
+  // ("oh-my-openagent/explore"), but the V1 pipeline delegates by bare agent
+  // name ("explore", "Sisyphus-Junior"), which then fails with Agent not found.
+  return join(getOpenCodeConfigDir({ binary: "opencode" }), "agents")
 }
 
 export function agentFileName(name: string): string {
@@ -28,7 +29,7 @@ export function agentFileName(name: string): string {
 }
 
 export function nestedAgentID(name: string): string {
-  return `${AGENT_DIRECTORY}/${name}`
+  return name
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

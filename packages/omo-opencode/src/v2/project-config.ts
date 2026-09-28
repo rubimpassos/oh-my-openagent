@@ -83,11 +83,23 @@ function skillRecords(skills: unknown): Array<{ id: string; name: string; path: 
   return records
 }
 
+function reallowedToolPatterns(agents: Record<string, unknown>): ReadonlySet<string> {
+  const patterns = new Set<string>()
+  for (const agent of Object.values(agents)) {
+    if (!isRecord(agent) || !isRecord(agent.permission)) continue
+    for (const [pattern, effect] of Object.entries(agent.permission)) {
+      if (effect === "allow") patterns.add(pattern)
+    }
+  }
+  return patterns
+}
+
 async function projectTools(input: {
   ctx: V2Context
   directory: string
   tools: unknown
   disabled: unknown
+  reallowed?: ReadonlySet<string>
   defineTool: unknown
 }): Promise<void> {
   const tools = isRecord(input.tools) ? input.tools : {}
@@ -118,8 +130,15 @@ async function projectTools(input: {
           description: tool.description,
           input: tool.input,
           execute: async (args, context) => {
+            const v1Field = (key: string): unknown => Reflect.get(context, key)
             const result = await tool.execute(args, {
               ...context,
+              // V1 ToolContext members V2 does not provide. V2 already gated
+              // the tool call itself, so a V1 permission ask resolves as allowed.
+              ask: typeof v1Field("ask") === "function" ? v1Field("ask") : async () => {},
+              metadata: typeof v1Field("metadata") === "function" ? v1Field("metadata") : () => {},
+              messageID: typeof v1Field("messageID") === "string" ? v1Field("messageID") : context.id,
+              worktree: typeof v1Field("worktree") === "string" ? v1Field("worktree") : input.directory,
               directory: input.directory,
               sessionID: context.sessionID,
               callID: context.id,
@@ -139,6 +158,10 @@ async function projectTools(input: {
     if (!isRecord(input.disabled)) return
     for (const [pattern, enabled] of Object.entries(input.disabled)) {
       if (enabled !== false) continue
+      // V1 disables some tools globally and re-allows them per agent
+      // ("grep_app_*" for librarian). V2 has no per-agent tool map, so a global
+      // removal would take the tool from that agent too; keep it registered.
+      if (input.reallowed?.has(pattern)) continue
       if (!pattern.includes("*")) {
         editor.remove(pattern)
         continue
@@ -231,6 +254,7 @@ export async function projectV1Surface(input: {
     directory: input.directory,
     tools: input.tools,
     disabled: input.config.tools,
+    reallowed: reallowedToolPatterns(agents),
     defineTool: input.defineTool,
   })
   if (input.recordTodos) await registerTodoTools(input.ctx, input.recordTodos)
