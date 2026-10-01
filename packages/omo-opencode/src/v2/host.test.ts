@@ -617,6 +617,31 @@ describe("OpenCode V2 adapter", () => {
     })
   })
 
+  test("tool.execute.after sees the text of a content array and leaves an untouched result as it was", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "omo-v2-after-"))
+    directories.push(directory)
+    const fake = createFakeContext()
+    Object.assign(fake.ctx.location, { directory })
+    const seen: string[] = []
+    await setupOpenCodeV2(fake.ctx, {
+      agentDirectory: directory,
+      server: async () => ({
+        "tool.execute.after": async (input: { tool: string }, output: { output: string }) => {
+          seen.push(output.output)
+          if (input.tool === "edited") output.output = `${output.output}!`
+        },
+      }),
+    })
+    const after = fake.hooks.find((hook) => hook.domain === "tool" && hook.name === "execute.after")
+    const untouched = { tool: "skill", sessionID: "ses_1", id: "call_1", input: {}, status: "completed", result: { content: [{ type: "text", text: "## Skill: git-master" }] } }
+    await after?.fn(untouched as never)
+    expect(untouched.result.content).toEqual([{ type: "text", text: "## Skill: git-master" }])
+    const edited = { tool: "edited", sessionID: "ses_1", id: "call_2", input: {}, status: "completed", result: { content: [{ type: "text", text: "hello" }] } }
+    await after?.fn(edited as never)
+    expect(edited.result.content).toEqual("hello!" as never)
+    expect(seen).toEqual(["## Skill: git-master", "hello"])
+  })
+
   test("todowrite answers with the saved list and its count for clients to render", async () => {
     const directory = mkdtempSync(join(tmpdir(), "omo-v2-todo-result-"))
     directories.push(directory)

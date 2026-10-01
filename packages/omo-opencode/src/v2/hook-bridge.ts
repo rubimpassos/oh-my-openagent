@@ -121,6 +121,16 @@ function withV1Lifecycle(event: ReturnType<typeof toV1Event>): Array<ReturnType<
   return [event]
 }
 
+function resultText(content: unknown): string {
+  if (typeof content === "string") return content
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => (isRecord(part) && part.type === "text" && typeof part.text === "string" ? part.text : ""))
+      .join("")
+  }
+  return JSON.stringify(content ?? "")
+}
+
 export async function registerV1Hooks(ctx: V2Context, hooks: V1HookMap, state?: AdapterState): Promise<() => void> {
   const controller = new AbortController()
   const chatMessage = asHandler(hooks["chat.message"])
@@ -232,9 +242,7 @@ export async function registerV1Hooks(ctx: V2Context, hooks: V1HookMap, state?: 
       return safeCall("tool.execute.after", async () => {
         const failed = event.status === "error"
         const rawContent = event.status === "completed" ? event.result.content : undefined
-        const content = failed
-          ? toolErrorText(event.error)
-          : typeof rawContent === "string" ? rawContent : JSON.stringify(rawContent ?? "")
+        const content = failed ? toolErrorText(event.error) : resultText(rawContent)
         const metadata: Record<string, unknown> = { ...(event.status === "completed" ? event.result.metadata ?? {} : {}) }
         if (typeof metadata.sessionID !== "string" && typeof metadata.sessionId !== "string" && typeof metadata.session_id !== "string") {
           metadata.sessionID = event.sessionID
@@ -253,7 +261,8 @@ export async function registerV1Hooks(ctx: V2Context, hooks: V1HookMap, state?: 
         if (event.status === "completed") {
           event.result = {
             ...event.result,
-            content: output.output,
+            // OpenCode hands over content as text/file parts; keep them unless a V1 hook rewrote the text.
+            content: output.output === content ? event.result.content : output.output,
             metadata: output.metadata,
           }
         }
