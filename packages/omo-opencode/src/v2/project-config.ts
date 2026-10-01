@@ -180,6 +180,16 @@ async function projectTools(input: {
   })
 }
 
+const TODO_ITEM_SCHEMA = {
+  type: "object",
+  properties: {
+    content: { type: "string" },
+    status: { type: "string", enum: ["pending", "in_progress", "completed", "cancelled"] },
+    priority: { type: "string", enum: ["high", "medium", "low"] },
+  },
+  required: ["content", "status"],
+}
+
 function todoTool(
   name: string,
   description: string,
@@ -191,13 +201,16 @@ function todoTool(
     options: DIRECT_TOOL,
     input: {
       type: "object",
-      properties: {
-        todos: { type: "array" },
-      },
+      properties: name === "todowrite" ? { todos: { type: "array", items: TODO_ITEM_SCHEMA } } : {},
+      ...(name === "todowrite" ? { required: ["todos"] } : {}),
     },
     execute: async (args: unknown, context: { sessionID: string }) => {
       if (name === "todowrite") todos.write(context.sessionID, args)
-      return toolResult(name === "todoread" ? { todos: todos.read(context.sessionID) } : "todos updated")
+      const list = todos.read(context.sessionID)
+      return toolResult({
+        output: JSON.stringify(list, null, 2),
+        metadata: { todos: list, count: Array.isArray(list) ? list.length : 0 },
+      })
     },
   }
 }

@@ -576,6 +576,27 @@ describe("OpenCode V2 adapter", () => {
     })
   })
 
+  test("todowrite answers with the saved list and its count for clients to render", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "omo-v2-todo-result-"))
+    directories.push(directory)
+    const fake = createFakeContext()
+    Object.assign(fake.ctx.location, { directory })
+    await setupOpenCodeV2(fake.ctx, { agentDirectory: directory, server: async () => ({ tool: {} }) })
+    const todowrite = fake.tools.find((tool) => tool.name === "todowrite")
+    const result = await todowrite?.execute(
+      { todos: [{ content: "ship it", status: "in_progress", priority: "high" }, { content: "test it", status: "pending" }] },
+      { sessionID: "ses_list", id: "call_1", signal: new AbortController().signal },
+    ) as { content: string; metadata?: Record<string, unknown> } | undefined
+    expect(JSON.parse(result?.content ?? "null")).toEqual([
+      { content: "ship it", status: "in_progress", priority: "high" },
+      { content: "test it", status: "pending" },
+    ])
+    expect(result?.metadata?.count).toBe(2)
+    const todoread = fake.tools.find((tool) => tool.name === "todoread")
+    const read = await todoread?.execute({}, { sessionID: "ses_list", id: "call_2", signal: new AbortController().signal })
+    expect(JSON.parse(read?.content ?? "null")).toHaveLength(2)
+  })
+
   test("todowrite arguments come back from session.todo", async () => {
     const directory = mkdtempSync(join(tmpdir(), "omo-v2-todo-"))
     directories.push(directory)
