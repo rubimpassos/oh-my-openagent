@@ -52,7 +52,7 @@ A project bound to a saved profile gives every chat its own copy of it: your coo
 
 - Saving restarts your browser briefly and reopens your pages with new tab ids; unsent form input is lost, so save between steps.
 - If another chat saved the profile after your copy was taken, the save is refused so it does not overwrite theirs. Your browser already runs on a fresh copy with their save: redo your change and save again.
-- A project without a saved profile has nothing to save; do not ask the user to create one unless they want logins to persist.
+- A project without a saved profile has nothing to save. If logins should persist, tell the user they can create a profile and bind it to this project in OpenChamber Settings → Browser; do not insist.
 
 If a call fails with an error saying the user controls the browser, wait and retry later. Do not hammer it.
 `,
