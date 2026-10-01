@@ -556,6 +556,26 @@ describe("OpenCode V2 adapter", () => {
     await expect((unauthorized.client.session.list as () => Promise<unknown>)()).rejects.toThrow("unauthorized")
   })
 
+  test("OMO tools are offered to the model directly, outside Code Mode", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "omo-v2-direct-"))
+    directories.push(directory)
+    const fake = createFakeContext()
+    await setupOpenCodeV2(fake.ctx, {
+      agentDirectory: directory,
+      server: async () => ({
+        tool: {
+          skill: { description: "Load a skill", args: z.object({ name: z.string() }), execute: async () => "skill text" },
+        },
+      }),
+    })
+    const options = Object.fromEntries(fake.tools.map((tool) => [tool.name, (tool as { options?: unknown }).options]))
+    expect(options).toEqual({
+      skill: { codemode: false },
+      todowrite: { codemode: false },
+      todoread: { codemode: false },
+    })
+  })
+
   test("todowrite arguments come back from session.todo", async () => {
     const directory = mkdtempSync(join(tmpdir(), "omo-v2-todo-"))
     directories.push(directory)

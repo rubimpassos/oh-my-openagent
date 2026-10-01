@@ -9,6 +9,11 @@ import { toolInputSchema, toolResult } from "./tool-schema"
 
 type V2Context = Plugin.Context
 
+// OpenCode V2 puts plugin tools behind Code Mode unless they opt out, which
+// makes the model call them from a script and the client show "Script".
+// OMO tools are first-class agent tools, like the built-in read/skill/shell.
+const DIRECT_TOOL = { codemode: false } as const
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
@@ -129,6 +134,7 @@ async function projectTools(input: {
           name,
           description: tool.description,
           input: tool.input,
+          options: DIRECT_TOOL,
           execute: async (args, context) => {
             const v1Field = (key: string): unknown => Reflect.get(context, key)
             const result = await tool.execute(args, {
@@ -182,6 +188,7 @@ function todoTool(
   return {
     name,
     description,
+    options: DIRECT_TOOL,
     input: {
       type: "object",
       properties: {
