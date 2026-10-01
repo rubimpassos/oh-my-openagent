@@ -4,6 +4,7 @@ import { join } from "node:path"
 
 import type { Plugin } from "@opencode/plugin"
 import { afterEach, describe, expect, test } from "bun:test"
+import { tool } from "@opencode-ai/plugin/tool"
 import { z } from "zod"
 
 import { createAdapterState } from "./adapter-state"
@@ -11,7 +12,7 @@ import { permissionsFromV1, renderAgentMarkdown } from "./agent-markdown"
 import { createV1PluginInput } from "./context-facade"
 import { setupOpenCodeV2 } from "./host"
 import { mcpServerFromV1 } from "./project-config"
-import { toolInputSchema } from "./tool-schema"
+import { shapeToJsonSchema, toolInputSchema } from "./tool-schema"
 
 type RegisteredHook = {
   domain: string
@@ -293,6 +294,46 @@ describe("OpenCode V2 adapter", () => {
     })
     expect(schema.type).toBe("object")
     expect(schema.properties).toBeDefined()
+  })
+
+  test("converts raw args built with the plugin package's own zod copy", () => {
+    const schema = toolInputSchema(tool({
+      description: "Delegate",
+      args: { prompt: tool.schema.string(), run_in_background: tool.schema.boolean().optional() },
+      execute: async () => "",
+    })) as { properties?: Record<string, { type?: string }>; $schema?: string }
+    expect(schema.properties?.run_in_background?.type).toBe("boolean")
+    expect(schema.$schema).toBeUndefined()
+  })
+
+  test("reads a zod args shape from its definition when zod cannot convert it", () => {
+    expect(shapeToJsonSchema({
+      prompt: z.string().describe("Full prompt"),
+      run_in_background: z.boolean().optional().describe("Spawn in background"),
+      load_skills: z.array(z.string()).default([]),
+      mode: z.enum(["a", "b"]),
+      timeout: z.number().int().optional(),
+    })).toEqual({
+      type: "object",
+      properties: {
+        prompt: { description: "Full prompt", type: "string" },
+        run_in_background: { description: "Spawn in background", type: "boolean" },
+        load_skills: { type: "array", items: { type: "string" } },
+        mode: { type: "string", enum: ["a", "b"] },
+        timeout: { type: "number" },
+      },
+      required: ["prompt", "mode"],
+      additionalProperties: false,
+    })
+  })
+
+  test("converts a V1 tool's raw zod args shape, keeping types and required keys", () => {
+    const schema = toolInputSchema({
+      args: { prompt: z.string(), run_in_background: z.boolean().optional(), load_skills: z.array(z.string()).optional() },
+    }) as { properties?: Record<string, { type?: string }>; required?: string[] }
+    expect(schema.properties?.run_in_background?.type).toBe("boolean")
+    expect(schema.properties?.load_skills?.type).toBe("array")
+    expect(schema.required).toEqual(["prompt"])
   })
 
   test("facade maps session reads and logs toasts", async () => {
