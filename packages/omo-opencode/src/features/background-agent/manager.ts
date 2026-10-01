@@ -442,7 +442,7 @@ export class BackgroundManager {
   private addTask(task: BackgroundTask): void {
     this.completedTaskArchive.delete(task.id)
     this.tasks.set(task.id, task)
-    rememberBackgroundTask(task)
+    rememberBackgroundTask(task, this.directory)
     if (!task.parentSessionId) {
       return
     }

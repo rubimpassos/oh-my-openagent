@@ -6,6 +6,7 @@ const REGISTRY_KEY = "__omoBackgroundTaskRegistry"
 type BackgroundTaskRegistry = {
   activeTasks: Map<string, () => BackgroundTask>
   completedTasks: Map<string, BackgroundTask>
+  owners?: Map<string, string>
 }
 
 type GlobalWithBackgroundTaskRegistry = typeof globalThis & {
@@ -96,10 +97,17 @@ function trimCompletedTasks(registry: BackgroundTaskRegistry): void {
   }
 }
 
-export function rememberBackgroundTask(task: BackgroundTask): void {
+function owners(registry: BackgroundTaskRegistry): Map<string, string> {
+  registry.owners ??= new Map<string, string>()
+  return registry.owners
+}
+
+/** `owner` is the directory of the plugin instance that runs the task. */
+export function rememberBackgroundTask(task: BackgroundTask, owner?: string): void {
   const registry = getRegistry()
   registry.completedTasks.delete(task.id)
   registry.activeTasks.set(task.id, () => cloneRegisteredTask(task))
+  if (owner) owners(registry).set(task.id, owner)
 }
 
 export function archiveBackgroundTask(task: BackgroundTask): void {
@@ -107,10 +115,15 @@ export function archiveBackgroundTask(task: BackgroundTask): void {
   registry.activeTasks.delete(task.id)
   registry.completedTasks.delete(task.id)
   if (!task.sessionId || !TERMINAL_TASK_STATUSES.has(task.status)) {
+    owners(registry).delete(task.id)
     return
   }
   registry.completedTasks.set(task.id, cloneRegisteredTask(task))
   trimCompletedTasks(registry)
+  const known = owners(registry)
+  for (const taskID of known.keys()) {
+    if (!registry.activeTasks.has(taskID) && !registry.completedTasks.has(taskID)) known.delete(taskID)
+  }
 }
 
 export function getRegisteredBackgroundTask(taskID: string): BackgroundTask | undefined {
@@ -124,14 +137,25 @@ export function getRegisteredBackgroundTask(taskID: string): BackgroundTask | un
   return completedTask ? cloneRegisteredTask(completedTask) : undefined
 }
 
+export function listRegisteredBackgroundTasks(owner: string): BackgroundTask[] {
+  const registry = getRegistry()
+  const known = owners(registry)
+  return [
+    ...[...registry.activeTasks].filter(([taskID]) => known.get(taskID) === owner).map(([, readTask]) => readTask()),
+    ...[...registry.completedTasks].filter(([taskID]) => known.get(taskID) === owner).map(([, task]) => cloneRegisteredTask(task)),
+  ]
+}
+
 export function forgetBackgroundTask(taskID: string): void {
   const registry = getRegistry()
   registry.activeTasks.delete(taskID)
   registry.completedTasks.delete(taskID)
+  owners(registry).delete(taskID)
 }
 
 export function clearBackgroundTaskRegistryForTesting(): void {
   const registry = getRegistry()
   registry.activeTasks.clear()
   registry.completedTasks.clear()
+  owners(registry).clear()
 }

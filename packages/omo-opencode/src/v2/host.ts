@@ -2,7 +2,9 @@ import type { Plugin } from "@opencode/plugin"
 
 import { log } from "../shared/logger"
 import { setVersionCache } from "../shared/opencode-version"
+import { validatePluginConfig } from "../config/validate"
 import { createAdapterState } from "./adapter-state"
+import { startClientStatePublisher } from "./client-state"
 import { createV1PluginInput } from "./context-facade"
 import { registerV1Hooks, type V1HookMap } from "./hook-bridge"
 import { projectV1Surface } from "./project-config"
@@ -69,9 +71,27 @@ export async function setupOpenCodeV2(
     })
   }
 
+  const stopPublisher = startClientStatePublisher({
+    stateDirectory: state.directory,
+    owner: v1Input.directory,
+    teamMode: teamModeConfig(v1Input.directory),
+  })
+
   const dispose = hooks.dispose
   return async () => {
     stopEvents()
+    stopPublisher()
     if (typeof dispose === "function") await dispose()
+  }
+}
+
+function teamModeConfig(directory: string): ReturnType<typeof validatePluginConfig>["config"]["team_mode"] {
+  try {
+    return validatePluginConfig(directory).config.team_mode
+  } catch (error) {
+    log("[oh-my-openagent] team mode config unavailable for client state", {
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return undefined
   }
 }
