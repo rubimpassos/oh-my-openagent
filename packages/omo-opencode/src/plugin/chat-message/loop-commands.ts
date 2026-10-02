@@ -27,7 +27,8 @@ export function handleGoalMessage(args: {
   // message as "/goal <text>" replaced the objective with whatever the user
   // typed next. The native command path (command.execute.before) already
   // handled /goal when it ran; this covers clients that send it as text.
-  const command = /^\s*\/goal(?:\s+([\s\S]*))?$/i.exec(promptText)
+  // `opencode run "/goal x"` can deliver the quotes too.
+  const command = /^\s*["']?\/goal(?:\s+([\s\S]*?))?["']?\s*$/i.exec(promptText)
   const parsed = command ? parseGoalCommand(command[1] ?? "") : { kind: "show" as const }
 
   switch (parsed.kind) {

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import type { PluginInput } from "@opencode-ai/plugin"
 import { createGoalHook } from "./index"
+import { releaseAllPromptAsyncReservationsForTesting } from "../shared/prompt-async-gate"
 
 function makePluginInput(): PluginInput {
   return {
@@ -118,6 +119,20 @@ describe("goal continuation loop", () => {
     expect(hook.getGoal("s1")?.turnsUsed).toBe(1)
   })
 
+  test("a continuation the gate still holds is not counted and is tried again shortly", async () => {
+    const { ctx, sent } = loopInput()
+    const hook = createGoalHook(ctx, { projectDir: ctx.directory, retryDelayMs: 20, hasActiveBackgroundTasks: () => false })
+    hook.setGoal("s1", "Ship it")
+    await hook.event(idle)
+    expect(hook.getGoal("s1")?.turnsUsed).toBe(1)
+    await hook.event(idle)
+    expect(hook.getGoal("s1")?.turnsUsed).toBe(1)
+    releaseAllPromptAsyncReservationsForTesting()
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    expect(hook.getGoal("s1")?.turnsUsed).toBe(2)
+    expect(sent.length).toBe(2)
+  })
+
   test("records the tokens the goal spent and stops when its budget is gone", async () => {
     const start = Math.trunc(Date.now() / 1000)
     const turn = (created: number, input: number) => ({
@@ -140,7 +155,9 @@ describe("goal continuation loop", () => {
     const hook = createGoalHook(ctx, { projectDir: ctx.directory, maxTurns: 2, hasActiveBackgroundTasks: () => false })
     hook.setGoal("s1", "Ship it")
     await hook.event(idle)
+    releaseAllPromptAsyncReservationsForTesting()
     await hook.event(idle)
+    releaseAllPromptAsyncReservationsForTesting()
     expect(hook.getGoal("s1")?.status).toBe("active")
     await hook.event(idle)
     expect(hook.getGoal("s1")?.status).toBe("blocked")

@@ -15,6 +15,8 @@ export type GoalHookOptions = {
   readonly maxTurns?: number
   /** Whether a background task launched from the session still runs; its result wakes the session. */
   readonly hasActiveBackgroundTasks?: (sessionID: string) => boolean
+  /** Delay before looking again when the prompt gate still held the session. */
+  readonly retryDelayMs?: number
 }
 
 const DEFAULT_MAX_TURNS = 100
@@ -58,6 +60,18 @@ export function createGoalHook(ctx: PluginInput, options: GoalHookOptions): Goal
     }
   }
 
+  const retryTimers = new Map<string, ReturnType<typeof setTimeout>>()
+  const retryDelayMs = options.retryDelayMs ?? 3_000
+  function scheduleRetry(sessionID: string): void {
+    if (retryTimers.has(sessionID)) return
+    const timer = setTimeout(() => {
+      retryTimers.delete(sessionID)
+      void handleSessionIdle(sessionID)
+    }, retryDelayMs)
+    timer.unref?.()
+    retryTimers.set(sessionID, timer)
+  }
+
   async function handleSessionIdle(sessionID: string): Promise<void> {
     const initial = controller.getGoal(sessionID)
     if (initial === null || initial.status !== "active") {
@@ -85,7 +99,6 @@ export function createGoalHook(ctx: PluginInput, options: GoalHookOptions): Goal
         controller.settle(sessionID, "blocked")
         return
       }
-      controller.noteContinuation(sessionID)
       const promptText = buildContinuationPrompt(goal)
       const promptResult = await dispatchInternalPrompt({
         mode: "async",
@@ -94,6 +107,11 @@ export function createGoalHook(ctx: PluginInput, options: GoalHookOptions): Goal
         source: `${HOOK_NAME}:idle-continuation`,
         settleMs: 150,
         queueBehavior: "defer",
+        // Every continuation reads alike, so the gate's semantic dedupe would
+        // swallow the next one when a turn takes under its hold window. One
+        // key per goal turn keeps duplicates of the same turn out and lets
+        // the next turn through.
+        dedupeKey: `goal:${goal.id}:${goal.turnsUsed}`,
         input: {
           path: { id: sessionID },
           body: {
@@ -101,6 +119,14 @@ export function createGoalHook(ctx: PluginInput, options: GoalHookOptions): Goal
           },
         },
       })
+      if (promptResult.status === "dispatched" || (promptResult.status === "failed" && isInternalPromptDispatchAccepted(promptResult))) {
+        controller.noteContinuation(sessionID)
+      } else if (promptResult.status === "reserved") {
+        // The gate still holds the previous dispatch (a short turn finished
+        // inside its hold window). No idle will come again on its own, so look
+        // once more shortly instead of leaving the goal stalled.
+        scheduleRetry(sessionID)
+      }
       if (promptResult.status === "failed" && !isInternalPromptDispatchAccepted(promptResult)) {
         // Log only; the dispatch may still have been accepted by another route.
         // eslint-disable-next-line no-console
