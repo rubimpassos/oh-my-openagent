@@ -11,11 +11,21 @@ import {
 import type { TeamModeConfig } from "@oh-my-opencode/team-core/config"
 import { resolveBaseDir } from "@oh-my-opencode/team-core/team-registry/paths"
 import { loadRuntimeState } from "@oh-my-opencode/team-core/team-state-store/store"
+import { listUnreadMessages } from "@oh-my-opencode/team-core/team-mailbox"
 
 import { listRegisteredBackgroundTasks } from "../features/background-agent/task-registry"
 import type { BackgroundTask } from "../features/background-agent/types"
 import { GoalFileSchema } from "../hooks/goal/types"
 import { log } from "../shared/logger"
+import type { BackgroundTaskControl } from "../features/background-agent/task-registry"
+import {
+  CLIENT_STATE_SCHEMA,
+  createTransitionWatcher,
+  processClientRequests,
+  providerHealth,
+  snapshotOf,
+  type Notice,
+} from "./client-control"
 
 // Clients such as the OpenChamber extension read these files from
 // `<project>/.omo/v2-state/`, keyed by the session that owns the work.
@@ -77,7 +87,7 @@ export type ClientTeamRun = {
   teamRunId: string
   teamName: string
   status: string
-  members: Array<{ name: string; sessionID?: string; status: string; agentType: string }>
+  members: Array<{ name: string; sessionID?: string; status: string; agentType: string; unread?: number }>
 }
 
 const RETIRED_TEAM_STATUSES = new Set(["deleted", "failed", "deleting"])
@@ -209,11 +219,15 @@ export async function teamRunsByLead(config: TeamModeConfig): Promise<Record<str
       teamRunId: run.teamRunId,
       teamName: run.teamName,
       status: run.status,
-      members: run.members.map((member) => ({
-        name: member.name,
-        ...(member.sessionId ? { sessionID: member.sessionId } : {}),
-        status: member.status,
-        agentType: member.agentType,
+      members: await Promise.all(run.members.map(async (member) => {
+        const unread = await listUnreadMessages(run.teamRunId, member.name, config).then((messages) => messages.length, () => 0)
+        return {
+          name: member.name,
+          ...(member.sessionId ? { sessionID: member.sessionId } : {}),
+          status: member.status,
+          agentType: member.agentType,
+          ...(unread > 0 ? { unread } : {}),
+        }
       })),
     })
   }
@@ -263,22 +277,43 @@ export function startSerialLoop(name: string, task: () => Promise<void>, interva
   return () => clearInterval(interval)
 }
 
+const META_INTERVAL_MS = 30_000
+
 export function startClientStatePublisher(input: {
   stateDirectory: string
   teamMode?: TeamModeConfig
   intervalMs?: number
   owner: string
   readTasks?: () => readonly BackgroundTask[]
+  /** Model chains per category, for the client's model health view. */
+  categories?: Record<string, string[]>
+  /** The background manager of this instance, for cancel / retry requests. */
+  control?: () => BackgroundTaskControl | undefined
+  /** Native notifications for failed tasks, finished tasks, plans and goals. */
+  notify?: (notice: Notice) => Promise<void>
 }): () => void {
   const readTasks = input.readTasks ?? (() => listRegisteredBackgroundTasks(input.owner))
   let running = false
+  let metaAt = 0
+  const transitions = createTransitionWatcher()
   const publish = async () => {
     if (running) return
     running = true
     try {
-      writeIfChanged(input.stateDirectory, "background.json", backgroundTasksByParent(readTasks()))
-      writeIfChanged(input.stateDirectory, "plans.json", plansBySession(input.owner))
-      writeIfChanged(input.stateDirectory, "goals.json", goalsBySession(input.owner))
+      await processClientRequests(input.stateDirectory, input.control?.())
+      const tasks = readTasks()
+      const plans = plansBySession(input.owner)
+      const goals = goalsBySession(input.owner)
+      writeIfChanged(input.stateDirectory, "background.json", backgroundTasksByParent(tasks))
+      writeIfChanged(input.stateDirectory, "plans.json", plans)
+      writeIfChanged(input.stateDirectory, "goals.json", goals)
+      writeIfChanged(input.stateDirectory, "health.json", { categories: input.categories ?? {}, providers: providerHealth(tasks, Date.now()) })
+      // A heartbeat, not a change: clients tell a stopped plugin from an idle one by its age.
+      if (Date.now() - metaAt >= META_INTERVAL_MS) {
+        metaAt = Date.now()
+        writeIfChanged(input.stateDirectory, "meta.json", { schema: CLIENT_STATE_SCHEMA, publishedAt: metaAt, heartbeatMs: META_INTERVAL_MS })
+      }
+      for (const notice of transitions(snapshotOf({ tasks, goals, plans }))) await input.notify?.(notice)
       if (input.teamMode?.enabled) {
         writeIfChanged(input.stateDirectory, "teams.json", await teamRunsByLead(input.teamMode))
       }

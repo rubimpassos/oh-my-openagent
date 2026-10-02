@@ -8,6 +8,8 @@ import { startClientStatePublisher, startSerialLoop } from "./client-state"
 import { createV1PluginInput } from "./context-facade"
 import { registerV1Hooks, type V1HookMap } from "./hook-bridge"
 import { createGoalSync } from "./goal-sync"
+import { categoryModels, createNotifier } from "./client-control"
+import { getBackgroundTaskControl } from "../features/background-agent/task-registry"
 import { serveOrigin } from "./catalog"
 import { getSessionRecord, listenPortOf, patchSessionMetadata } from "./serve-http"
 import { projectV1Surface } from "./project-config"
@@ -74,6 +76,7 @@ export async function setupOpenCodeV2(
     })
   }
 
+  const notifier = createNotifier()
   let cachedOrigin: string | undefined
   const goalOrigin = async () => (cachedOrigin ??= await serveOrigin(process.argv, listenPortOf))
   const syncGoals = goalEnabled(v1Input.directory)
@@ -97,6 +100,9 @@ export async function setupOpenCodeV2(
     stateDirectory: state.directory,
     owner: v1Input.directory,
     teamMode: teamModeConfig(v1Input.directory),
+    categories: categoryChains(v1Input.directory),
+    control: () => getBackgroundTaskControl(v1Input.directory),
+    ...(notifier ? { notify: notifier } : {}),
   })
   // Separate from the file publisher: it calls OpenCode, which can be slow or
   // not ready while this location boots, and must never hold the files back.
@@ -131,6 +137,14 @@ function jsonRecord(value: Record<string, unknown>): { [key: string]: JsonValue 
     if (json !== undefined) record[key] = json
   }
   return record
+}
+
+function categoryChains(directory: string): Record<string, string[]> {
+  try {
+    return categoryModels(validatePluginConfig(directory).config.categories)
+  } catch {
+    return {}
+  }
 }
 
 function goalEnabled(directory: string): boolean {

@@ -168,3 +168,28 @@ export function clearBackgroundTaskRegistryForTesting(): void {
   registry.completedTasks.clear()
   owners(registry).clear()
 }
+
+/** What a client may ask of a running plugin instance's background manager. */
+export type BackgroundTaskControl = {
+  getTask(id: string): BackgroundTask | undefined
+  cancelTask(id: string, options?: { source?: string; reason?: string }): Promise<boolean>
+  launch(input: import("./types").LaunchInput): Promise<BackgroundTask>
+}
+
+const MANAGERS_KEY = "__omoBackgroundManagers"
+type GlobalWithManagers = typeof globalThis & { [MANAGERS_KEY]?: Map<string, BackgroundTaskControl> }
+
+function managers(): Map<string, BackgroundTaskControl> {
+  const holder = globalThis as GlobalWithManagers
+  holder[MANAGERS_KEY] ??= new Map()
+  return holder[MANAGERS_KEY]
+}
+
+/** The manager running tasks for the plugin instance in `owner` (its directory). */
+export function registerBackgroundTaskControl(owner: string, control: BackgroundTaskControl): void {
+  managers().set(owner, control)
+}
+
+export function getBackgroundTaskControl(owner: string): BackgroundTaskControl | undefined {
+  return managers().get(owner)
+}
