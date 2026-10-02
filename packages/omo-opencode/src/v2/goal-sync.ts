@@ -90,8 +90,9 @@ const withGoal = (metadata: Metadata, goal: Metadata | null): Metadata => {
  */
 export function createGoalSync(input: { projectDir: string; session: SessionApi }): () => Promise<void> {
   const controller = createGoalController({ projectDir: input.projectDir })
-  // Goal id last mirrored per session: a missing mirror means "cleared in
-  // OpenChamber" only for a goal this process already mirrored.
+  // Goal id whose mirror this process has READ BACK from the session: only
+  // then does a missing mirror mean "cleared in OpenChamber". A write that
+  // never landed must not be mistaken for the user clearing the goal.
   const mirrored = new Map<string, string>()
   // Sessions whose sync failed, so a deleted session is logged once, not every tick.
   const failing = new Set<string>()
@@ -141,7 +142,7 @@ export function createGoalSync(input: { projectDir: string; session: SessionApi 
     }
 
     const desired = goalMirror(goal)
-    mirrored.set(sessionID, goal.id)
+    if (mirror?.driver === OMO_GOAL_DRIVER && mirror.id === goal.id) mirrored.set(sessionID, goal.id)
     if (sameMirror(mirror, desired)) return
     await write(sessionID, metadata, desired)
   }

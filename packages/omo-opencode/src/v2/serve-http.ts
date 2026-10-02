@@ -80,3 +80,34 @@ export async function activeSessions(origin: string, fetchImpl: typeof fetch): P
   for (const sessionID of Object.keys(source)) status[sessionID] = { type: "busy" }
   return status
 }
+
+const authHeaders = (): Headers => {
+  const headers = new Headers({ "content-type": "application/json" })
+  const auth = getServerBasicAuthHeader()
+  if (auth) headers.set("Authorization", auth)
+  return headers
+}
+
+const unwrap = (body: unknown): unknown => (isRecord(body) && "data" in body ? body.data : body)
+
+/** A session record over HTTP; `metadata` is what OpenCode stored for it. */
+export async function getSessionRecord(origin: string, sessionID: string, fetchImpl: typeof fetch): Promise<Record<string, unknown>> {
+  const response = await fetchImpl(`${origin}/api/session/${encodeURIComponent(sessionID)}`, { headers: authHeaders() })
+  if (!response.ok) throw new SessionHttpError(response.status)
+  const session = unwrap(await response.json())
+  return isRecord(session) ? session : {}
+}
+
+/**
+ * Replaces a session's metadata. The plugin `session.update` accepts metadata
+ * but OpenCode 2.0.x does not store it from there; this is the route
+ * OpenChamber writes goal metadata through.
+ */
+export async function patchSessionMetadata(origin: string, sessionID: string, metadata: Record<string, unknown>, fetchImpl: typeof fetch): Promise<void> {
+  const response = await fetchImpl(`${origin}/api/session/${encodeURIComponent(sessionID)}`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify({ metadata }),
+  })
+  if (!response.ok) throw new SessionHttpError(response.status)
+}

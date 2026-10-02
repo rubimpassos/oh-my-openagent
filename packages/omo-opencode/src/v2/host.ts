@@ -4,10 +4,12 @@ import { log } from "../shared/logger"
 import { setVersionCache } from "../shared/opencode-version"
 import { validatePluginConfig } from "../config/validate"
 import { createAdapterState } from "./adapter-state"
-import { startClientStatePublisher } from "./client-state"
+import { startClientStatePublisher, startSerialLoop } from "./client-state"
 import { createV1PluginInput } from "./context-facade"
 import { registerV1Hooks, type V1HookMap } from "./hook-bridge"
 import { createGoalSync } from "./goal-sync"
+import { serveOrigin } from "./catalog"
+import { getSessionRecord, listenPortOf, patchSessionMetadata } from "./serve-http"
 import { projectV1Surface } from "./project-config"
 
 type V1Server = (input: never, options: unknown) => Promise<V1HookMap>
@@ -72,12 +74,22 @@ export async function setupOpenCodeV2(
     })
   }
 
+  let cachedOrigin: string | undefined
+  const goalOrigin = async () => (cachedOrigin ??= await serveOrigin(process.argv, listenPortOf))
   const syncGoals = goalEnabled(v1Input.directory)
     ? createGoalSync({
       projectDir: v1Input.directory,
       session: {
-        get: (input) => ctx.session.get(input),
-        update: (input) => ctx.session.update({ sessionID: input.sessionID, metadata: jsonRecord(input.metadata) }),
+        get: async ({ sessionID }) => {
+          const origin = await goalOrigin()
+          if (!origin) throw new Error("OpenCode server origin unknown")
+          return getSessionRecord(origin, sessionID, fetch)
+        },
+        update: async ({ sessionID, metadata }) => {
+          const origin = await goalOrigin()
+          if (!origin) throw new Error("OpenCode server origin unknown")
+          await patchSessionMetadata(origin, sessionID, jsonRecord(metadata), fetch)
+        },
       },
     })
     : undefined
@@ -85,13 +97,16 @@ export async function setupOpenCodeV2(
     stateDirectory: state.directory,
     owner: v1Input.directory,
     teamMode: teamModeConfig(v1Input.directory),
-    ...(syncGoals ? { afterPublish: syncGoals } : {}),
   })
+  // Separate from the file publisher: it calls OpenCode, which can be slow or
+  // not ready while this location boots, and must never hold the files back.
+  const stopGoalSync = syncGoals ? startSerialLoop("goal sync", syncGoals, 2000, 10_000) : () => {}
 
   const dispose = hooks.dispose
   return async () => {
     stopEvents()
     stopPublisher()
+    stopGoalSync()
     if (typeof dispose === "function") await dispose()
   }
 }

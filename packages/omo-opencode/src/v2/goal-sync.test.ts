@@ -34,7 +34,7 @@ function setup() {
     const namespace = metadata.openchamber as Metadata
     records.set("ses_1", { ...metadata, openchamber: { ...namespace, goal: { ...(namespace.goal as Metadata), ...change, updatedAt: Date.now() + 5_000 } } })
   }
-  return { controller, sync, mirror, editMirror, records, writes }
+  return { controller, sync, mirror, editMirror, records, writes, projectDir }
 }
 
 describe("OMO goal ↔ OpenChamber goal", () => {
@@ -63,15 +63,26 @@ describe("OMO goal ↔ OpenChamber goal", () => {
     expect(controller.getGoal("ses_1")).toMatchObject({ status: "active", objective: "ship the release", tokenBudget: 50_000 })
   })
 
+  test("a mirror write that never landed does not clear OMO's goal", async () => {
+    const { controller, projectDir } = setup()
+    controller.setGoal("ses_1", "keep me")
+    const lossy = createGoalSync({ projectDir, session: { get: async () => ({ metadata: {} }), update: async () => {} } })
+    await lossy()
+    await lossy()
+    expect(controller.getGoal("ses_1")?.objective).toBe("keep me")
+  })
+
   test("clearing the goal in OpenChamber clears OMO's, and clearing it in OMO removes the mirror", async () => {
     const { controller, sync, records, mirror } = setup()
     controller.setGoal("ses_1", "first")
     await sync()
+    await sync() // the mirror is read back before its absence means anything
     records.set("ses_1", { openchamber: {} })
     await sync()
     expect(controller.getGoal("ses_1")).toBeNull()
 
     controller.setGoal("ses_1", "second")
+    await sync()
     await sync()
     expect(mirror()?.objective).toBe("second")
     controller.clearGoal("ses_1")

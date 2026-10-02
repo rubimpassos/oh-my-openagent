@@ -23,7 +23,12 @@ export function handleGoalMessage(args: {
   if (promptText.includes(AUTO_SLASH_COMMAND_TAG_OPEN)) {
     return
   }
-  const parsed = parseGoalCommand(promptText)
+  // Only a message that is a /goal command changes the goal. Treating every
+  // message as "/goal <text>" replaced the objective with whatever the user
+  // typed next. The native command path (command.execute.before) already
+  // handled /goal when it ran; this covers clients that send it as text.
+  const command = /^\s*\/goal(?:\s+([\s\S]*))?$/i.exec(promptText)
+  const parsed = command ? parseGoalCommand(command[1] ?? "") : { kind: "show" as const }
 
   switch (parsed.kind) {
     case "setObjective":

@@ -230,14 +230,45 @@ function writeIfChanged(directory: string, name: string, value: Record<string, u
   writeFileSync(file, text)
 }
 
+/**
+ * Runs `task` every `intervalMs`, one run at a time. A run that takes longer
+ * than `timeoutMs` is abandoned (logged) so a hung call cannot stop the loop.
+ */
+export function startSerialLoop(name: string, task: () => Promise<void>, intervalMs: number, timeoutMs: number): () => void {
+  let running = false
+  const run = async () => {
+    if (running) return
+    running = true
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      await Promise.race([
+        task(),
+        new Promise<void>((resolve) => {
+          timer = setTimeout(() => {
+            log(`[oh-my-openagent] ${name} took longer than ${timeoutMs} ms; continuing`)
+            resolve()
+          }, timeoutMs)
+          timer.unref?.()
+        }),
+      ])
+    } catch (error) {
+      log(`[oh-my-openagent] ${name} failed`, { error: error instanceof Error ? error.message : String(error) })
+    } finally {
+      if (timer) clearTimeout(timer)
+      running = false
+    }
+  }
+  const interval = setInterval(() => void run(), intervalMs)
+  interval.unref?.()
+  return () => clearInterval(interval)
+}
+
 export function startClientStatePublisher(input: {
   stateDirectory: string
   teamMode?: TeamModeConfig
   intervalMs?: number
   owner: string
   readTasks?: () => readonly BackgroundTask[]
-  /** Runs after each publish, in the same serial loop (OMO goal ↔ OpenChamber goal sync). */
-  afterPublish?: () => Promise<void>
 }): () => void {
   const readTasks = input.readTasks ?? (() => listRegisteredBackgroundTasks(input.owner))
   let running = false
@@ -248,7 +279,6 @@ export function startClientStatePublisher(input: {
       writeIfChanged(input.stateDirectory, "background.json", backgroundTasksByParent(readTasks()))
       writeIfChanged(input.stateDirectory, "plans.json", plansBySession(input.owner))
       writeIfChanged(input.stateDirectory, "goals.json", goalsBySession(input.owner))
-      await input.afterPublish?.()
       if (input.teamMode?.enabled) {
         writeIfChanged(input.stateDirectory, "teams.json", await teamRunsByLead(input.teamMode))
       }
