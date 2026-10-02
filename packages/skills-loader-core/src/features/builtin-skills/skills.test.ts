@@ -1,10 +1,34 @@
 /// <reference path="../../../../../bun-test.d.ts" />
 
 import { describe, test, expect } from "bun:test"
-import { createBuiltinSkills } from "./skills"
+import { createBuiltinSkills, omitsOwnBrowserSkill } from "./skills"
 import { playwrightSkill } from "./skills/playwright"
 
 describe("createBuiltinSkills", () => {
+	test("registers no browser skill when browserProvider is 'external'", () => {
+		// given - another plugin provides browsing
+		const options = { browserProvider: "external" as const }
+
+		// when
+		const names = createBuiltinSkills(options).map((skill) => skill.name)
+
+		// then
+		for (const name of ["playwright", "dev-browser", "playwright-cli", "browser", "ultimate-browsing"]) {
+			expect(names).not.toContain(name)
+		}
+		expect(names).toContain("git-master")
+	})
+
+	test("omitsOwnBrowserSkill drops only OMO's own browser skills, only for 'external'", () => {
+		expect(omitsOwnBrowserSkill("external", { name: "browser", scope: "shared" })).toBe(true)
+		expect(omitsOwnBrowserSkill("external", { name: "ultimate-browsing", scope: "shared" })).toBe(true)
+		expect(omitsOwnBrowserSkill("external", { name: "playwright", scope: "builtin" })).toBe(true)
+		expect(omitsOwnBrowserSkill("external", { name: "browser", scope: "user" })).toBe(false)
+		expect(omitsOwnBrowserSkill("external", { name: "git-master", scope: "shared" })).toBe(false)
+		expect(omitsOwnBrowserSkill("playwright", { name: "browser", scope: "shared" })).toBe(false)
+		expect(omitsOwnBrowserSkill(undefined, { name: "browser", scope: "shared" })).toBe(false)
+	})
+
 	test("returns playwright skill by default", () => {
 		// given - no options (default)
 

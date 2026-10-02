@@ -4,6 +4,7 @@ export const BrowserAutomationProviderSchema = z.enum([
   "playwright",
   "dev-browser",
   "playwright-cli",
+  "external",
 ], {
   error: (issue) => `Browser provider ${JSON.stringify(issue.input)} is no longer supported; use the built-in browser path: Bun.WebView / playwright-core scripts`,
 })
@@ -14,6 +15,9 @@ export const BrowserAutomationConfigSchema = z.object({
    * - "playwright": Uses Playwright MCP server (@playwright/mcp) - default
    * - "dev-browser": Uses dev-browser skill with persistent browser state
    * - "playwright-cli": Uses Playwright CLI (@playwright/cli) - token-efficient CLI alternative
+   * - "external": OMO registers no browser skill of its own (neither the
+   *   provider skill nor the shared `browser` / `ultimate-browsing` skills);
+   *   another plugin provides browsing
    */
   provider: BrowserAutomationProviderSchema.default("playwright"),
   /**

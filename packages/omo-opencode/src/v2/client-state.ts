@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
 import { readdir } from "node:fs/promises"
 import { join } from "node:path"
+import { resolveOmoConfigPaths } from "@oh-my-opencode/omo-config-core"
 
 import {
   getBoulderWorks,
@@ -279,6 +280,15 @@ export function startSerialLoop(name: string, task: () => Promise<void>, interva
 
 const META_INTERVAL_MS = 30_000
 
+/** The OMO config files this instance loads, so a client can show or edit them. */
+export function configPathsOf(directory: string): { userConfigPath: string; projectConfigPaths: string[] } {
+  const candidates = resolveOmoConfigPaths({ cwd: directory })
+  return {
+    userConfigPath: candidates.find((candidate) => candidate.scope === "user")?.path ?? "",
+    projectConfigPaths: candidates.filter((candidate) => candidate.scope === "project").map((candidate) => candidate.path),
+  }
+}
+
 export function startClientStatePublisher(input: {
   stateDirectory: string
   teamMode?: TeamModeConfig
@@ -295,6 +305,7 @@ export function startClientStatePublisher(input: {
   const readTasks = input.readTasks ?? (() => listRegisteredBackgroundTasks(input.owner))
   let running = false
   let metaAt = 0
+  const configPaths = configPathsOf(input.owner)
   const transitions = createTransitionWatcher()
   const publish = async () => {
     if (running) return
@@ -311,7 +322,7 @@ export function startClientStatePublisher(input: {
       // A heartbeat, not a change: clients tell a stopped plugin from an idle one by its age.
       if (Date.now() - metaAt >= META_INTERVAL_MS) {
         metaAt = Date.now()
-        writeIfChanged(input.stateDirectory, "meta.json", { schema: CLIENT_STATE_SCHEMA, publishedAt: metaAt, heartbeatMs: META_INTERVAL_MS })
+        writeIfChanged(input.stateDirectory, "meta.json", { schema: CLIENT_STATE_SCHEMA, publishedAt: metaAt, heartbeatMs: META_INTERVAL_MS, ...configPaths })
       }
       for (const notice of transitions(snapshotOf({ tasks, goals, plans }))) await input.notify?.(notice)
       if (input.teamMode?.enabled) {

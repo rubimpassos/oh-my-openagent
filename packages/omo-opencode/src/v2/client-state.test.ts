@@ -13,7 +13,7 @@ import {
   rememberBackgroundTask,
 } from "../features/background-agent/task-registry"
 import type { BackgroundTask } from "../features/background-agent/types"
-import { backgroundTasksByParent, goalsBySession, plansBySession, startClientStatePublisher, teamRunsByLead } from "./client-state"
+import { backgroundTasksByParent, configPathsOf, goalsBySession, plansBySession, startClientStatePublisher, teamRunsByLead } from "./client-state"
 
 const directories: string[] = []
 afterEach(() => {
@@ -132,6 +132,37 @@ describe("OpenCode V2 client state", () => {
       expect(JSON.parse(readFileSync(join(stateDirectory, "teams.json"), "utf8")).ses_lead[0].teamName).toBe("reviewers")
     } finally {
       stop()
+    }
+  })
+
+  test("meta.json names the user config file this instance loads", async () => {
+    const stateDirectory = join(scratch(), ".omo", "v2-state")
+    const configDirectory = scratch()
+    const previous = process.env.OMO_CONFIG_DIR
+    process.env.OMO_CONFIG_DIR = configDirectory
+    try {
+      expect(configPathsOf("/repo").userConfigPath).toBe(join(configDirectory, "omo.jsonc"))
+      writeFileSync(join(configDirectory, "omo.json"), "{}")
+      expect(configPathsOf("/repo").userConfigPath).toBe(join(configDirectory, "omo.json"))
+      const stop = startClientStatePublisher({ stateDirectory, owner: "/repo", readTasks: () => [], intervalMs: 10 })
+      try {
+        await waitFor(() => {
+          try {
+            readFileSync(join(stateDirectory, "meta.json"), "utf8")
+            return true
+          } catch {
+            return false
+          }
+        })
+        const meta = JSON.parse(readFileSync(join(stateDirectory, "meta.json"), "utf8"))
+        expect(meta.userConfigPath).toBe(join(configDirectory, "omo.json"))
+        expect(Array.isArray(meta.projectConfigPaths)).toBe(true)
+      } finally {
+        stop()
+      }
+    } finally {
+      if (previous === undefined) delete process.env.OMO_CONFIG_DIR
+      else process.env.OMO_CONFIG_DIR = previous
     }
   })
 

@@ -18,6 +18,28 @@ import {
   teamModeSkill,
 } from "./skills/index"
 
+/** Every browser skill OMO ships: the provider variants and the shared browsing skills. */
+export const OMO_BROWSER_SKILL_NAMES: ReadonlySet<string> = new Set([
+  "playwright",
+  "dev-browser",
+  "playwright-cli",
+  "browser",
+  "ultimate-browsing",
+])
+
+/**
+ * With the `external` provider another plugin provides browsing, so the
+ * browser skills OMO ships itself (built-in or shared) are left out. Skills
+ * the user installed are not OMO's and stay.
+ */
+export function omitsOwnBrowserSkill(
+  provider: BrowserAutomationProvider | undefined,
+  skill: { readonly name: string; readonly scope?: string },
+): boolean {
+  if (provider !== "external" || !OMO_BROWSER_SKILL_NAMES.has(skill.name)) return false
+  return skill.scope === undefined || skill.scope === "builtin" || skill.scope === "shared"
+}
+
 export interface CreateBuiltinSkillsOptions {
   browserProvider?: BrowserAutomationProvider
   disabledSkills?: Set<string>
@@ -46,10 +68,10 @@ export function createBuiltinSkills(options: CreateBuiltinSkillsOptions = {}): B
     playwright: playwrightMcpArgs?.length
       ? createPlaywrightSkill({ mcp_args: playwrightMcpArgs })
       : playwrightSkill,
-  } satisfies Record<BrowserAutomationProvider, BuiltinSkill>
+  } satisfies Record<Exclude<BrowserAutomationProvider, "external">, BuiltinSkill>
 
 	const skills = [
-		browserSkills[browserProvider],
+		...(browserProvider === "external" ? [] : [browserSkills[browserProvider]]),
 		frontendSkill,
 		gitMasterSkill,
 		reviewWorkSkill,

@@ -5,7 +5,12 @@ export type { CommandDefinition }
 
 export type SkillMcpConfig = Record<string, ClaudeCodeMcpServer>
 
-export type BrowserAutomationProvider = "playwright" | "dev-browser" | "playwright-cli"
+/**
+ * `external`: OMO registers no browser skill of its own (no built-in browser
+ * skill, no `browser` / `ultimate-browsing` shared skills); another plugin
+ * provides browsing.
+ */
+export type BrowserAutomationProvider = "playwright" | "dev-browser" | "playwright-cli" | "external"
 
 export interface GitMasterConfig {
   readonly commit_footer?: boolean | string

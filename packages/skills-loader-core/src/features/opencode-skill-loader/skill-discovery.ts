@@ -1,4 +1,4 @@
-import { createBuiltinSkills } from "../builtin-skills/skills"
+import { createBuiltinSkills, omitsOwnBrowserSkill } from "../builtin-skills/skills"
 import { discoverSkills } from "./loader"
 import type { LoadedSkill } from "./types"
 import type { SkillResolutionOptions } from "./skill-resolution-options"
@@ -69,6 +69,7 @@ export async function getAllSkills(options?: SkillResolutionOptions): Promise<Lo
 
 	// Filter discovered skills to exclude provider-gated names that don't match the selected provider
 	const filteredDiscoveredSkills = discoveredSkills.filter((skill) => {
+		if (omitsOwnBrowserSkill(browserProvider, skill)) return false
 		if (!providerGatedSkillNames.has(skill.name)) {
 			return true
 		}

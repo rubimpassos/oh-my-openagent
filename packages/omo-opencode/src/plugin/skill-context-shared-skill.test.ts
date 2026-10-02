@@ -339,3 +339,40 @@ describe("plugin-wired shared skills", () => {
     expect(skillContext.disabledSkills).toContain("object-blocked")
   })
 })
+
+describe("external browser provider", () => {
+  test("OMO's own browser skills are not registered; the rest of the shared skills are", async () => {
+    // given
+    const directory = mkdtempSync(join(tmpdir(), "omo-external-browser-"))
+    try {
+      const pluginConfig = OhMyOpenCodeConfigSchema.parse({ browser_automation_engine: { provider: "external" } })
+
+      // when
+      const skillContext = await createSkillContext({ directory, pluginConfig })
+
+      // then
+      const names = skillContext.mergedSkills.map((skill) => skill.name)
+      const available = skillContext.availableSkills.map((skill) => skill.name)
+      for (const name of ["browser", "ultimate-browsing", "playwright", "dev-browser", "playwright-cli"]) {
+        expect(names).not.toContain(name)
+        expect(available).not.toContain(name)
+      }
+      expect(names).toContain("git-master")
+      expect(skillContext.browserProvider).toBe("external")
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
+  test("without a provider the shared browser skills stay registered", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "omo-default-browser-"))
+    try {
+      const skillContext = await createSkillContext({ directory, pluginConfig: OhMyOpenCodeConfigSchema.parse({}) })
+      const names = skillContext.mergedSkills.map((skill) => skill.name)
+      expect(names).toContain("browser")
+      expect(names).toContain("ultimate-browsing")
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+})

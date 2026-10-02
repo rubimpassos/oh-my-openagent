@@ -12025,7 +12025,8 @@
               "enum": [
                 "playwright",
                 "dev-browser",
-                "playwright-cli"
+                "playwright-cli",
+                "external"
               ]
             },
             "playwright_mcp_args": {
@@ -29968,7 +29969,8 @@
                     "enum": [
                       "playwright",
                       "dev-browser",
-                      "playwright-cli"
+                      "playwright-cli",
+                      "external"
                     ]
                   },
                   "playwright_mcp_args": {
