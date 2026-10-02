@@ -1,11 +1,11 @@
-name: Fork sync (v2-support)
+name: Fork sync (main)
 # Default branch of this fork: schedules only run from here.
 
-# Keeps this fork's `v2-support` branch current with its two sources:
+# Keeps this fork's `main` branch (the OpenCode V2 line) current with its two sources:
 #   - upstream `dev` (code-yeongyu/oh-my-openagent)
 #   - the OpenCode V2 port in upstream PR #9016, while it is open
-# `v2-support` is rebuilt as <base> + every commit carrying the trailer
-# `Fork-Patch: v2-support`. The base is the PR head while the PR is open, and
+# `main` is rebuilt as <base> + every commit carrying the trailer
+# `Fork-Patch: v2-support` (the trailer keeps its original name). The base is the PR head while the PR is open, and
 # upstream `dev` once it is merged or closed. A conflict or a failing V2 test
 # leaves the branch untouched and opens (or updates) an issue.
 on:
@@ -18,13 +18,13 @@ permissions:
   issues: write
 
 concurrency:
-  group: fork-sync-v2-support
+  group: fork-sync
   cancel-in-progress: false
 
 env:
   UPSTREAM: code-yeongyu/oh-my-openagent
   PR_NUMBER: '9016'
-  BRANCH: v2-support
+  BRANCH: main
 
 jobs:
   sync:
@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: v2-support
+          ref: main
           fetch-depth: 0
 
       - name: Fetch sources
@@ -50,7 +50,7 @@ jobs:
           echo "base=$base" >> "$GITHUB_OUTPUT"
           echo "base_sha=$(git rev-parse "$base")" >> "$GITHUB_OUTPUT"
 
-      - name: Rebuild v2-support
+      - name: Rebuild main
         id: rebuild
         run: |
           patches=$(git log --reverse --format=%H --grep='^Fork-Patch: v2-support' "origin/${BRANCH}")
@@ -66,7 +66,7 @@ jobs:
           done
           # Upstream's own workflows (CI, publish, cron jobs) must never run in this
           # fork; the branch carries only this sync workflow.
-          find .github/workflows -type f ! -name 'fork-sync-v2-support.yml' -print0 | xargs -0 -r git rm -q
+          find .github/workflows -type f ! -name 'fork-sync.yml' -print0 | xargs -0 -r git rm -q
           git diff --cached --quiet || git commit -q -m "ci(fork): drop upstream workflows from the fork branch"
           if [ "$(git rev-parse HEAD^{tree})" = "$(git rev-parse "origin/${BRANCH}^{tree}")" ]; then
             echo "unchanged=true" >> "$GITHUB_OUTPUT"
@@ -95,7 +95,7 @@ jobs:
           BASE: ${{ steps.sources.outputs.base }}
           BASE_SHA: ${{ steps.sources.outputs.base_sha }}
         run: |
-          title="fork-sync: v2-support needs attention"
+          title="fork-sync: main needs attention"
           if [ -n "$CONFLICT" ]; then reason="Cherry-pick conflict on: $CONFLICT"; else reason="V2 adapter tests failed after rebase"; fi
           body="$reason
 
