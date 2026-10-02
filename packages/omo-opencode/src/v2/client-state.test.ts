@@ -13,7 +13,7 @@ import {
   rememberBackgroundTask,
 } from "../features/background-agent/task-registry"
 import type { BackgroundTask } from "../features/background-agent/types"
-import { backgroundTasksByParent, startClientStatePublisher, teamRunsByLead } from "./client-state"
+import { backgroundTasksByParent, goalsBySession, plansBySession, startClientStatePublisher, teamRunsByLead } from "./client-state"
 
 const directories: string[] = []
 afterEach(() => {
@@ -133,6 +133,63 @@ describe("OpenCode V2 client state", () => {
     } finally {
       stop()
     }
+  })
+
+  test("a retried task lists every attempt with its session and model", () => {
+    const [entry] = backgroundTasksByParent([task({
+      model: { providerID: "anthropic", modelID: "claude-haiku-4-5" },
+      attempts: [
+        { attemptId: "a1", attemptNumber: 1, sessionId: "ses_a1", providerId: "zai", modelId: "glm-5.3", status: "error", error: "no balance" },
+        { attemptId: "a2", attemptNumber: 2, sessionId: "ses_a2", providerId: "anthropic", modelId: "claude-haiku-4-5", status: "running" },
+      ],
+    })]).ses_parent ?? []
+    expect(entry?.model).toBe("anthropic/claude-haiku-4-5")
+    expect(entry?.attempts).toEqual([
+      { number: 1, status: "error", sessionID: "ses_a1", model: "zai/glm-5.3", error: "no balance" },
+      { number: 2, status: "running", sessionID: "ses_a2", model: "anthropic/claude-haiku-4-5" },
+    ])
+  })
+
+  test("an Atlas plan is published for every session working on it, with checklist progress", () => {
+    const directory = scratch()
+    mkdirSync(join(directory, ".omo/plans"), { recursive: true })
+    writeFileSync(join(directory, ".omo/plans/auth.md"), "# Auth\n\n- [x] write tests\n- [ ] ship it\n")
+    writeFileSync(join(directory, ".omo/boulder.json"), JSON.stringify({
+      schema_version: 2,
+      active_work_id: "auth-1",
+      works: {
+        "auth-1": {
+          work_id: "auth-1",
+          active_plan: join(directory, ".omo/plans/auth.md"),
+          plan_name: "auth",
+          status: "active",
+          started_at: "2026-10-01T10:00:00.000Z",
+          session_ids: ["opencode:ses_lead"],
+          task_sessions: {
+            t1: { task_key: "t1", task_label: "1", task_title: "write tests", session_id: "opencode:ses_worker", agent: "Sisyphus-Junior", category: "quick", status: "completed", updated_at: "2026-10-01T10:05:00.000Z" },
+          },
+        },
+      },
+    }))
+    const plan = plansBySession(directory).ses_lead
+    expect(plan?.planName).toBe("auth")
+    expect(plan?.total).toBe(2)
+    expect(plan?.completed).toBe(1)
+    expect(plan?.nextTask).toBe("ship it")
+    expect(plan?.tasks).toEqual([{ key: "t1", label: "1", title: "write tests", status: "completed", sessionID: "ses_worker", agent: "Sisyphus-Junior", category: "quick" }])
+  })
+
+  test("the /goal of each session is published from .omo/goal", () => {
+    const directory = scratch()
+    mkdirSync(join(directory, ".omo/goal"), { recursive: true })
+    const goal = { id: "g1", sessionID: "ses_goal", objective: "make the build green", status: "active", tokensUsed: 1200, timeUsedSeconds: 90, createdAt: 1, updatedAt: 2 }
+    writeFileSync(join(directory, ".omo/goal/ses_goal.json"), JSON.stringify({ version: 1, goal }))
+    writeFileSync(join(directory, ".omo/goal/ses_none.json"), JSON.stringify({ version: 1, goal: null }))
+    writeFileSync(join(directory, ".omo/goal/broken.json"), "{")
+    expect(goalsBySession(directory)).toEqual({
+      ses_goal: { objective: "make the build green", status: "active", tokensUsed: 1200, timeUsedSeconds: 90, createdAt: 1, updatedAt: 2 },
+    })
+    expect(goalsBySession(scratch())).toEqual({})
   })
 })
 
