@@ -642,6 +642,40 @@ describe("OpenCode V2 adapter", () => {
     expect(seen).toEqual(["## Skill: git-master", "hello"])
   })
 
+  test("tool metadata reaches OpenCode as plain JSON, without undefined fields", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "omo-v2-metadata-"))
+    directories.push(directory)
+    const fake = createFakeContext()
+    Object.assign(fake.ctx.location, { directory })
+    await setupOpenCodeV2(fake.ctx, {
+      agentDirectory: directory,
+      server: async () => ({
+        tool: {
+          task: {
+            description: "Delegate",
+            args: z.object({ prompt: z.string() }),
+            execute: async () => ({ output: "launched", metadata: { backgroundTaskId: "bg_1", command: undefined } }),
+          },
+        },
+        "tool.execute.after": async (_input: unknown, output: { metadata: Record<string, unknown> }) => {
+          output.metadata = { ...output.metadata, model: { providerID: "zai", variant: undefined } }
+        },
+      }),
+    })
+    const task = fake.tools.find((tool) => tool.name === "task")
+    const result = await task?.execute({ prompt: "go" }, { sessionID: "ses_1", id: "call_1", signal: new AbortController().signal }) as
+      | { metadata?: Record<string, unknown> }
+      | undefined
+    expect(result?.metadata).toEqual({ backgroundTaskId: "bg_1" })
+    expect(Object.keys(result?.metadata ?? {})).toEqual(["backgroundTaskId"])
+
+    const after = fake.hooks.find((hook) => hook.domain === "tool" && hook.name === "execute.after")
+    const event = { tool: "task", sessionID: "ses_1", id: "call_1", input: {}, status: "completed", result: { content: [{ type: "text", text: "launched" }], metadata: result?.metadata } }
+    await after?.fn(event as never)
+    expect(event.result.metadata).toEqual({ backgroundTaskId: "bg_1", sessionID: "ses_1", model: { providerID: "zai" } })
+    expect(Object.keys((event.result.metadata as { model: object }).model)).toEqual(["providerID"])
+  })
+
   test("todowrite answers with the saved list and its count for clients to render", async () => {
     const directory = mkdtempSync(join(tmpdir(), "omo-v2-todo-result-"))
     directories.push(directory)

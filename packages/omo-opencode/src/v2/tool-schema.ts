@@ -117,10 +117,28 @@ export function toolInputSchema(tool: { args?: unknown; parameters?: unknown; in
   return convert(tool.args) ?? { ...LOOSE_OBJECT_SCHEMA }
 }
 
+/**
+ * OpenCode V2 validates tool metadata as JSON when it records the result. A
+ * V1 field left `undefined` (the task tool's `command`, a model's `variant`)
+ * fails that check after the call is already marked settled, so the call stays
+ * "running" forever and the next request is rejected for a missing tool_result.
+ */
+export function jsonMetadata(metadata: Record<string, unknown>): Record<string, unknown> {
+  try {
+    const plain: unknown = JSON.parse(JSON.stringify(metadata))
+    return isRecord(plain) && !Array.isArray(plain) ? plain : {}
+  } catch (error) {
+    log("[oh-my-openagent] dropped tool metadata that is not JSON", {
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return {}
+  }
+}
+
 export function toolResult(result: unknown): { content: string; metadata?: Record<string, unknown> } {
   if (typeof result === "string") return { content: result }
   if (!isRecord(result)) return { content: result == null ? "" : String(result) }
-  const metadata = isRecord(result.metadata) ? result.metadata : undefined
+  const metadata = isRecord(result.metadata) ? jsonMetadata(result.metadata) : undefined
   if (typeof result.content === "string") return { content: result.content, ...(metadata ? { metadata } : {}) }
   if (typeof result.output === "string") return { content: result.output, ...(metadata ? { metadata } : {}) }
   return { content: JSON.stringify(result), ...(metadata ? { metadata } : {}) }

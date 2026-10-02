@@ -4,6 +4,7 @@ import { log } from "../shared/logger"
 import type { AdapterState } from "./adapter-state"
 import { toV1Event } from "./event-shape"
 import { hookMessagesToV1, writeHookMessagesBack } from "./message-shape"
+import { jsonMetadata } from "./tool-schema"
 
 type V2Context = Plugin.Context
 
@@ -263,7 +264,7 @@ export async function registerV1Hooks(ctx: V2Context, hooks: V1HookMap, state?: 
             ...event.result,
             // OpenCode hands over content as text/file parts; keep them unless a V1 hook rewrote the text.
             content: output.output === content ? event.result.content : output.output,
-            metadata: output.metadata,
+            metadata: jsonMetadata(output.metadata),
           }
         }
       })
