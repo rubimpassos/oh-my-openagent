@@ -187,7 +187,7 @@ describe("OpenCode V2 client state", () => {
     writeFileSync(join(directory, ".omo/goal/ses_none.json"), JSON.stringify({ version: 1, goal: null }))
     writeFileSync(join(directory, ".omo/goal/broken.json"), "{")
     expect(goalsBySession(directory)).toEqual({
-      ses_goal: { objective: "make the build green", status: "active", tokensUsed: 1200, timeUsedSeconds: 90, createdAt: 1, updatedAt: 2 },
+      ses_goal: { objective: "make the build green", status: "active", tokensUsed: 1200, turnsUsed: 0, timeUsedSeconds: 90, createdAt: 1, updatedAt: 2 },
     })
     expect(goalsBySession(scratch())).toEqual({})
   })

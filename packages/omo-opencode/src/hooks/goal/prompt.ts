@@ -13,6 +13,9 @@ export function buildContinuationPrompt(goal: Goal): string {
     "Usage so far:",
     `- Time spent pursuing goal: ${goal.timeUsedSeconds} seconds`,
     `- Tokens used: ${goal.tokensUsed}`,
+    ...(goal.tokenBudget !== undefined
+      ? [`- Token budget: ${goal.tokenBudget} (${Math.max(0, goal.tokenBudget - goal.tokensUsed)} remaining); the goal stops when it is spent`]
+      : []),
     "",
     "Avoid repeating work that is already done. Choose the next concrete action toward the objective.",
     "",

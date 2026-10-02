@@ -60,6 +60,7 @@ export function createGoal(ref: GoalStoreRef, objective: string): Goal {
     status: "active",
     tokensUsed: 0,
     timeUsedSeconds: 0,
+    turnsUsed: 0,
     createdAt: now,
     updatedAt: now,
     lastStartedAt: now,
@@ -81,8 +82,11 @@ export function updateGoal(ref: GoalStoreRef, update: GoalUpdate): Goal | null {
     status: update.status ?? existing.status,
     tokensUsed: update.tokensUsed ?? existing.tokensUsed,
     timeUsedSeconds: update.timeUsedSeconds ?? existing.timeUsedSeconds,
+    turnsUsed: update.turnsUsed ?? existing.turnsUsed,
     updatedAt: now,
   }
+  if (update.tokenBudget === null) delete updated.tokenBudget
+  else if (update.tokenBudget !== undefined) updated.tokenBudget = update.tokenBudget
 
   if (update.status === "active" && existing.status !== "active") {
     updated.lastStartedAt = now

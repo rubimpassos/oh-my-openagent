@@ -51,4 +51,6 @@ interface GoalHook {
 
 - `default_mode.goal: true` auto-creates a goal from the first main-session message (`chat-message/loop-commands.ts`).
 - `accountUsage` accrues only while `status === active`; paused goals keep their accumulated totals.
-- Ralph Loop behavioral parity preserved via `default_max_iterations` (default 100).
+- `default_max_iterations` (default 100) caps continuations per goal (`turnsUsed`); reaching it settles the goal as `blocked`. Resume grants a fresh allowance.
+- Each idle records usage from the session messages (`usage.ts`, same snapshot accounting as OpenChamber), stops at `tokenBudget` as `budgetLimited`, and waits while a background task launched from the session still runs.
+- On OpenCode 2 with OpenChamber, `v2/goal-sync.ts` mirrors the goal into `metadata.openchamber.goal` (`driver: "omo"`) and applies pause/resume/objective/budget/clear made in OpenChamber.

@@ -7,6 +7,7 @@ import { createAdapterState } from "./adapter-state"
 import { startClientStatePublisher } from "./client-state"
 import { createV1PluginInput } from "./context-facade"
 import { registerV1Hooks, type V1HookMap } from "./hook-bridge"
+import { createGoalSync } from "./goal-sync"
 import { projectV1Surface } from "./project-config"
 
 type V1Server = (input: never, options: unknown) => Promise<V1HookMap>
@@ -71,10 +72,20 @@ export async function setupOpenCodeV2(
     })
   }
 
+  const syncGoals = goalEnabled(v1Input.directory)
+    ? createGoalSync({
+      projectDir: v1Input.directory,
+      session: {
+        get: (input) => ctx.session.get(input),
+        update: (input) => ctx.session.update({ sessionID: input.sessionID, metadata: jsonRecord(input.metadata) }),
+      },
+    })
+    : undefined
   const stopPublisher = startClientStatePublisher({
     stateDirectory: state.directory,
     owner: v1Input.directory,
     teamMode: teamModeConfig(v1Input.directory),
+    ...(syncGoals ? { afterPublish: syncGoals } : {}),
   })
 
   const dispose = hooks.dispose
@@ -82,6 +93,36 @@ export async function setupOpenCodeV2(
     stopEvents()
     stopPublisher()
     if (typeof dispose === "function") await dispose()
+  }
+}
+
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
+
+// Session metadata goes to OpenCode as JSON; anything else (undefined, functions) is dropped.
+function jsonValue(value: unknown): JsonValue | undefined {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return value
+  if (typeof value === "number") return Number.isFinite(value) ? value : undefined
+  if (Array.isArray(value)) return value.flatMap((item) => {
+    const json = jsonValue(item)
+    return json === undefined ? [] : [json]
+  })
+  return isRecord(value) ? jsonRecord(value) : undefined
+}
+
+function jsonRecord(value: Record<string, unknown>): { [key: string]: JsonValue } {
+  const record: { [key: string]: JsonValue } = {}
+  for (const [key, item] of Object.entries(value)) {
+    const json = jsonValue(item)
+    if (json !== undefined) record[key] = json
+  }
+  return record
+}
+
+function goalEnabled(directory: string): boolean {
+  try {
+    return validatePluginConfig(directory).config.goal?.enabled === true
+  } catch {
+    return false
   }
 }
 

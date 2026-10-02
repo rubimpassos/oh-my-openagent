@@ -68,7 +68,9 @@ export function createGoalController(options: GoalControllerOptions) {
     },
 
     resumeGoal(sessionID: string): Goal | null {
-      const goal = updateGoal(storeRef(sessionID), { status: "active" })
+      // An explicit resume grants a fresh continuation allowance, so a goal
+      // stopped at the cap does not stop again on the next idle.
+      const goal = updateGoal(storeRef(sessionID), { status: "active", turnsUsed: 0 })
       if (goal !== null) writeTuiMirror(sessionID, goal)
       return goal
     },
@@ -85,6 +87,42 @@ export function createGoalController(options: GoalControllerOptions) {
       const goal = updateGoal(storeRef(sessionID), { status: "complete" })
       if (goal !== null) writeTuiMirror(sessionID, goal)
       return goal
+    },
+
+    /** Change the objective of the current goal, keeping its id and accounting. */
+    updateObjective(sessionID: string, rawObjective: string): Goal | null {
+      const goal = updateGoal(storeRef(sessionID), { objective: validateObjective(rawObjective) })
+      if (goal !== null) writeTuiMirror(sessionID, goal)
+      return goal
+    },
+
+    /** Set or remove (`null`) the token budget. */
+    setBudget(sessionID: string, tokenBudget: number | null): Goal | null {
+      return updateGoal(storeRef(sessionID), { tokenBudget })
+    },
+
+    /** Stop an active goal at a limit: `blocked` (continuation cap) or `budgetLimited`. */
+    settle(sessionID: string, status: "blocked" | "budgetLimited"): Goal | null {
+      const goal = updateGoal(storeRef(sessionID), { status })
+      if (goal !== null) writeTuiMirror(sessionID, goal)
+      return goal
+    },
+
+    /** Record what the session spent since the goal started (absolute totals, idempotent). */
+    recordUsage(sessionID: string, usage: { tokensUsed: number; timeUsedSeconds: number }): Goal | null {
+      const goal = readGoal(storeRef(sessionID))
+      if (goal === null) return null
+      if (usage.tokensUsed <= goal.tokensUsed && usage.timeUsedSeconds <= goal.timeUsedSeconds) return goal
+      return updateGoal(storeRef(sessionID), {
+        tokensUsed: Math.max(goal.tokensUsed, usage.tokensUsed),
+        timeUsedSeconds: Math.max(goal.timeUsedSeconds, usage.timeUsedSeconds),
+      })
+    },
+
+    /** Count one continuation sent for the goal. */
+    noteContinuation(sessionID: string): Goal | null {
+      const goal = readGoal(storeRef(sessionID))
+      return goal === null ? null : updateGoal(storeRef(sessionID), { turnsUsed: goal.turnsUsed + 1 })
     },
 
     accountUsage(sessionID: string, usage: TokenUsageSnapshot, elapsedSeconds: number): Goal | null {

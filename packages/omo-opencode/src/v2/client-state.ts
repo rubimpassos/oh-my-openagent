@@ -63,8 +63,10 @@ export type ClientPlan = {
 /** The `/goal` a session is pursuing (OMO's continuation loop). */
 export type ClientGoal = {
   objective: string
-  status: "active" | "paused" | "complete"
+  status: "active" | "paused" | "complete" | "blocked" | "budgetLimited"
   tokensUsed: number
+  tokenBudget?: number
+  turnsUsed: number
   timeUsedSeconds: number
   createdAt: number
   updatedAt: number
@@ -181,6 +183,8 @@ export function goalsBySession(directory: string): Record<string, ClientGoal> {
         objective: goal.objective,
         status: goal.status,
         tokensUsed: goal.tokensUsed,
+        ...(goal.tokenBudget !== undefined ? { tokenBudget: goal.tokenBudget } : {}),
+        turnsUsed: goal.turnsUsed,
         timeUsedSeconds: goal.timeUsedSeconds,
         createdAt: goal.createdAt,
         updatedAt: goal.updatedAt,
@@ -232,6 +236,8 @@ export function startClientStatePublisher(input: {
   intervalMs?: number
   owner: string
   readTasks?: () => readonly BackgroundTask[]
+  /** Runs after each publish, in the same serial loop (OMO goal ↔ OpenChamber goal sync). */
+  afterPublish?: () => Promise<void>
 }): () => void {
   const readTasks = input.readTasks ?? (() => listRegisteredBackgroundTasks(input.owner))
   let running = false
@@ -242,6 +248,7 @@ export function startClientStatePublisher(input: {
       writeIfChanged(input.stateDirectory, "background.json", backgroundTasksByParent(readTasks()))
       writeIfChanged(input.stateDirectory, "plans.json", plansBySession(input.owner))
       writeIfChanged(input.stateDirectory, "goals.json", goalsBySession(input.owner))
+      await input.afterPublish?.()
       if (input.teamMode?.enabled) {
         writeIfChanged(input.stateDirectory, "teams.json", await teamRunsByLead(input.teamMode))
       }

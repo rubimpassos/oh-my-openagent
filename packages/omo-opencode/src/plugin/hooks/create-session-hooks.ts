@@ -168,6 +168,7 @@ export function createSessionHooks(args: {
           autoStart: pluginConfig.goal?.auto_start ?? false,
           ultrawork: pluginConfig.default_mode?.ultrawork ?? false,
           getSessionExists: async (sessionId) => await sessionExists(sessionId),
+          maxTurns: pluginConfig.goal?.default_max_iterations,
         }))
     : null
 

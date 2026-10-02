@@ -50,6 +50,7 @@ function storedMessageWithoutTime(message: Record<string, unknown>, sessionID: s
         model: message.model,
         ...(message.finish !== undefined ? { finish: message.finish } : {}),
         ...(message.error !== undefined ? { error: message.error } : {}),
+        ...(isRecord(message.tokens) ? { tokens: { ...message.tokens } } : {}),
       },
       parts: partsFromContent(message.content),
     }

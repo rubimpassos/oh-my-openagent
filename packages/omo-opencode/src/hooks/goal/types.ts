@@ -1,6 +1,9 @@
 import { z } from "zod"
 
-export const GOAL_STATUS_VALUES = ["active", "paused", "complete"] as const
+// `blocked` (continuation cap reached) and `budgetLimited` (token budget spent)
+// are settled like `complete` but resumable; they match OpenChamber's goal
+// statuses so a mirrored goal reads the same in both.
+export const GOAL_STATUS_VALUES = ["active", "paused", "complete", "blocked", "budgetLimited"] as const
 
 export const GoalStatusSchema = z.enum(GOAL_STATUS_VALUES)
 export type GoalStatus = z.infer<typeof GoalStatusSchema>
@@ -16,6 +19,10 @@ export const GoalSchema = z.object({
   updatedAt: z.number().int().nonnegative(),
   lastStartedAt: z.number().int().nonnegative().optional(),
   completedAt: z.number().int().nonnegative().optional(),
+  /** Stop once `tokensUsed` reaches this; absent means no budget. */
+  tokenBudget: z.number().int().positive().optional(),
+  /** Continuations sent since the goal started or was last resumed. */
+  turnsUsed: z.number().int().nonnegative().default(0),
 })
 
 export type Goal = z.infer<typeof GoalSchema>
@@ -45,6 +52,9 @@ export type GoalUpdate = {
   readonly status?: GoalStatus
   readonly tokensUsed?: number
   readonly timeUsedSeconds?: number
+  /** `null` removes the budget. */
+  readonly tokenBudget?: number | null
+  readonly turnsUsed?: number
 }
 
 export const GoalToolSnapshotSchema = z.object({

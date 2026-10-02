@@ -146,6 +146,15 @@ export function listRegisteredBackgroundTasks(owner: string): BackgroundTask[] {
   ]
 }
 
+/** Whether a task launched from this session is still queued or running, whichever plugin instance runs it. */
+export function hasActiveBackgroundTaskFor(parentSessionID: string): boolean {
+  for (const readTask of getRegistry().activeTasks.values()) {
+    const task = readTask()
+    if (task.parentSessionId === parentSessionID && (task.status === "pending" || task.status === "running")) return true
+  }
+  return false
+}
+
 export function forgetBackgroundTask(taskID: string): void {
   const registry = getRegistry()
   registry.activeTasks.delete(taskID)
