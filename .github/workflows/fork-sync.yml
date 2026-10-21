@@ -4,7 +4,7 @@ name: Fork sync (main)
 # Keeps this fork's `main` branch (the OpenCode V2 line) current with its two sources:
 #   - upstream `dev` (code-yeongyu/oh-my-openagent)
 #   - the OpenCode V2 port in upstream PR #9016, while it is open
-# `main` is rebuilt as <base> + every commit carrying the trailer
+# `main` is rebuilt as <base> + every non-merge commit carrying the trailer
 # `Fork-Patch: v2-support` (the trailer keeps its original name). The base is the PR head while the PR is open, and
 # upstream `dev` once it is merged or closed. A conflict or a failing V2 test
 # leaves the branch untouched and opens (or updates) an issue.
@@ -53,7 +53,7 @@ jobs:
       - name: Rebuild main
         id: rebuild
         run: |
-          patches=$(git log --reverse --format=%H --grep='^Fork-Patch: v2-support' "origin/${BRANCH}")
+          patches=$(git log --reverse --no-merges --format=%H --grep='^Fork-Patch: v2-support' "origin/${BRANCH}")
           git checkout -q -B candidate "${{ steps.sources.outputs.base }}"
           for sha in $patches; do
             subject=$(git log -1 --format=%s "$sha")
