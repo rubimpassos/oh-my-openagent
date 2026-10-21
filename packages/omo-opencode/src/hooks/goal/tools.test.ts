@@ -1,7 +1,25 @@
 import { describe, expect, test } from "bun:test"
-import type { GoalController } from "./controller"
+import type { ToolContext } from "@opencode-ai/plugin/tool"
+import { mkdtempSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { createGoalController, type GoalController } from "./controller"
 import { createGoalTools } from "./tools"
 import type { Goal } from "./types"
+import { GoalToolResponseSchema } from "./types"
+
+function makeContext(sessionID: string): ToolContext {
+  return {
+    sessionID,
+    messageID: "message",
+    agent: "build",
+    directory: "/unused",
+    worktree: "/unused",
+    abort: new AbortController().signal,
+    metadata: () => {},
+    ask: async () => {},
+  }
+}
 
 function makeGoal(overrides?: Partial<Goal>): Goal {
   const now = Date.now()
@@ -12,6 +30,7 @@ function makeGoal(overrides?: Partial<Goal>): Goal {
     status: "active",
     tokensUsed: 0,
     timeUsedSeconds: 0,
+    turnsUsed: 0,
     createdAt: now,
     updatedAt: now,
     ...overrides,
@@ -36,6 +55,44 @@ function makeDeps(controller: Partial<GoalController> = {}, sessionID?: string) 
 }
 
 describe("createGoalTools", () => {
+  for (const name of ["create_goal", "update_goal", "get_goal"] as const) {
+    test.each([false, true])(`${name} isolates sessions with explicit override: %s`, async (explicit) => {
+      // given
+      const projectDir = mkdtempSync(join(tmpdir(), "goal-tool-session-"))
+      try {
+        const controller = createGoalController({ projectDir })
+        const tools = createGoalTools({ controller, getSessionID: () => "global" })
+        controller.setGoal("global", "Global goal")
+        for (const sessionID of ["first", "second"]) {
+          controller.setGoal(sessionID, sessionID)
+        }
+
+        // when
+        const results = await Promise.all(["first", "second"].map(async (sessionID) => {
+          const result = await tools[name].execute({
+            ...(explicit ? { session_id: sessionID } : {}),
+            objective: sessionID,
+            status: "complete",
+          }, makeContext(explicit ? "context-other" : sessionID))
+          if (typeof result !== "string") throw new Error("Expected goal response text")
+          return GoalToolResponseSchema.parse(JSON.parse(result)).goal
+        }))
+
+        // then
+        expect(results.map((goal) => goal?.sessionID)).toEqual(["first", "second"])
+        expect(results.map((goal) => goal?.objective)).toEqual(["first", "second"])
+        if (name === "update_goal") {
+          expect(results.map((goal) => goal?.status)).toEqual(["complete", "complete"])
+        }
+        expect(controller.getGoal("global")?.objective).toBe("Global goal")
+        expect(controller.getGoal("global")?.status).toBe("active")
+        expect(controller.getGoal("context-other")).toBeNull()
+      } finally {
+        rmSync(projectDir, { recursive: true, force: true })
+      }
+    })
+  }
+
   test("create_goal calls controller.setGoal with current session", async () => {
     const setGoal = (sessionID: string, objective: string) => makeGoal({ sessionID, objective })
     const deps = makeDeps({ setGoal }, "s1")
