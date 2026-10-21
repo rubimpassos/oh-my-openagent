@@ -10,6 +10,12 @@ Releases of [rubimpassos/oh-my-openagent](https://github.com/rubimpassos/oh-my-o
 
 To release: add a `## [<version>] - YYYY-MM-DD` section here on `main` (with the `Fork-Patch: v2-support` trailer), then run the **Fork release** workflow with that version.
 
+## [5.0.1-fork.8] - 2026-10-21
+
+### Fixes
+
+- Creating, reading or updating a goal now targets the session that called the tool, even when another session was opened afterward. Goals no longer appear in an unrelated chat because it became the global main session. Explicit session targeting is unchanged.
+
 ## [5.0.1-fork.7] - 2026-10-14
 
 ### Fixes
