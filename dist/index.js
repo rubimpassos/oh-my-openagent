@@ -98400,7 +98400,7 @@ function getCachedVersion(options = {}) {
 // package.json
 var package_default = {
   name: "oh-my-opencode",
-  version: "5.0.1-fork.7",
+  version: "5.0.1-fork.8",
   description: "The Best AI Agent Harness - Batteries-Included OpenCode Plugin with Multi-Model Orchestration, Parallel Background Agents, and Crafted LSP/AST Tools",
   main: "./dist/index.js",
   types: "dist/index.d.ts",
@@ -166702,8 +166702,8 @@ The objective should be concise (under 2000 characters) and describe the desired
       objective: tool.schema.string().describe("Concise outcome the session should achieve"),
       session_id: tool.schema.string().optional().describe("Session ID to target (default: current session)")
     },
-    execute: async (args, _context) => {
-      const sessionID = args.session_id ?? deps.getSessionID();
+    execute: async (args, context2) => {
+      const sessionID = args.session_id ?? context2.sessionID ?? deps.getSessionID();
       if (sessionID === undefined) {
         return "Error: no session_id available";
       }
@@ -166722,8 +166722,8 @@ Use this to pause, resume, complete, or change the objective of the current goal
       objective: tool.schema.string().optional().describe("New objective text"),
       session_id: tool.schema.string().optional().describe("Session ID to target (default: current session)")
     },
-    execute: async (args, _context) => {
-      const sessionID = args.session_id ?? deps.getSessionID();
+    execute: async (args, context2) => {
+      const sessionID = args.session_id ?? context2.sessionID ?? deps.getSessionID();
       if (sessionID === undefined) {
         return "Error: no session_id available";
       }
@@ -166749,8 +166749,8 @@ Returns the current objective, status, and usage accounting. Returns null if no 
     args: {
       session_id: tool.schema.string().optional().describe("Session ID to target (default: current session)")
     },
-    execute: async (args, _context) => {
-      const sessionID = args.session_id ?? deps.getSessionID();
+    execute: async (args, context2) => {
+      const sessionID = args.session_id ?? context2.sessionID ?? deps.getSessionID();
       if (sessionID === undefined) {
         return "Error: no session_id available";
       }

@@ -53,7 +53,7 @@ var package_default;
 var init_package = __esm(() => {
   package_default = {
     name: "oh-my-opencode",
-    version: "5.0.1-fork.7",
+    version: "5.0.1-fork.8",
     description: "The Best AI Agent Harness - Batteries-Included OpenCode Plugin with Multi-Model Orchestration, Parallel Background Agents, and Crafted LSP/AST Tools",
     main: "./dist/index.js",
     types: "dist/index.d.ts",

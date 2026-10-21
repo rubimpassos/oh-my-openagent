@@ -1,6 +1,6 @@
 {
 	"name": "@code-yeongyu/codex-lazycodex-executor-verify",
-	"version": "5.0.1-fork.7",
+	"version": "5.0.1-fork.8",
 	"description": "Codex SubagentStop evidence verifier for LazyCodex executor completions.",
 	"type": "module",
 	"packageManager": "npm@11.12.1",
