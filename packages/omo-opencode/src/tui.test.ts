@@ -233,17 +233,39 @@ describe("TUI sidebar polling", () => {
   })
 
   it("registers the V2 sidebar from the session list", () => {
+    // given
     const shown: string[] = []
     let render: (() => unknown) | undefined
+    const solid: {
+      createElement: (tag: string) => SolidNode
+      insert: (parent: SolidNode, child: unknown) => void
+      setProp: (node: SolidNode, name: string, value: unknown) => void
+    } = {
+      createElement: (tag: string): SolidNode => ({ tag, props: {}, children: [] }),
+      insert: (parent: SolidNode, child: unknown): void => {
+        parent.children.push(child)
+      },
+      setProp: (node: SolidNode, name: string, value: unknown): void => {
+        node.props[name] = value
+      },
+    }
+
+    // when
     const lines = registerV2Sidebar({
       data: { session: { list: () => [{ id: "ses_1", title: "Demo" }] } },
       ui: {
         toast: { show: (options) => { shown.push(options.message) } },
         slot: (claim) => { render = () => claim.render({ sessionID: "ses_1" }) },
       },
-    })
+    }, solid)
+
+    // then
     expect(shown).toEqual(["Sidebar ready"])
-    expect(render?.()).toEqual(["Demo"])
+    expect(render?.()).toEqual({
+      tag: "box",
+      props: { flexDirection: "column" },
+      children: [{ tag: "text", props: {}, children: ["Demo"] }],
+    })
     expect(lines()).toEqual(["Demo"])
   })
 })
