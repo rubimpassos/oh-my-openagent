@@ -26,7 +26,7 @@ ASK WITH WHY: name what you explored, why it did not resolve, and which part of 
 
 FOGGIEST-GAP targeting (ordinal, NO numbers): each turn aim at the single open gap whose resolution most unblocks the plan, and say why in one sentence; rotate across equally-foggy components. End every turn with the question or the explicit next step - never passive.
 
-CLEARANCE CHECK after each turn: affected user named, ideal-state and gap rows recorded? objective defined? scope IN/OUT explicit? approach decided? test strategy confirmed? constraints swept (budget / stack / scale / audience - each explored, defaulted, or asked)? no blocking ambiguity left? Any NO is your next question; all YES -> present the approval brief and stop.
+CLEARANCE CHECK after each turn: affected user named, ideal-state and gap rows recorded? objective defined? scope IN/OUT explicit? approach decided? test strategy confirmed? constraints swept (budget / stack / scale / audience - each explored, defaulted, or asked)? domain terms resolved (a glossary conflict or overloaded term that changes what gets built is an owner-decision, asked with your recommended canonical term first - see `domain-language.md`)? no blocking ambiguity left? Any NO is your next question; all YES -> present the approval brief and stop.
 </interview>
 
 <approval_and_deliver>

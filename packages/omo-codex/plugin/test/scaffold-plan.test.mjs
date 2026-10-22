@@ -138,6 +138,31 @@ test("#given Trivial UNCLEAR pre-approval planning #when draft-only scaffold run
 	}
 });
 
+test("#given a fresh slug #when scaffold runs before and after approval #then the draft carries the Domain language ledger and the plan Scope carries the Domain language block", async () => {
+	// given
+	const { scaffold } = await import(scriptUrl);
+	const dir = await mkdtemp(join(tmpdir(), "ulwp-"));
+	try {
+		// when
+		await scaffold(dir, { slug: "demo", intent: "clear", draftOnly: true });
+		const draft = await readFile(join(dir, ".omo", "drafts", "demo.md"), "utf8");
+		await scaffold(dir, { slug: "demo", intent: "clear" });
+		const plan = await readFile(join(dir, ".omo", "plans", "demo.md"), "utf8");
+
+		// then
+		const ledger = draft.slice(draft.indexOf("\n## Domain language\n"), draft.indexOf("\n## Findings"));
+		assert.ok(ledger.length > 0, "draft must emit the ledger before Findings");
+		assert.match(ledger, /^Sources: /m);
+		assert.match(ledger, /^Terms:$/m);
+		assert.match(ledger, /^ADR candidates:$/m);
+		const scope = plan.slice(plan.indexOf("\n## Scope\n"), plan.indexOf("\n## Verification strategy\n"));
+		assert.match(scope, /\n### Domain language\n[\s\S]*\n### Must have\n/);
+		assert.match(scope, /^ADRs to write: /m);
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
+});
+
 test("#given an already-scaffolded plan #when the script is re-run plain #then it is a no-op that preserves appended todos (resume-safe, no crash, no clobber)", async () => {
 	// given
 	const { scaffold } = await import(scriptUrl);

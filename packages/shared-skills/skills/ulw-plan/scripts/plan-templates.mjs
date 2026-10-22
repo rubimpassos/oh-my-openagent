@@ -80,6 +80,17 @@ approach: <fill: the approach you intend to plan>
 <!-- ${assumptionsNote} -->
 <!-- assumption | adopted default | rationale | reversible? -->
 
+## Domain language
+<!-- Rules: references/domain-language.md. Fill Sources during grounding (write none when absent); add terms as they resolve. -->
+Sources: <GLOSSARY-MAP.md / GLOSSARY.md path(s) read, or none> | ADRs: <paths read, or none>
+Context: <glossary file new terms belong to>
+
+Terms:
+<!-- - **<Term>** | <what it IS, 1-2 sentences, no implementation detail> | Avoid: <synonyms> | status: existing|new|changed|proposed | source: <turn or path:line> -->
+
+ADR candidates:
+<!-- - <title> | <context, decision, why> | reversible? no | surprising? yes | real trade-off? <alternative rejected> -->
+
 ## Findings (cited - path:lines)
 
 ## Decisions (with rationale)
@@ -136,6 +147,14 @@ Your next move: <fill - e.g. approve, or run a high-accuracy review>. Full execu
 | --- | --- | --- |
 | IS-1 | <what the user does, sees, or never has break> | <why this is the ideal for them> |
 | GAP-1 | <how today differs from IS-1> | <why it matters to them> |
+
+### Domain language
+<!-- From the draft's Domain language ledger. Every todo names each concept by these terms only. When any term is new/changed/proposed or an ADR is listed, a Wave 1 writing todo writes GLOSSARY.md / docs/adr/ (references/domain-language.md); otherwise write: Domain language: no glossary or ADR changes. -->
+| Term | Definition | Status | Glossary |
+| --- | --- | --- | --- |
+| <Term> | <what it IS> | <existing / new / changed> | <GLOSSARY.md path> |
+
+ADRs to write: <none | NNNN-slug: one-line decision>
 
 ### Must have
 ### Must NOT have (guardrails, anti-slop, scope boundaries)
