@@ -10,6 +10,12 @@ Releases of [rubimpassos/oh-my-openagent](https://github.com/rubimpassos/oh-my-o
 
 To release: add a `## [<version>] - YYYY-MM-DD` section here on `main` (with the `Fork-Patch: v2-support` trailer), then run the **Fork release** workflow with that version.
 
+## [5.0.1-fork.11] - 2026-10-22
+
+### Fixes
+
+- A session moved to another folder (from a worktree to the main checkout, or back) now takes its OMO state along: its goal, todo list, `/stop-continuation` state, subagent links and the Atlas plan it is executing, with a copy of the plan file and notepad when they live in the old folder's `.omo/`. Before, the new folder saw none of it: `get_goal` and `todoread` came back empty, the plan stopped, the old folder kept continuing the goal, and deleting the worktree lost the plan.
+
 ## [5.0.1-fork.10] - 2026-10-22
 
 ### Fixes

@@ -56,6 +56,24 @@ describe("V2 adapter todos", () => {
     expect(old.todos("ses_legacy")).toEqual([])
   })
 
+  test("moving a session hands its list to the new directory before it writes there", () => {
+    // given a pending list written in the worktree
+    const { at } = locations()
+    const worktree = at("worktree")
+    const main = at("main")
+    worktree.recordTodos("ses_moved", { todos: open })
+
+    // when the session moves to main
+    const moved = worktree.moveTodos("ses_moved", worktree.directory, main.directory)
+
+    // then main answers with the list and the worktree with nothing
+    expect(moved).toBe(true)
+    expect(main.todos("ses_moved").map((todo) => todo.status)).toEqual(["in_progress", "pending"])
+    expect(worktree.todos("ses_moved")).toEqual([])
+    expect(JSON.parse(readFileSync(join(worktree.directory, "todos.json"), "utf8"))).toEqual({})
+    expect(worktree.moveTodos("ses_moved", worktree.directory, main.directory)).toBe(false)
+  })
+
   test("deleting a session clears its list", () => {
     // given
     const { at } = locations()
