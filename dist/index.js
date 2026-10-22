@@ -98400,7 +98400,7 @@ function getCachedVersion(options = {}) {
 // package.json
 var package_default = {
   name: "oh-my-opencode",
-  version: "5.0.1-fork.9",
+  version: "5.0.1-fork.10",
   description: "The Best AI Agent Harness - Batteries-Included OpenCode Plugin with Multi-Model Orchestration, Parallel Background Agents, and Crafted LSP/AST Tools",
   main: "./dist/index.js",
   types: "dist/index.d.ts",
@@ -187189,7 +187189,9 @@ init_logger2();
 
 // packages/omo-opencode/src/v2/adapter-state.ts
 import { existsSync as existsSync115, mkdirSync as mkdirSync30, readFileSync as readFileSync80, writeFileSync as writeFileSync31 } from "fs";
-import { dirname as dirname52 } from "path";
+import { dirname as dirname52, join as join144 } from "path";
+init_plugin_identity();
+init_logger2();
 function isRecord17(value) {
   return typeof value === "object" && value !== null;
 }
@@ -187217,9 +187219,29 @@ function todoItems(input) {
   }
   return items;
 }
-function createAdapterState(directory) {
+function defaultTodoOwnersFile() {
+  return join144(getDataDir(), CACHE_DIR_NAME, "v2-todo-owners.json");
+}
+function updateJsonRecord(file2, update) {
+  let record15 = {};
+  try {
+    const parsed = readJson(file2);
+    if (parsed !== undefined) {
+      if (!isRecord17(parsed))
+        return;
+      record15 = parsed;
+    }
+  } catch (error) {
+    log2("[oh-my-openagent] v2 state file unreadable", { file: file2, error: error instanceof Error ? error.message : String(error) });
+    return;
+  }
+  if (update(record15))
+    writeJson(file2, record15);
+}
+function createAdapterState(directory, options = {}) {
   const parentsFile = `${directory}/parents.json`;
   const todosFile = `${directory}/todos.json`;
+  const todoOwnersFile = options.todoOwnersFile ?? defaultTodoOwnersFile();
   const toastsFile = `${directory}/toasts.json`;
   const status = new Map;
   const sessions = new Map;
@@ -187253,9 +187275,34 @@ function createAdapterState(directory) {
     parents,
     recordTodos(sessionID, input) {
       writeJson(todosFile, { ...todosBySession(), [sessionID]: todoItems(input) });
+      let previousOwner;
+      updateJsonRecord(todoOwnersFile, (owners2) => {
+        previousOwner = owners2[sessionID];
+        if (previousOwner === directory)
+          return false;
+        owners2[sessionID] = directory;
+        return true;
+      });
+      if (typeof previousOwner === "string" && previousOwner !== directory) {
+        updateJsonRecord(`${previousOwner}/todos.json`, (todos) => delete todos[sessionID]);
+      }
     },
     todos(sessionID) {
+      let owner;
+      try {
+        const owners2 = readJson(todoOwnersFile);
+        owner = isRecord17(owners2) ? owners2[sessionID] : undefined;
+      } catch (error) {
+        log2("[oh-my-openagent] v2 todo owners unreadable", { error: error instanceof Error ? error.message : String(error) });
+        owner = undefined;
+      }
+      if (typeof owner === "string" && owner !== directory)
+        return [];
       return todosBySession()[sessionID] ?? [];
+    },
+    forgetTodos(sessionID) {
+      updateJsonRecord(todosFile, (todos) => delete todos[sessionID]);
+      updateJsonRecord(todoOwnersFile, (owners2) => owners2[sessionID] === directory && delete owners2[sessionID]);
     },
     recordToast(input) {
       if (typeof input.duration === "number" && input.duration < 200)
@@ -187300,20 +187347,20 @@ function createAdapterState(directory) {
 // packages/omo-opencode/src/v2/client-state.ts
 import { existsSync as existsSync118, readdirSync as readdirSync36, readFileSync as readFileSync83 } from "fs";
 import { readdir as readdir10 } from "fs/promises";
-import { join as join146 } from "path";
+import { join as join147 } from "path";
 init_paths();
 init_store();
 init_logger2();
 
 // packages/omo-opencode/src/v2/client-state-publisher.ts
 import { existsSync as existsSync117, mkdirSync as mkdirSync32, readFileSync as readFileSync82, writeFileSync as writeFileSync33 } from "fs";
-import { join as join145 } from "path";
+import { join as join146 } from "path";
 init_logger2();
 
 // packages/omo-opencode/src/v2/client-control.ts
 init_logger2();
 import { existsSync as existsSync116, mkdirSync as mkdirSync31, readdirSync as readdirSync35, readFileSync as readFileSync81, unlinkSync as unlinkSync22, writeFileSync as writeFileSync32 } from "fs";
-import { join as join144 } from "path";
+import { join as join145 } from "path";
 import { z as z65 } from "zod";
 var CLIENT_STATE_SCHEMA = 2;
 var isRecord18 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -187396,15 +187443,15 @@ async function runRequest(request, control) {
   return { ok: true, message: `Retrying "${task.description}"${providerID && modelID ? ` on ${providerID}/${modelID}` : ""} as ${retried.id}.` };
 }
 async function processClientRequests(stateDirectory, control) {
-  const requestDirectory = join144(stateDirectory, "requests");
+  const requestDirectory = join145(stateDirectory, "requests");
   if (!existsSync116(requestDirectory))
     return 0;
-  const resultsFile = join144(stateDirectory, "results.json");
+  const resultsFile = join145(stateDirectory, "results.json");
   let ran = 0;
   for (const name of readdirSync35(requestDirectory)) {
     if (!name.endsWith(".json"))
       continue;
-    const file2 = join144(requestDirectory, name);
+    const file2 = join145(requestDirectory, name);
     let parsed;
     try {
       parsed = RequestSchema2.parse(JSON.parse(readFileSync81(file2, "utf8")));
@@ -187518,7 +187565,7 @@ var META_INTERVAL_MS = 30000;
 var SNAPSHOT_INTERVAL_MS = 5000;
 var CONTROL_INTERVAL_MS = 1500;
 function writeIfChanged(directory, name, value) {
-  const file2 = join145(directory, name);
+  const file2 = join146(directory, name);
   const exists = existsSync117(file2);
   if (!exists && Object.keys(value).length === 0)
     return;
@@ -187679,7 +187726,7 @@ function plansBySession(directory) {
   return bySession;
 }
 function goalsBySession(directory) {
-  const goalDir = join146(directory, ".omo", "goal");
+  const goalDir = join147(directory, ".omo", "goal");
   if (!existsSync118(goalDir))
     return {};
   const bySession = {};
@@ -187687,7 +187734,7 @@ function goalsBySession(directory) {
     if (!name.endsWith(".json"))
       continue;
     try {
-      const goal2 = GoalFileSchema.parse(JSON.parse(readFileSync83(join146(goalDir, name), "utf8"))).goal;
+      const goal2 = GoalFileSchema.parse(JSON.parse(readFileSync83(join147(goalDir, name), "utf8"))).goal;
       if (!goal2)
         continue;
       bySession[goal2.sessionID] = {
@@ -187708,7 +187755,7 @@ function goalsBySession(directory) {
   return bySession;
 }
 async function teamRunsByLead(config2) {
-  const runtimeDir = join146(resolveBaseDir(config2), "runtime");
+  const runtimeDir = join147(resolveBaseDir(config2), "runtime");
   if (!existsSync118(runtimeDir))
     return {};
   const byLead = {};
@@ -187781,7 +187828,7 @@ init_logger2();
 
 // packages/omo-opencode/src/v2/catalog.ts
 import { existsSync as existsSync120, readFileSync as readFileSync84 } from "fs";
-import { join as join148 } from "path";
+import { join as join149 } from "path";
 
 // packages/omo-opencode/src/v2/serve-http.ts
 class SessionHttpError extends Error {
@@ -187885,7 +187932,7 @@ async function patchSessionMetadata(origin, sessionID, metadata, fetchImpl) {
 
 // packages/omo-opencode/src/v2/session-db.ts
 import { existsSync as existsSync119 } from "fs";
-import { join as join147 } from "path";
+import { join as join148 } from "path";
 function isRecord20(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -187903,7 +187950,7 @@ async function openReadonly(file2) {
   }
 }
 function openCodeDatabasePath() {
-  return join147(getDataDir(), "opencode", "opencode.db");
+  return join148(getDataDir(), "opencode", "opencode.db");
 }
 async function sessionsFromDatabase(file2 = openCodeDatabasePath()) {
   const db = await openReadonly(file2);
@@ -187983,7 +188030,7 @@ function stripJsonc(text) {
 }
 function configData(directory = getOpenCodeConfigDir({ binary: "opencode" })) {
   for (const name of ["opencode.jsonc", "opencode.json"]) {
-    const file2 = join148(directory, name);
+    const file2 = join149(directory, name);
     if (!existsSync120(file2))
       continue;
     const parsed = JSON.parse(stripJsonc(readFileSync84(file2, "utf8")));
@@ -188786,8 +188833,10 @@ function noteRuntimeEvent(state3, event) {
     return;
   if (event.type === "session.idle")
     state3.noteStatus(sessionID, "idle");
-  if (event.type === "session.deleted")
+  if (event.type === "session.deleted") {
     state3.sessions.delete(sessionID);
+    state3.forgetTodos(sessionID);
+  }
   if (event.type === "session.created" && isRecord26(event.properties.info)) {
     state3.noteSession({ id: sessionID, ...event.properties.info });
   }
@@ -189042,7 +189091,7 @@ async function registerV1Hooks(ctx, hooks2, state3) {
 
 // packages/omo-opencode/src/v2/goal-sync.ts
 import { existsSync as existsSync121, readdirSync as readdirSync37, readFileSync as readFileSync85 } from "fs";
-import { join as join149 } from "path";
+import { join as join150 } from "path";
 init_logger2();
 var OMO_GOAL_DRIVER = "omo";
 var isRecord27 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -189069,14 +189118,14 @@ var USER_KEYS = ["status", "objective", "tokenBudget"];
 var userChanged = (mirror, written) => USER_KEYS.some((key) => (mirror[key] ?? null) !== (written[key] ?? null));
 function readGoals(projectDir) {
   const goals = new Map;
-  const goalDir = join149(projectDir, ".omo", "goal");
+  const goalDir = join150(projectDir, ".omo", "goal");
   if (!existsSync121(goalDir))
     return goals;
   for (const name of readdirSync37(goalDir)) {
     if (!name.endsWith(".json"))
       continue;
     try {
-      const goal2 = GoalFileSchema.parse(JSON.parse(readFileSync85(join149(goalDir, name), "utf8"))).goal;
+      const goal2 = GoalFileSchema.parse(JSON.parse(readFileSync85(join150(goalDir, name), "utf8"))).goal;
       if (goal2)
         goals.set(goal2.sessionID, goal2);
     } catch {}
@@ -189211,18 +189260,18 @@ function createGoalSync(input) {
 // packages/omo-opencode/src/v2/project-config.ts
 init_logger2();
 import { existsSync as existsSync122, readFileSync as readFileSync87, statSync as statSync18 } from "fs";
-import { join as join151 } from "path";
+import { join as join152 } from "path";
 
 // packages/omo-opencode/src/v2/agent-markdown.ts
 import { mkdirSync as mkdirSync33, readFileSync as readFileSync86, writeFileSync as writeFileSync34 } from "fs";
-import { join as join150 } from "path";
+import { join as join151 } from "path";
 var ACTION_ALIASES = {
   bash: "shell"
 };
 function agentMarkdownDirectory(override) {
   if (override)
     return override;
-  return join150(getOpenCodeConfigDir({ binary: "opencode" }), "agents");
+  return join151(getOpenCodeConfigDir({ binary: "opencode" }), "agents");
 }
 function agentFileName(name) {
   const cleaned = name.replace(/[\\/]/g, "-").replace(/^\.+/, "").trim();
@@ -189313,7 +189362,7 @@ function writeAgentMarkdown(input) {
     const markdown = renderAgentMarkdown(name, value);
     if (!markdown)
       continue;
-    const path27 = join150(input.directory, agentFileName(name));
+    const path27 = join151(input.directory, agentFileName(name));
     let changed = true;
     try {
       changed = readFileSync86(path27, "utf8") !== markdown;
@@ -189368,7 +189417,7 @@ function skillRecords(skills2) {
   for (const entry of skills2.paths) {
     if (typeof entry !== "string" || !existsSync122(entry))
       continue;
-    const file2 = statSync18(entry).isDirectory() ? join151(entry, "SKILL.md") : entry;
+    const file2 = statSync18(entry).isDirectory() ? join152(entry, "SKILL.md") : entry;
     if (!existsSync122(file2))
       continue;
     const content = readFileSync87(file2, "utf8");

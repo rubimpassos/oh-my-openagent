@@ -21,6 +21,7 @@ export type AdapterState = {
     parents: () => Record<string, string>;
     recordTodos: (sessionID: string, input: unknown) => void;
     todos: (sessionID: string) => TodoItem[];
+    forgetTodos: (sessionID: string) => void;
     recordToast: (input: {
         title?: string;
         message?: string;
@@ -31,5 +32,13 @@ export type AdapterState = {
     noteStatus: (sessionID: string, type: string) => void;
     noteSession: (session: Record<string, unknown>) => void;
 };
-export declare function createAdapterState(directory: string): AdapterState;
+/**
+ * `directory` is the location's `.omo/v2-state`. OpenCode 2 delivers every
+ * session's events to every location's plugin instance, and a session can move
+ * to another directory, so a todo list has one owner: the state directory that
+ * last wrote it, kept in a user-level index (`todoOwnersFile`).
+ */
+export declare function createAdapterState(directory: string, options?: {
+    todoOwnersFile?: string;
+}): AdapterState;
 export {};
