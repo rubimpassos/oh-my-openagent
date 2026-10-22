@@ -51,7 +51,10 @@ function noteRuntimeEvent(state: AdapterState | undefined, event: ReturnType<typ
   const sessionID = typeof event.properties.sessionID === "string" ? event.properties.sessionID : undefined
   if (!sessionID) return
   if (event.type === "session.idle") state.noteStatus(sessionID, "idle")
-  if (event.type === "session.deleted") state.sessions.delete(sessionID)
+  if (event.type === "session.deleted") {
+    state.sessions.delete(sessionID)
+    state.forgetTodos(sessionID)
+  }
   if (event.type === "session.created" && isRecord(event.properties.info)) {
     state.noteSession({ id: sessionID, ...event.properties.info })
   }

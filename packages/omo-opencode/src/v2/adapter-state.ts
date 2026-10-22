@@ -1,5 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
-import { dirname } from "node:path"
+import { dirname, join } from "node:path"
+
+import { getDataDir } from "../shared/data-path"
+import { CACHE_DIR_NAME } from "../shared/plugin-identity"
+import { log } from "../shared/logger"
 
 export type TodoItem = {
   id?: string
@@ -24,6 +28,7 @@ export type AdapterState = {
   parents: () => Record<string, string>
   recordTodos: (sessionID: string, input: unknown) => void
   todos: (sessionID: string) => TodoItem[]
+  forgetTodos: (sessionID: string) => void
   recordToast: (input: { title?: string; message?: string; variant?: string; duration?: number }) => void
   readToasts: () => ToastItem[]
   noteStatus: (sessionID: string, type: string) => void
@@ -59,9 +64,36 @@ function todoItems(input: unknown): TodoItem[] {
   return items
 }
 
-export function createAdapterState(directory: string): AdapterState {
+function defaultTodoOwnersFile(): string {
+  return join(getDataDir(), CACHE_DIR_NAME, "v2-todo-owners.json")
+}
+
+// Read-modify-write of a JSON object file; a file that does not parse is left alone.
+function updateJsonRecord(file: string, update: (record: Record<string, unknown>) => boolean): void {
+  let record: Record<string, unknown> = {}
+  try {
+    const parsed = readJson(file)
+    if (parsed !== undefined) {
+      if (!isRecord(parsed)) return
+      record = parsed
+    }
+  } catch (error) {
+    log("[oh-my-openagent] v2 state file unreadable", { file, error: error instanceof Error ? error.message : String(error) })
+    return
+  }
+  if (update(record)) writeJson(file, record)
+}
+
+/**
+ * `directory` is the location's `.omo/v2-state`. OpenCode 2 delivers every
+ * session's events to every location's plugin instance, and a session can move
+ * to another directory, so a todo list has one owner: the state directory that
+ * last wrote it, kept in a user-level index (`todoOwnersFile`).
+ */
+export function createAdapterState(directory: string, options: { todoOwnersFile?: string } = {}): AdapterState {
   const parentsFile = `${directory}/parents.json`
   const todosFile = `${directory}/todos.json`
+  const todoOwnersFile = options.todoOwnersFile ?? defaultTodoOwnersFile()
   const toastsFile = `${directory}/toasts.json`
   const status = new Map<string, { type: string }>()
   const sessions = new Map<string, Record<string, unknown>>()
@@ -95,9 +127,35 @@ export function createAdapterState(directory: string): AdapterState {
     parents,
     recordTodos(sessionID, input) {
       writeJson(todosFile, { ...todosBySession(), [sessionID]: todoItems(input) })
+      let previousOwner: unknown
+      updateJsonRecord(todoOwnersFile, (owners) => {
+        previousOwner = owners[sessionID]
+        if (previousOwner === directory) return false
+        owners[sessionID] = directory
+        return true
+      })
+      // The session moved here: its list in the old directory is stale and must
+      // neither be continued there nor shown by clients reading that project.
+      if (typeof previousOwner === "string" && previousOwner !== directory) {
+        updateJsonRecord(`${previousOwner}/todos.json`, (todos) => delete todos[sessionID])
+      }
     },
     todos(sessionID) {
+      let owner: unknown
+      try {
+        const owners = readJson(todoOwnersFile)
+        owner = isRecord(owners) ? owners[sessionID] : undefined
+      } catch (error) {
+        // Without a readable index every directory keeps answering for its own file, as before the index existed.
+        log("[oh-my-openagent] v2 todo owners unreadable", { error: error instanceof Error ? error.message : String(error) })
+        owner = undefined
+      }
+      if (typeof owner === "string" && owner !== directory) return []
       return todosBySession()[sessionID] ?? []
+    },
+    forgetTodos(sessionID) {
+      updateJsonRecord(todosFile, (todos) => delete todos[sessionID])
+      updateJsonRecord(todoOwnersFile, (owners) => owners[sessionID] === directory && delete owners[sessionID])
     },
     recordToast(input) {
       if (typeof input.duration === "number" && input.duration < 200) return

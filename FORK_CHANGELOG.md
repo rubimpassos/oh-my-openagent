@@ -10,6 +10,12 @@ Releases of [rubimpassos/oh-my-openagent](https://github.com/rubimpassos/oh-my-o
 
 To release: add a `## [<version>] - YYYY-MM-DD` section here on `main` (with the `Fork-Patch: v2-support` trailer), then run the **Fork release** workflow with that version.
 
+## [5.0.1-fork.10] - 2026-10-22
+
+### Fixes
+
+- A session moved to another folder (a worktree, or back to the main checkout) no longer keeps getting "Todo continuation" prompts after its todo list is done. The list stayed behind in the old folder, still pending, and OMO kept continuing it from there. A session now has one todo list wherever it moves, and a deleted session's list is removed. Lists already left behind stop counting the next time their session updates its todos.
+
 ## [5.0.1-fork.9] - 2026-10-22
 
 ### Features
