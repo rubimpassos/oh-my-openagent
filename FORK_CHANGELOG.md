@@ -10,6 +10,12 @@ Releases of [rubimpassos/oh-my-openagent](https://github.com/rubimpassos/oh-my-o
 
 To release: add a `## [<version>] - YYYY-MM-DD` section here on `main` (with the `Fork-Patch: v2-support` trailer), then run the **Fork release** workflow with that version.
 
+## [5.0.1-fork.9] - 2026-10-22
+
+### Features
+
+- Prometheus (ulw-plan) now plans in the project's domain language. It reads `GLOSSARY.md` (or `GLOSSARY-MAP.md`) and the relevant `docs/adr/` while exploring, challenges terms that conflict with the glossary or mean two things, and names every concept the same way across the plan. New or changed terms and hard-to-reverse decisions are collected in the draft and written to `GLOSSARY.md` and `docs/adr/` by the plan's first wave, so you approve them with the plan. Prometheus itself still writes only under `.omo/`. Adapted from the domain-modeling skill in mattpocock/skills.
+
 ## [5.0.1-fork.8] - 2026-10-21
 
 ### Fixes
