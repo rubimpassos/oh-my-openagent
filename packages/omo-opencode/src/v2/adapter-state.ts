@@ -29,6 +29,8 @@ export type AdapterState = {
   recordTodos: (sessionID: string, input: unknown) => void
   todos: (sessionID: string) => TodoItem[]
   forgetTodos: (sessionID: string) => void
+  /** Hands the session's list over to another state directory (the session moved there). */
+  moveTodos: (sessionID: string, fromDirectory: string, toDirectory: string) => boolean
   recordToast: (input: { title?: string; message?: string; variant?: string; duration?: number }) => void
   readToasts: () => ToastItem[]
   noteStatus: (sessionID: string, type: string) => void
@@ -105,6 +107,18 @@ export function createAdapterState(directory: string, options: { todoOwnersFile?
     return Object.fromEntries(Object.entries(parsed).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
   }
 
+  function ownerOf(sessionID: string): string | undefined {
+    try {
+      const owners = readJson(todoOwnersFile)
+      const owner = isRecord(owners) ? owners[sessionID] : undefined
+      return typeof owner === "string" ? owner : undefined
+    } catch (error) {
+      // Without a readable index every directory keeps answering for its own file, as before the index existed.
+      log("[oh-my-openagent] v2 todo owners unreadable", { error: error instanceof Error ? error.message : String(error) })
+      return undefined
+    }
+  }
+
   function todosBySession(): Record<string, TodoItem[]> {
     const parsed = readJson(todosFile)
     if (!isRecord(parsed)) return {}
@@ -141,21 +155,34 @@ export function createAdapterState(directory: string, options: { todoOwnersFile?
       }
     },
     todos(sessionID) {
-      let owner: unknown
-      try {
-        const owners = readJson(todoOwnersFile)
-        owner = isRecord(owners) ? owners[sessionID] : undefined
-      } catch (error) {
-        // Without a readable index every directory keeps answering for its own file, as before the index existed.
-        log("[oh-my-openagent] v2 todo owners unreadable", { error: error instanceof Error ? error.message : String(error) })
-        owner = undefined
-      }
-      if (typeof owner === "string" && owner !== directory) return []
+      const owner = ownerOf(sessionID)
+      if (owner !== undefined && owner !== directory) return []
       return todosBySession()[sessionID] ?? []
     },
     forgetTodos(sessionID) {
       updateJsonRecord(todosFile, (todos) => delete todos[sessionID])
       updateJsonRecord(todoOwnersFile, (owners) => owners[sessionID] === directory && delete owners[sessionID])
+    },
+    moveTodos(sessionID, fromDirectory, toDirectory) {
+      const source = ownerOf(sessionID) ?? fromDirectory
+      if (source === toDirectory) return false
+      let list: unknown
+      updateJsonRecord(`${source}/todos.json`, (todos) => {
+        list = todos[sessionID]
+        if (list === undefined) return false
+        delete todos[sessionID]
+        return true
+      })
+      if (list === undefined) return false
+      updateJsonRecord(`${toDirectory}/todos.json`, (todos) => {
+        todos[sessionID] = todoItems(list)
+        return true
+      })
+      updateJsonRecord(todoOwnersFile, (owners) => {
+        owners[sessionID] = toDirectory
+        return true
+      })
+      return true
     },
     recordToast(input) {
       if (typeof input.duration === "number" && input.duration < 200) return
