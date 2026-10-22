@@ -91,6 +91,31 @@ describe("OMO goal ↔ OpenChamber goal", () => {
     expect(mirror()).toBeUndefined()
   })
 
+  test("a goal that moved away with its session keeps its mirror for the new directory", async () => {
+    // given a mirrored goal, then the session and its goal moved to another directory
+    const { controller, sync, records, mirror, projectDir } = setup()
+    controller.setGoal("ses_1", "follow the session")
+    await sync()
+    await sync()
+    const elsewhere = join(projectDir, "..", "elsewhere")
+    const moved = createGoalSync({
+      projectDir,
+      session: {
+        get: async ({ sessionID }) => ({ id: sessionID, location: { directory: elsewhere }, metadata: records.get(sessionID) ?? {} }),
+        update: async ({ sessionID, metadata }) => { records.set(sessionID, metadata) },
+      },
+    })
+    await moved()
+    await moved()
+    controller.clearGoal("ses_1")
+
+    // when the old directory syncs and no longer finds the goal
+    await moved()
+
+    // then the mirror stays for the directory the goal moved to
+    expect(mirror()?.objective).toBe("follow the session")
+  })
+
   test("a pause is kept even when OMO touched its goal after the click (newer updatedAt)", async () => {
     const { controller, sync, records } = setup()
     controller.setGoal("ses_1", "make the build green")

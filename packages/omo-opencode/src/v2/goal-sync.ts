@@ -73,6 +73,10 @@ function readGoals(projectDir: string): Map<string, Goal> {
 
 const metadataOf = (session: unknown): Metadata => (isRecord(session) && isRecord(session.metadata) ? session.metadata : {})
 
+const movedAway = (session: unknown, projectDir: string): boolean => (
+  isRecord(session) && isRecord(session.location) && typeof session.location.directory === "string" && session.location.directory !== projectDir
+)
+
 const withGoal = (metadata: Metadata, goal: Metadata | null): Metadata => {
   const namespace = isRecord(metadata.openchamber) ? { ...metadata.openchamber } : {}
   if (goal) namespace.goal = goal
@@ -193,9 +197,13 @@ export function createGoalSync(input: { projectDir: string; session: SessionApi 
   }
 
   const unmirror = async (sessionID: string, goalID: string) => {
-    const metadata = metadataOf(await input.session.get({ sessionID }))
+    const session = await input.session.get({ sessionID })
+    const metadata = metadataOf(session)
     const mirror = isRecord(metadata.openchamber) && isRecord(metadata.openchamber.goal) ? metadata.openchamber.goal : null
-    if (mirror?.driver === OMO_GOAL_DRIVER && mirror.id === goalID) await write(sessionID, metadata, null)
+    // A goal that left with its session (v2/session-move.ts) is mirrored by the new directory's sync.
+    if (mirror?.driver === OMO_GOAL_DRIVER && mirror.id === goalID && !movedAway(session, input.projectDir)) {
+      await write(sessionID, metadata, null)
+    }
     mirrored.delete(sessionID)
     written.delete(sessionID)
   }
