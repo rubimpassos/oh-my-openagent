@@ -4,6 +4,7 @@ import { log } from "../shared/logger"
 import type { AdapterState } from "./adapter-state"
 import { toV1Event } from "./event-shape"
 import { hookMessagesToV1, writeHookMessagesBack } from "./message-shape"
+import { followSessionMove } from "./session-move"
 import { jsonMetadata } from "./tool-schema"
 
 type V2Context = Plugin.Context
@@ -306,6 +307,9 @@ export async function registerV1Hooks(ctx: V2Context, hooks: V1HookMap, state?: 
     void (async () => {
       try {
         for await (const raw of ctx.event.subscribe({ signal: controller.signal })) {
+          // Before the location filter: the move carries the source location, and the
+          // instance that sees it first moves the session's OMO state (see session-move.ts).
+          if (state) followSessionMove(raw, state)
           // OpenCode V1 scoped its event bus to one instance directory; V2 hands
           // every plugin instance the events of every location. Handle only this
           // instance's location so each hook runs once per event.
