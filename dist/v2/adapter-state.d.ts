@@ -22,6 +22,8 @@ export type AdapterState = {
     recordTodos: (sessionID: string, input: unknown) => void;
     todos: (sessionID: string) => TodoItem[];
     forgetTodos: (sessionID: string) => void;
+    /** Hands the session's list over to another state directory (the session moved there). */
+    moveTodos: (sessionID: string, fromDirectory: string, toDirectory: string) => boolean;
     recordToast: (input: {
         title?: string;
         message?: string;

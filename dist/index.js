@@ -12396,10 +12396,10 @@ var init_tolerant_fsync = __esm(() => {
 // packages/team-core/src/team-state-store/locks.ts
 import { randomUUID as randomUUID6 } from "crypto";
 import { access as access3, open, readFile as readFile3, rename as rename2, rm as rm2, unlink as unlink2 } from "fs/promises";
-import { dirname as dirname28 } from "path";
+import { dirname as dirname29 } from "path";
 function delay4(ms) {
-  return new Promise((resolve17) => {
-    setTimeout(resolve17, ms);
+  return new Promise((resolve18) => {
+    setTimeout(resolve18, ms);
   });
 }
 function buildOwnerContent(ownerTag) {
@@ -12456,7 +12456,7 @@ async function assertRetryableLockOpenError(lockPath, error, deps) {
   if (code === "EPERM") {
     if (await pathMayExist(lockPath, deps))
       return;
-    if ((deps?.platform ?? process.platform) === "win32" && await pathMayExist(dirname28(lockPath), deps))
+    if ((deps?.platform ?? process.platform) === "win32" && await pathMayExist(dirname29(lockPath), deps))
       return;
   }
   throw error;
@@ -15667,7 +15667,7 @@ var require_compile = __commonJS((exports) => {
     const schOrFunc = root.refs[ref];
     if (schOrFunc)
       return schOrFunc;
-    let _sch = resolve34.call(this, root, ref);
+    let _sch = resolve35.call(this, root, ref);
     if (_sch === undefined) {
       const schema = (_a = root.localRefs) === null || _a === undefined ? undefined : _a[ref];
       const { schemaId } = this.opts;
@@ -15694,7 +15694,7 @@ var require_compile = __commonJS((exports) => {
   function sameSchemaEnv(s1, s2) {
     return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
   }
-  function resolve34(root, ref) {
+  function resolve35(root, ref) {
     let sch;
     while (typeof (sch = this.refs[ref]) == "string")
       ref = sch;
@@ -16496,7 +16496,7 @@ var require_fast_uri = __commonJS((exports, module) => {
     }
     return uri;
   }
-  function resolve34(baseURI, relativeURI, options) {
+  function resolve35(baseURI, relativeURI, options) {
     const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
     const {
       parsed: baseParsed,
@@ -16529,49 +16529,49 @@ var require_fast_uri = __commonJS((exports, module) => {
     schemelessOptions.skipEscape = true;
     return serialize(resolved, schemelessOptions);
   }
-  function resolveComponent(base, relative16, options, skipNormalization) {
+  function resolveComponent(base, relative17, options, skipNormalization) {
     const target = {};
     if (!skipNormalization) {
       base = parse4(serialize(base, options), options);
-      relative16 = parse4(serialize(relative16, options), options);
+      relative17 = parse4(serialize(relative17, options), options);
     }
     options = options || {};
-    if (!options.tolerant && relative16.scheme) {
-      target.scheme = relative16.scheme;
-      target.userinfo = relative16.userinfo;
-      target.host = relative16.host;
-      target.port = relative16.port;
-      target.path = removeDotSegments(relative16.path || "");
-      target.query = relative16.query;
+    if (!options.tolerant && relative17.scheme) {
+      target.scheme = relative17.scheme;
+      target.userinfo = relative17.userinfo;
+      target.host = relative17.host;
+      target.port = relative17.port;
+      target.path = removeDotSegments(relative17.path || "");
+      target.query = relative17.query;
     } else {
-      if (relative16.userinfo !== undefined || relative16.host !== undefined || relative16.port !== undefined) {
-        target.userinfo = relative16.userinfo;
-        target.host = relative16.host;
-        target.port = relative16.port;
-        target.path = removeDotSegments(relative16.path || "");
-        target.query = relative16.query;
+      if (relative17.userinfo !== undefined || relative17.host !== undefined || relative17.port !== undefined) {
+        target.userinfo = relative17.userinfo;
+        target.host = relative17.host;
+        target.port = relative17.port;
+        target.path = removeDotSegments(relative17.path || "");
+        target.query = relative17.query;
       } else {
-        if (!relative16.path) {
+        if (!relative17.path) {
           target.path = base.path;
-          if (relative16.query !== undefined) {
-            target.query = relative16.query;
+          if (relative17.query !== undefined) {
+            target.query = relative17.query;
           } else {
             target.query = base.query;
           }
         } else {
-          if (relative16.path[0] === "/") {
-            target.path = removeDotSegments(relative16.path);
+          if (relative17.path[0] === "/") {
+            target.path = removeDotSegments(relative17.path);
           } else {
             if ((base.userinfo !== undefined || base.host !== undefined || base.port !== undefined) && !base.path) {
-              target.path = "/" + relative16.path;
+              target.path = "/" + relative17.path;
             } else if (!base.path) {
-              target.path = relative16.path;
+              target.path = relative17.path;
             } else {
-              target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative16.path;
+              target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative17.path;
             }
             target.path = removeDotSegments(target.path);
           }
-          target.query = relative16.query;
+          target.query = relative17.query;
         }
         target.userinfo = base.userinfo;
         target.host = base.host;
@@ -16579,7 +16579,7 @@ var require_fast_uri = __commonJS((exports, module) => {
       }
       target.scheme = base.scheme;
     }
-    target.fragment = relative16.fragment;
+    target.fragment = relative17.fragment;
     return target;
   }
   function equal(uriA, uriB, options) {
@@ -16867,7 +16867,7 @@ var require_fast_uri = __commonJS((exports, module) => {
   var fastUri = {
     SCHEMES,
     normalize: normalize5,
-    resolve: resolve34,
+    resolve: resolve35,
     resolveComponent,
     equal,
     serialize,
@@ -97531,6 +97531,105 @@ function endTaskTimer(directory, workId, taskKey, endedAt) {
   }
   return writeBoulderState(directory, state3) ? state3 : null;
 }
+// packages/boulder-state/src/storage/move.ts
+import { copyFileSync as copyFileSync3, cpSync, existsSync as existsSync59, mkdirSync as mkdirSync14, writeFileSync as writeFileSync14 } from "fs";
+import { basename as basename12, dirname as dirname23, isAbsolute as isAbsolute12, join as join71, relative as relative13, resolve as resolve16 } from "path";
+function relativeInside(directory, path8) {
+  const rel = relative13(resolve16(directory), resolve16(path8));
+  return rel.length > 0 && !rel.startsWith("..") && !isAbsolute12(rel) ? rel : null;
+}
+function ensureStateDirectory(directory) {
+  const dir = join71(directory, BOULDER_DIR);
+  if (existsSync59(dir))
+    return;
+  mkdirSync14(dir, { recursive: true });
+  writeFileSync14(join71(dir, ".gitignore"), ["*", "!/rules/", "!/rules/**", ""].join(`
+`), "utf-8");
+}
+function isPlainName(name) {
+  return name.length > 0 && name !== "." && name !== ".." && basename12(name) === name;
+}
+function updatedMs(work) {
+  return parseIsoToMs(work.updated_at ?? work.started_at) ?? 0;
+}
+function newestFirst(left, right) {
+  return updatedMs(right) - updatedMs(left);
+}
+function stateFor(works, activeWorkId, base) {
+  const mirror = works.find((work) => work.work_id === activeWorkId) ?? [...works].sort(newestFirst)[0];
+  if (!mirror)
+    return null;
+  const state3 = {
+    ...base,
+    schema_version: 2,
+    works: Object.fromEntries(works.map((work) => [work.work_id, work])),
+    active_work_id: mirror.work_id,
+    active_plan: mirror.active_plan,
+    started_at: mirror.started_at,
+    session_ids: [...mirror.session_ids],
+    plan_name: mirror.plan_name
+  };
+  projectWorkToMirror(state3, mirror);
+  return state3;
+}
+function carryWork(fromDirectory, toDirectory, work, others) {
+  const planPath = resolveBoulderPlanPathForWork(fromDirectory, work);
+  const planInState = existsSync59(planPath) ? relativeInside(join71(fromDirectory, BOULDER_DIR), planPath) : null;
+  const copiedPlan = planInState ? join71(toDirectory, BOULDER_DIR, planInState) : null;
+  const planTaken = copiedPlan !== null && others.some((other) => resolve16(resolveBoulderPlanPathForWork(toDirectory, other)) === resolve16(copiedPlan));
+  let activePlan = planPath;
+  if (copiedPlan && !planTaken) {
+    mkdirSync14(dirname23(copiedPlan), { recursive: true });
+    copyFileSync3(planPath, copiedPlan);
+    activePlan = copiedPlan;
+  }
+  const notepad = join71(fromDirectory, NOTEPAD_BASE_PATH, work.plan_name);
+  if (isPlainName(work.plan_name) && existsSync59(notepad)) {
+    const shared = others.some((other) => other.plan_name === work.plan_name);
+    cpSync(notepad, join71(toDirectory, NOTEPAD_BASE_PATH, work.plan_name), { recursive: true, force: !shared });
+  }
+  const carried = { ...work, active_plan: activePlan };
+  const worktreePath = work.worktree_path?.trim();
+  if (worktreePath) {
+    const absoluteWorktreePath = resolve16(fromDirectory, worktreePath);
+    if (absoluteWorktreePath === resolve16(fromDirectory))
+      delete carried.worktree_path;
+    else
+      carried.worktree_path = absoluteWorktreePath;
+  }
+  return carried;
+}
+function moveSessionWorks(fromDirectory, toDirectory, sessionId) {
+  if (resolve16(fromDirectory) === resolve16(toDirectory))
+    return [];
+  const source = readBoulderState(fromDirectory);
+  if (!source)
+    return [];
+  const member = normalizeSessionId(sessionId);
+  const works = getBoulderWorks(source);
+  const leaving = works.filter((work) => work.session_origins?.[member] === "direct");
+  if (leaving.length === 0)
+    return [];
+  const destination = readBoulderState(toDirectory);
+  const kept = destination ? getBoulderWorks(destination) : [];
+  const keptById = new Map(kept.map((work) => [work.work_id, work]));
+  const leavingIds = new Set(leaving.map((work) => work.work_id));
+  const others = kept.filter((work) => !leavingIds.has(work.work_id));
+  ensureStateDirectory(toDirectory);
+  const moved = leaving.filter((work) => updatedMs(keptById.get(work.work_id) ?? work) <= updatedMs(work)).map((work) => carryWork(fromDirectory, toDirectory, work, others));
+  for (const work of moved)
+    keptById.set(work.work_id, work);
+  const activeWorkId = [...moved].sort(newestFirst)[0]?.work_id ?? destination?.active_work_id;
+  const next = stateFor([...keptById.values()], activeWorkId, destination ?? undefined);
+  if (!next || !writeBoulderState(toDirectory, next))
+    return [];
+  const rest = stateFor(works.filter((work) => !leavingIds.has(work.work_id)), source.active_work_id, source);
+  if (rest)
+    writeBoulderState(fromDirectory, rest);
+  else
+    clearBoulderState(fromDirectory);
+  return moved;
+}
 // packages/omo-opencode/src/features/boulder-state/format-duration.ts
 init_src();
 // packages/omo-opencode/src/hooks/claude-code-hooks/handlers/tool-execute-before-handler.ts
@@ -97634,25 +97733,25 @@ function createClaudeCodeHooksHook(ctx, config2 = {}, contextCollector) {
 }
 // packages/omo-opencode/src/hooks/rules-injector/storage.ts
 import {
-  existsSync as existsSync59,
-  mkdirSync as mkdirSync14,
+  existsSync as existsSync60,
+  mkdirSync as mkdirSync15,
   readFileSync as readFileSync36,
-  writeFileSync as writeFileSync14,
+  writeFileSync as writeFileSync15,
   unlinkSync as unlinkSync9
 } from "fs";
-import { join as join72 } from "path";
+import { join as join73 } from "path";
 
 // packages/omo-opencode/src/hooks/rules-injector/constants.ts
-import { join as join71 } from "path";
-var RULES_INJECTOR_STORAGE = join71(OPENCODE_STORAGE, "rules-injector");
+import { join as join72 } from "path";
+var RULES_INJECTOR_STORAGE = join72(OPENCODE_STORAGE, "rules-injector");
 
 // packages/omo-opencode/src/hooks/rules-injector/storage.ts
 function getStoragePath(sessionID) {
-  return join72(RULES_INJECTOR_STORAGE, `${sessionID}.json`);
+  return join73(RULES_INJECTOR_STORAGE, `${sessionID}.json`);
 }
 function loadInjectedRules(sessionID) {
   const filePath = getStoragePath(sessionID);
-  if (!existsSync59(filePath))
+  if (!existsSync60(filePath))
     return { contentHashes: new Set, realPaths: new Set };
   try {
     const content = readFileSync36(filePath, "utf-8");
@@ -97675,20 +97774,20 @@ function saveInjectedRules(sessionID, data) {
     injectedRealPaths: [...data.realPaths],
     updatedAt: Date.now()
   };
-  mkdirSync14(RULES_INJECTOR_STORAGE, { recursive: true });
+  mkdirSync15(RULES_INJECTOR_STORAGE, { recursive: true });
   try {
-    writeFileSync14(getStoragePath(sessionID), JSON.stringify(storageData, null, 2));
+    writeFileSync15(getStoragePath(sessionID), JSON.stringify(storageData, null, 2));
   } catch (error) {
     if (!(error instanceof Error) || !("code" in error) || error.code !== "ENOENT") {
       throw error;
     }
-    mkdirSync14(RULES_INJECTOR_STORAGE, { recursive: true });
-    writeFileSync14(getStoragePath(sessionID), JSON.stringify(storageData, null, 2));
+    mkdirSync15(RULES_INJECTOR_STORAGE, { recursive: true });
+    writeFileSync15(getStoragePath(sessionID), JSON.stringify(storageData, null, 2));
   }
 }
 function clearInjectedRules(sessionID) {
   const filePath = getStoragePath(sessionID);
-  if (existsSync59(filePath)) {
+  if (existsSync60(filePath)) {
     unlinkSync9(filePath);
   }
 }
@@ -97836,13 +97935,13 @@ function setParsedRuleCacheEntry(realPath, entry) {
 }
 
 // packages/omo-opencode/src/hooks/rules-injector/path-resolution.ts
-import { resolve as resolve16 } from "path";
+import { resolve as resolve17 } from "path";
 function resolveFilePath4(workspaceDirectory, path8) {
   if (!path8)
     return null;
   if (path8.startsWith("/"))
     return path8;
-  return resolve16(workspaceDirectory, path8);
+  return resolve17(workspaceDirectory, path8);
 }
 
 // packages/omo-opencode/src/hooks/rules-injector/rule-match-reason.ts
@@ -98400,7 +98499,7 @@ function getCachedVersion(options = {}) {
 // package.json
 var package_default = {
   name: "oh-my-opencode",
-  version: "5.0.1-fork.10",
+  version: "5.0.1-fork.11",
   description: "The Best AI Agent Harness - Batteries-Included OpenCode Plugin with Multi-Model Orchestration, Parallel Background Agents, and Crafted LSP/AST Tools",
   main: "./dist/index.js",
   types: "dist/index.d.ts",
@@ -98887,17 +98986,17 @@ function syncCachePackageJsonToIntent(pluginInfo) {
 }
 // packages/omo-opencode/src/hooks/auto-update-checker/checker/sandbox-refresh.ts
 init_logger2();
-import { basename as basename12, dirname as dirname26 } from "path";
+import { basename as basename13, dirname as dirname27 } from "path";
 import { fileURLToPath as fileURLToPath4 } from "url";
 var trackedSandboxDirs = new Set;
 function getLoadedPluginSandboxDir(moduleUrl, cacheDir = getOpenCodeCacheDir()) {
-  const packageJsonPath = findPackageJsonUp(dirname26(fileURLToPath4(moduleUrl)));
+  const packageJsonPath = findPackageJsonUp(dirname27(fileURLToPath4(moduleUrl)));
   if (!packageJsonPath)
     return null;
-  const nodeModulesDir = dirname26(dirname26(packageJsonPath));
-  if (basename12(nodeModulesDir) !== "node_modules")
+  const nodeModulesDir = dirname27(dirname27(packageJsonPath));
+  if (basename13(nodeModulesDir) !== "node_modules")
     return null;
-  const workspace = dirname26(nodeModulesDir);
+  const workspace = dirname27(nodeModulesDir);
   return isPluginSandboxDir(workspace, cacheDir) ? workspace : null;
 }
 function refreshMarkedSandbox(sandboxDir, cacheDir, pid) {
@@ -98971,8 +99070,8 @@ function scheduleOpenCodeSandboxRefreshOnExit(sandboxDir, deps = {}) {
   return unapplied;
 }
 // packages/omo-opencode/src/hooks/auto-update-checker/hook/background-update-check.ts
-import { existsSync as existsSync68 } from "fs";
-import { dirname as dirname27, join as join79 } from "path";
+import { existsSync as existsSync69 } from "fs";
+import { dirname as dirname28, join as join80 } from "path";
 import { fileURLToPath as fileURLToPath5 } from "url";
 // packages/omo-opencode/src/cli/config-manager/add-plugin-to-opencode-config.ts
 init_main();
@@ -98988,9 +99087,9 @@ import { win32 as win326 } from "path";
 import { win32 as win325 } from "path";
 
 // packages/omo-opencode/src/config-migration/types.ts
-import { existsSync as existsSync65, readdirSync as readdirSync21, realpathSync as realpathSync12 } from "fs";
+import { existsSync as existsSync66, readdirSync as readdirSync21, realpathSync as realpathSync12 } from "fs";
 var DEFAULT_DISCOVERY_FILE_SYSTEM = {
-  existsSync: existsSync65,
+  existsSync: existsSync66,
   readdirSync: readdirSync21,
   realpathSync: realpathSync12
 };
@@ -99044,8 +99143,8 @@ function profileDirectories(root, options) {
 }
 function isWithin(parent, child, options) {
   const pathOperations = hostPathOperations(options);
-  const relative13 = pathOperations.relative(parent, child);
-  return relative13 === "" || !relative13.startsWith("..") && !pathOperations.isAbsolute(relative13);
+  const relative14 = pathOperations.relative(parent, child);
+  return relative14 === "" || !relative14.startsWith("..") && !pathOperations.isAbsolute(relative14);
 }
 function projectDirectories(options) {
   const directories = [];
@@ -99690,9 +99789,9 @@ function backupTimestamp(value) {
 }
 function safeRelativePath(path13, homeDir, options) {
   const pathOperations = hostPathOperations(options);
-  const relative13 = pathOperations.relative(homeDir, path13);
-  if (relative13 !== "" && !relative13.startsWith("..") && !pathOperations.isAbsolute(relative13))
-    return relative13;
+  const relative14 = pathOperations.relative(homeDir, path13);
+  if (relative14 !== "" && !relative14.startsWith("..") && !pathOperations.isAbsolute(relative14))
+    return relative14;
   return `external-${encodeURIComponent(path13)}`;
 }
 function descriptors(sources, options, timestamp) {
@@ -99943,8 +100042,8 @@ function toReadableStream2(stream) {
 function wrapNodeProcess2(proc) {
   let resolveExited;
   let exitCode = null;
-  const exited = new Promise((resolve17, reject) => {
-    resolveExited = resolve17;
+  const exited = new Promise((resolve18, reject) => {
+    resolveExited = resolve18;
     proc.on("error", (error) => {
       if (exitCode === null) {
         exitCode = 1;
@@ -99996,13 +100095,13 @@ function spawnWithWindowsHide(command, options) {
   return wrapNodeProcess2(proc);
 }
 // packages/omo-opencode/src/cli/config-manager/bun-install.ts
-import { existsSync as existsSync66 } from "fs";
-import { join as join77 } from "path";
+import { existsSync as existsSync67 } from "fs";
+import { join as join78 } from "path";
 init_logger2();
 var BUN_INSTALL_TIMEOUT_SECONDS = 60;
 var BUN_INSTALL_TIMEOUT_MS = BUN_INSTALL_TIMEOUT_SECONDS * 1000;
 function getDefaultWorkspaceDir() {
-  return join77(getOpenCodeCacheDir(), "packages");
+  return join78(getOpenCodeCacheDir(), "packages");
 }
 function readProcessOutput(stream) {
   if (!stream) {
@@ -100028,7 +100127,7 @@ async function runBunInstallWithDetails(options) {
   const outputMode = options?.outputMode ?? "pipe";
   const cacheDir = options?.workspaceDir ?? getDefaultWorkspaceDir();
   const packageJsonPath = `${cacheDir}/package.json`;
-  if (!existsSync66(packageJsonPath)) {
+  if (!existsSync67(packageJsonPath)) {
     return {
       success: false,
       error: `Workspace not initialized: ${packageJsonPath} not found. OpenCode should create this on first run.`
@@ -100043,8 +100142,8 @@ async function runBunInstallWithDetails(options) {
     });
     const outputPromise = Promise.all([readProcessOutput(proc.stdout), readProcessOutput(proc.stderr)]).then(([stdout, stderr]) => ({ stdout, stderr }));
     let timeoutId;
-    const timeoutPromise = new Promise((resolve17) => {
-      timeoutId = setTimeout(() => resolve17("timeout"), BUN_INSTALL_TIMEOUT_MS);
+    const timeoutPromise = new Promise((resolve18) => {
+      timeoutId = setTimeout(() => resolve18("timeout"), BUN_INSTALL_TIMEOUT_MS);
     });
     const exitPromise = proc.exited.then(() => "completed");
     const result = await Promise.race([exitPromise, timeoutPromise]);
@@ -100245,15 +100344,15 @@ Restart OpenCode to apply.`,
 // packages/omo-opencode/src/hooks/auto-update-checker/hook/background-update-check.ts
 function defaultGetModuleHostingWorkspace() {
   try {
-    const currentDir = dirname27(fileURLToPath5(import.meta.url));
+    const currentDir = dirname28(fileURLToPath5(import.meta.url));
     const pkgJsonPath = findPackageJsonUp(currentDir);
     if (!pkgJsonPath)
       return null;
-    const pkgDir = dirname27(pkgJsonPath);
-    const nodeModulesDir = dirname27(pkgDir);
+    const pkgDir = dirname28(pkgJsonPath);
+    const nodeModulesDir = dirname28(pkgDir);
     if (nodeModulesDir.split(/[\\/]/).pop() !== "node_modules")
       return null;
-    return dirname27(nodeModulesDir);
+    return dirname28(nodeModulesDir);
   } catch (error) {
     if (error instanceof Error) {
       return null;
@@ -100265,8 +100364,8 @@ function getCacheWorkspaceDir(deps) {
   return deps.join(deps.getOpenCodeCacheDir(), "packages");
 }
 var defaultDeps2 = {
-  existsSync: existsSync68,
-  join: join79,
+  existsSync: existsSync69,
+  join: join80,
   runBunInstallWithDetails,
   log: log2,
   getOpenCodeCacheDir,
@@ -100543,7 +100642,7 @@ async function showSpinnerToast(ctx, version, message) {
         duration: frameInterval + 50
       }
     }).catch(ignoreToastError);
-    await new Promise((resolve17) => setTimeout(resolve17, frameInterval));
+    await new Promise((resolve18) => setTimeout(resolve18, frameInterval));
   }
 }
 
@@ -100645,7 +100744,7 @@ v${latestVersion} available. Restart OpenCode to apply.` : "OpenCode is now on S
 // packages/omo-opencode/src/hooks/ast-grep-sg-provision/hook.ts
 init_src();
 import { homedir as homedir15 } from "os";
-import { join as join80 } from "path";
+import { join as join81 } from "path";
 var provisionedTargets = new Set;
 function defaultSchedule(task) {
   const timer = setTimeout(() => {
@@ -100672,7 +100771,7 @@ var defaultDeps4 = {
 function createAstGrepSgProvisionHook(depsOverride = {}) {
   const deps = { ...defaultDeps4, ...depsOverride };
   const platform2 = deps.platform ?? process.platform;
-  const targetDir = astGrepRuntimeDir(join80(deps.homeDir(), ".omo"), platform2, deps.arch ?? process.arch);
+  const targetDir = astGrepRuntimeDir(join81(deps.homeDir(), ".omo"), platform2, deps.arch ?? process.arch);
   return {
     event(input) {
       try {
@@ -100693,17 +100792,17 @@ function createAstGrepSgProvisionHook(depsOverride = {}) {
 }
 // packages/omo-opencode/src/hooks/agent-usage-reminder/storage.ts
 import {
-  existsSync as existsSync69,
-  mkdirSync as mkdirSync16,
+  existsSync as existsSync70,
+  mkdirSync as mkdirSync17,
   readFileSync as readFileSync45,
-  writeFileSync as writeFileSync17,
+  writeFileSync as writeFileSync18,
   unlinkSync as unlinkSync12
 } from "fs";
-import { join as join82 } from "path";
+import { join as join83 } from "path";
 
 // packages/omo-opencode/src/hooks/agent-usage-reminder/constants.ts
-import { join as join81 } from "path";
-var AGENT_USAGE_REMINDER_STORAGE = join81(OPENCODE_STORAGE, "agent-usage-reminder");
+import { join as join82 } from "path";
+var AGENT_USAGE_REMINDER_STORAGE = join82(OPENCODE_STORAGE, "agent-usage-reminder");
 var TARGET_TOOLS = new Set([
   "grep",
   "safe_grep",
@@ -100747,11 +100846,11 @@ ALWAYS prefer: Multiple parallel task calls > Direct tool calls
 
 // packages/omo-opencode/src/hooks/agent-usage-reminder/storage.ts
 function getStoragePath2(sessionID) {
-  return join82(AGENT_USAGE_REMINDER_STORAGE, `${sessionID}.json`);
+  return join83(AGENT_USAGE_REMINDER_STORAGE, `${sessionID}.json`);
 }
 function loadAgentUsageState(sessionID) {
   const filePath = getStoragePath2(sessionID);
-  if (!existsSync69(filePath))
+  if (!existsSync70(filePath))
     return null;
   try {
     const content = readFileSync45(filePath, "utf-8");
@@ -100761,15 +100860,15 @@ function loadAgentUsageState(sessionID) {
   }
 }
 function saveAgentUsageState(state3) {
-  if (!existsSync69(AGENT_USAGE_REMINDER_STORAGE)) {
-    mkdirSync16(AGENT_USAGE_REMINDER_STORAGE, { recursive: true });
+  if (!existsSync70(AGENT_USAGE_REMINDER_STORAGE)) {
+    mkdirSync17(AGENT_USAGE_REMINDER_STORAGE, { recursive: true });
   }
   const filePath = getStoragePath2(state3.sessionID);
-  writeFileSync17(filePath, JSON.stringify(state3, null, 2));
+  writeFileSync18(filePath, JSON.stringify(state3, null, 2));
 }
 function clearAgentUsageState(sessionID) {
   const filePath = getStoragePath2(sessionID);
-  if (existsSync69(filePath)) {
+  if (existsSync70(filePath)) {
     unlinkSync12(filePath);
   }
 }
@@ -106171,17 +106270,17 @@ function createNonInteractiveEnvHook(_ctx) {
 }
 // packages/omo-opencode/src/hooks/interactive-bash-session/storage.ts
 import {
-  existsSync as existsSync70,
-  mkdirSync as mkdirSync17,
+  existsSync as existsSync71,
+  mkdirSync as mkdirSync18,
   readFileSync as readFileSync46,
-  writeFileSync as writeFileSync18,
+  writeFileSync as writeFileSync19,
   unlinkSync as unlinkSync13
 } from "fs";
-import { join as join84 } from "path";
+import { join as join85 } from "path";
 
 // packages/omo-opencode/src/hooks/interactive-bash-session/constants.ts
-import { join as join83 } from "path";
-var INTERACTIVE_BASH_SESSION_STORAGE = join83(OPENCODE_STORAGE, "interactive-bash-session");
+import { join as join84 } from "path";
+var INTERACTIVE_BASH_SESSION_STORAGE = join84(OPENCODE_STORAGE, "interactive-bash-session");
 var OMO_SESSION_PREFIX = "omo-";
 function buildSessionReminderMessage(sessions) {
   if (sessions.length === 0)
@@ -106193,11 +106292,11 @@ function buildSessionReminderMessage(sessions) {
 
 // packages/omo-opencode/src/hooks/interactive-bash-session/storage.ts
 function getStoragePath3(sessionID) {
-  return join84(INTERACTIVE_BASH_SESSION_STORAGE, `${sessionID}.json`);
+  return join85(INTERACTIVE_BASH_SESSION_STORAGE, `${sessionID}.json`);
 }
 function loadInteractiveBashSessionState(sessionID) {
   const filePath = getStoragePath3(sessionID);
-  if (!existsSync70(filePath))
+  if (!existsSync71(filePath))
     return null;
   try {
     const content = readFileSync46(filePath, "utf-8");
@@ -106215,8 +106314,8 @@ function loadInteractiveBashSessionState(sessionID) {
   }
 }
 function saveInteractiveBashSessionState(state3) {
-  if (!existsSync70(INTERACTIVE_BASH_SESSION_STORAGE)) {
-    mkdirSync17(INTERACTIVE_BASH_SESSION_STORAGE, { recursive: true });
+  if (!existsSync71(INTERACTIVE_BASH_SESSION_STORAGE)) {
+    mkdirSync18(INTERACTIVE_BASH_SESSION_STORAGE, { recursive: true });
   }
   const filePath = getStoragePath3(state3.sessionID);
   const serialized = {
@@ -106224,11 +106323,11 @@ function saveInteractiveBashSessionState(state3) {
     tmuxSessions: Array.from(state3.tmuxSessions),
     updatedAt: state3.updatedAt
   };
-  writeFileSync18(filePath, JSON.stringify(serialized, null, 2));
+  writeFileSync19(filePath, JSON.stringify(serialized, null, 2));
 }
 function clearInteractiveBashSessionState(sessionID) {
   const filePath = getStoragePath3(sessionID);
-  if (existsSync70(filePath)) {
+  if (existsSync71(filePath)) {
     unlinkSync13(filePath);
   }
 }
@@ -107412,13 +107511,13 @@ init_logger2();
 // packages/omo-opencode/src/hooks/ralph-loop/session-event-handler.ts
 init_logger2();
 // packages/omo-opencode/src/hooks/goal/controller.ts
-import { mkdirSync as mkdirSync19, writeFileSync as writeFileSync20 } from "fs";
-import { dirname as dirname29, join as join86 } from "path";
+import { mkdirSync as mkdirSync20, writeFileSync as writeFileSync21 } from "fs";
+import { dirname as dirname30, join as join87 } from "path";
 
 // packages/omo-opencode/src/hooks/goal/store.ts
 import { randomUUID as randomUUID8 } from "crypto";
-import { mkdirSync as mkdirSync18, readFileSync as readFileSync47, renameSync as renameSync8, unlinkSync as unlinkSync14, writeFileSync as writeFileSync19 } from "fs";
-import { join as join85 } from "path";
+import { mkdirSync as mkdirSync19, readFileSync as readFileSync47, renameSync as renameSync8, unlinkSync as unlinkSync14, writeFileSync as writeFileSync20 } from "fs";
+import { join as join86 } from "path";
 
 // packages/omo-opencode/src/hooks/goal/types.ts
 import { z as z53 } from "zod";
@@ -107458,10 +107557,10 @@ var GoalToolResponseSchema = z53.object({
 // packages/omo-opencode/src/hooks/goal/store.ts
 var STORE_VERSION = 1;
 function goalFilePath(ref) {
-  return join85(ref.baseDir, `${encodeURIComponent(ref.sessionID)}.json`);
+  return join86(ref.baseDir, `${encodeURIComponent(ref.sessionID)}.json`);
 }
 function ensureGoalStoreDir(baseDir) {
-  mkdirSync18(baseDir, { recursive: true });
+  mkdirSync19(baseDir, { recursive: true });
 }
 function readGoal(ref) {
   const filePath = goalFilePath(ref);
@@ -107482,7 +107581,7 @@ function writeGoal(ref, goal2) {
   const filePath = goalFilePath(ref);
   const tempPath = `${filePath}.tmp.${randomUUID8()}`;
   const file2 = { version: STORE_VERSION, goal: goal2 };
-  writeFileSync19(tempPath, JSON.stringify(file2, null, 2), "utf-8");
+  writeFileSync20(tempPath, JSON.stringify(file2, null, 2), "utf-8");
   renameSync8(tempPath, filePath);
 }
 function clearGoal(ref) {
@@ -107585,9 +107684,9 @@ function validateObjective(objective) {
 // packages/omo-opencode/src/hooks/goal/controller.ts
 function createGoalController(options) {
   const { projectDir } = options;
-  const baseDir = join86(projectDir, ".omo", "goal");
+  const baseDir = join87(projectDir, ".omo", "goal");
   const storeRef = (sessionID) => ({ baseDir, sessionID });
-  const tuiMirrorPath = (sessionID) => join86(projectDir, ".omo", "ulw-loop", sessionID, "goals.json");
+  const tuiMirrorPath = (sessionID) => join87(projectDir, ".omo", "ulw-loop", sessionID, "goals.json");
   const writeTuiMirror = (sessionID, goal2) => {
     const path18 = tuiMirrorPath(sessionID);
     const snapshot = {
@@ -107600,8 +107699,8 @@ function createGoalController(options) {
         successCriteria: []
       }]
     };
-    mkdirSync19(dirname29(path18), { recursive: true });
-    writeFileSync20(path18, `${JSON.stringify(snapshot, null, 2)}
+    mkdirSync20(dirname30(path18), { recursive: true });
+    writeFileSync21(path18, `${JSON.stringify(snapshot, null, 2)}
 `, "utf-8");
   };
   return {
@@ -108327,40 +108426,40 @@ function findSlashCommandPartIndex(parts) {
   return -1;
 }
 // packages/omo-opencode/src/hooks/auto-slash-command/executor.ts
-import { dirname as dirname35 } from "path";
+import { dirname as dirname36 } from "path";
 
 // packages/omo-opencode/src/shared/command-executor/resolve-commands-in-text.ts
 init_resolve_commands_in_text();
 // packages/skills-loader-core/src/features/opencode-skill-loader/loader.ts
 init_src();
-import { join as join93 } from "path";
+import { join as join94 } from "path";
 
 // packages/shared-skills/index.mjs
-import { existsSync as existsSync71 } from "fs";
+import { existsSync as existsSync72 } from "fs";
 import { fileURLToPath as fileURLToPath6 } from "url";
 var SKILLS_PROBE_SPECIFIERS = ["./skills/", "../skills/", "../../skills/"];
 function sharedSkillsRootPath() {
   const candidates = SKILLS_PROBE_SPECIFIERS.map((specifier) => fileURLToPath6(new URL(specifier, import.meta.url)));
-  return candidates.find((candidate2) => existsSync71(candidate2)) ?? candidates[0];
+  return candidates.find((candidate2) => existsSync72(candidate2)) ?? candidates[0];
 }
 
 // packages/skills-loader-core/src/shared/claude-config-dir.ts
 init_src();
-import { join as join87 } from "path";
+import { join as join88 } from "path";
 function getClaudeConfigDir2() {
   const envConfigDir = process.env.CLAUDE_CONFIG_DIR;
   if (envConfigDir) {
     return envConfigDir;
   }
-  return join87(getHomeDirectory(), ".claude");
+  return join88(getHomeDirectory(), ".claude");
 }
 // packages/skills-loader-core/src/shared/opencode-command-dirs.ts
-import { basename as basename13, dirname as dirname30, join as join89 } from "path";
+import { basename as basename14, dirname as dirname31, join as join90 } from "path";
 
 // packages/skills-loader-core/src/shared/opencode-config-dir.ts
-import { existsSync as existsSync72, realpathSync as realpathSync13 } from "fs";
+import { existsSync as existsSync73, realpathSync as realpathSync13 } from "fs";
 import { homedir as homedir17 } from "os";
-import { join as join88, posix as posix8, resolve as resolve17, win32 as win327 } from "path";
+import { join as join89, posix as posix8, resolve as resolve18, win32 as win327 } from "path";
 
 // packages/skills-loader-core/src/shared/plugin-identity.ts
 init_src();
@@ -108393,15 +108492,15 @@ function getTauriConfigDir2(identifier) {
   const platform2 = process.platform;
   switch (platform2) {
     case "darwin":
-      return join88(homedir17(), "Library", "Application Support", identifier);
+      return join89(homedir17(), "Library", "Application Support", identifier);
     case "win32": {
-      const appData = process.env.APPDATA || join88(homedir17(), "AppData", "Roaming");
+      const appData = process.env.APPDATA || join89(homedir17(), "AppData", "Roaming");
       return win327.join(appData, identifier);
     }
     case "linux":
     default: {
-      const xdgConfig = process.env.XDG_CONFIG_HOME || join88(homedir17(), ".config");
-      return join88(xdgConfig, identifier);
+      const xdgConfig = process.env.XDG_CONFIG_HOME || join89(homedir17(), ".config");
+      return join89(xdgConfig, identifier);
     }
   }
 }
@@ -108409,8 +108508,8 @@ function resolveConfigPath2(pathValue) {
   if (isWslEnvironment2() && pathValue.startsWith("/")) {
     return posix8.normalize(pathValue);
   }
-  const resolvedPath = resolve17(pathValue);
-  if (!existsSync72(resolvedPath))
+  const resolvedPath = resolve18(pathValue);
+  if (!existsSync73(resolvedPath))
     return resolvedPath;
   try {
     return realpathSync13(resolvedPath);
@@ -108444,8 +108543,8 @@ function getWslLinuxHomeDir2(windowsConfigRoot) {
 function getCliDefaultConfigDir2() {
   const envXdgConfig = process.env.XDG_CONFIG_HOME?.trim();
   const shouldIgnoreWindowsXdg = envXdgConfig !== undefined && envXdgConfig.length > 0 && isWslEnvironment2() && isWindowsUserConfigRoot2(envXdgConfig);
-  const xdgConfig = shouldIgnoreWindowsXdg ? posix8.join(getWslLinuxHomeDir2(envXdgConfig) ?? "/home", ".config") : envXdgConfig || join88(homedir17(), ".config");
-  const configDir = isWslEnvironment2() ? posix8.join(xdgConfig, "opencode") : join88(xdgConfig, "opencode");
+  const xdgConfig = shouldIgnoreWindowsXdg ? posix8.join(getWslLinuxHomeDir2(envXdgConfig) ?? "/home", ".config") : envXdgConfig || join89(homedir17(), ".config");
+  const configDir = isWslEnvironment2() ? posix8.join(xdgConfig, "opencode") : join89(xdgConfig, "opencode");
   return resolveConfigPath2(configDir);
 }
 function getCliCustomConfigDir2() {
@@ -108478,9 +108577,9 @@ function getOpenCodeConfigDir2(options) {
   const tauriDir = process.platform === "win32" ? win327.isAbsolute(tauriDirBase) ? win327.normalize(tauriDirBase) : win327.resolve(tauriDirBase) : resolveConfigPath2(tauriDirBase);
   if (checkExisting) {
     const legacyDir = getCliConfigDir2();
-    const legacyConfig = join88(legacyDir, "opencode.json");
-    const legacyConfigC = join88(legacyDir, "opencode.jsonc");
-    if (existsSync72(legacyConfig) || existsSync72(legacyConfigC)) {
+    const legacyConfig = join89(legacyDir, "opencode.json");
+    const legacyConfigC = join89(legacyDir, "opencode.jsonc");
+    if (existsSync73(legacyConfig) || existsSync73(legacyConfigC)) {
       return legacyDir;
     }
   }
@@ -108489,11 +108588,11 @@ function getOpenCodeConfigDir2(options) {
 
 // packages/skills-loader-core/src/shared/opencode-command-dirs.ts
 function getParentOpencodeConfigDir2(configDir) {
-  const parentDir = dirname30(configDir);
-  if (basename13(parentDir) !== "profiles") {
+  const parentDir = dirname31(configDir);
+  if (basename14(parentDir) !== "profiles") {
     return null;
   }
-  return dirname30(parentDir);
+  return dirname31(parentDir);
 }
 function getOpenCodeSkillDirs(options) {
   const configDirs = getOpenCodeConfigDirs2(options);
@@ -108501,21 +108600,21 @@ function getOpenCodeSkillDirs(options) {
     ...configDirs.flatMap((configDir) => {
       const parentConfigDir = getParentOpencodeConfigDir2(configDir);
       return [
-        join89(configDir, "skills"),
-        join89(configDir, "skill"),
-        ...parentConfigDir ? [join89(parentConfigDir, "skills"), join89(parentConfigDir, "skill")] : []
+        join90(configDir, "skills"),
+        join90(configDir, "skill"),
+        ...parentConfigDir ? [join90(parentConfigDir, "skills"), join90(parentConfigDir, "skill")] : []
       ];
     })
   ]));
 }
 // packages/skills-loader-core/src/shared/project-discovery-dirs.ts
 import { execFileSync as execFileSync4 } from "child_process";
-import { existsSync as existsSync73, realpathSync as realpathSync14 } from "fs";
-import { dirname as dirname31, join as join90, resolve as resolve18, win32 as win328 } from "path";
+import { existsSync as existsSync74, realpathSync as realpathSync14 } from "fs";
+import { dirname as dirname32, join as join91, resolve as resolve19, win32 as win328 } from "path";
 var worktreePathCache2 = new Map;
 function normalizePath4(path18) {
-  const resolvedPath = process.platform !== "win32" && win328.isAbsolute(path18) ? path18 : resolve18(path18);
-  if (!existsSync73(resolvedPath)) {
+  const resolvedPath = process.platform !== "win32" && win328.isAbsolute(path18) ? path18 : resolve19(path18);
+  if (!existsSync74(resolvedPath)) {
     return resolvedPath;
   }
   try {
@@ -108546,8 +108645,8 @@ function findAncestorDirectories2(startDirectory, targetPaths, stopDirectory) {
   const stopDirectoryKey = resolvedStopDirectory ? pathKey3(resolvedStopDirectory) : undefined;
   while (true) {
     for (const targetPath of targetPaths) {
-      const candidateDirectory = join90(currentDirectory, ...targetPath);
-      if (!existsSync73(candidateDirectory)) {
+      const candidateDirectory = join91(currentDirectory, ...targetPath);
+      if (!existsSync74(candidateDirectory)) {
         continue;
       }
       const normalizedCandidateDirectory = normalizePath4(candidateDirectory);
@@ -108561,7 +108660,7 @@ function findAncestorDirectories2(startDirectory, targetPaths, stopDirectory) {
     if (stopDirectoryKey === pathKey3(currentDirectory)) {
       return directories;
     }
-    const parentDirectory = dirname31(currentDirectory);
+    const parentDirectory = dirname32(currentDirectory);
     if (parentDirectory === currentDirectory) {
       return directories;
     }
@@ -108569,7 +108668,7 @@ function findAncestorDirectories2(startDirectory, targetPaths, stopDirectory) {
   }
 }
 function detectWorktreePath2(directory) {
-  const resolvedDirectory = resolve18(directory);
+  const resolvedDirectory = resolve19(directory);
   const cacheKey = pathKey3(normalizePath4(resolvedDirectory));
   if (worktreePathCache2.has(cacheKey)) {
     return worktreePathCache2.get(cacheKey);
@@ -108701,12 +108800,12 @@ function deduplicateSkillsByName(skills2) {
 // packages/skills-loader-core/src/features/opencode-skill-loader/skill-directory-loader.ts
 init_src();
 import * as fs17 from "fs/promises";
-import { join as join92 } from "path";
+import { join as join93 } from "path";
 
 // packages/skills-loader-core/src/features/opencode-skill-loader/loaded-skill-from-path.ts
 init_src();
 import * as fs16 from "fs/promises";
-import { basename as basename14 } from "path";
+import { basename as basename15 } from "path";
 
 // packages/skills-loader-core/src/features/opencode-skill-loader/allowed-tools-parser.ts
 function parseAllowedTools(allowedTools) {
@@ -108721,7 +108820,7 @@ function parseAllowedTools(allowedTools) {
 // packages/skills-loader-core/src/features/opencode-skill-loader/skill-mcp-config.ts
 init_js_yaml();
 import * as fs15 from "fs/promises";
-import { join as join91 } from "path";
+import { join as join92 } from "path";
 function parseSkillMcpConfigFromFrontmatter(content) {
   const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!frontmatterMatch)
@@ -108740,7 +108839,7 @@ function parseSkillMcpConfigFromFrontmatter(content) {
   return;
 }
 async function loadMcpJsonFromDir(skillDir) {
-  const mcpJsonPath = join91(skillDir, "mcp.json");
+  const mcpJsonPath = join92(skillDir, "mcp.json");
   try {
     const content = await fs15.readFile(mcpJsonPath, "utf-8");
     const parsed = JSON.parse(content);
@@ -108822,7 +108921,7 @@ $ARGUMENTS
   }
 }
 function inferSkillNameFromFileName(filePath) {
-  return basename14(filePath, ".md");
+  return basename15(filePath, ".md");
 }
 
 // packages/skills-loader-core/src/features/opencode-skill-loader/skill-directory-loader.ts
@@ -108856,10 +108955,10 @@ async function loadSkillsFromDir(options) {
   const directories = entries.filter((entry) => !entry.name.startsWith(".") && (entry.isDirectory() || entry.isSymbolicLink()));
   const files = entries.filter((entry) => !entry.name.startsWith(".") && !entry.isDirectory() && !entry.isSymbolicLink() && isMarkdownFile(entry));
   for (const entry of directories) {
-    const entryPath = join92(options.skillsDir, entry.name);
+    const entryPath = join93(options.skillsDir, entry.name);
     const resolvedPath = await resolveSymlinkAsync(entryPath);
     const dirName = entry.name;
-    const skillMdPath = join92(resolvedPath, "SKILL.md");
+    const skillMdPath = join93(resolvedPath, "SKILL.md");
     if (await canAccessFile(skillMdPath)) {
       const skill = await loadSkillFromPath({
         skillPath: skillMdPath,
@@ -108873,7 +108972,7 @@ async function loadSkillsFromDir(options) {
       }
       continue;
     }
-    const namedSkillMdPath = join92(resolvedPath, `${dirName}.md`);
+    const namedSkillMdPath = join93(resolvedPath, `${dirName}.md`);
     if (await canAccessFile(namedSkillMdPath)) {
       const skill = await loadSkillFromPath({
         skillPath: namedSkillMdPath,
@@ -108904,7 +109003,7 @@ async function loadSkillsFromDir(options) {
     }
   }
   for (const entry of files) {
-    const entryPath = join92(options.skillsDir, entry.name);
+    const entryPath = join93(options.skillsDir, entry.name);
     const baseName = inferSkillNameFromFileName(entryPath);
     const skill = await loadSkillFromPath({
       skillPath: entryPath,
@@ -108922,7 +109021,7 @@ async function loadSkillsFromDir(options) {
 
 // packages/skills-loader-core/src/features/opencode-skill-loader/loader.ts
 async function loadUserSkills() {
-  const userSkillsDir = join93(getClaudeConfigDir2(), "skills");
+  const userSkillsDir = join94(getClaudeConfigDir2(), "skills");
   const skills2 = await loadSkillsFromDir({ skillsDir: userSkillsDir, scope: "user" });
   return skillsToCommandDefinitionRecord(skills2);
 }
@@ -108947,7 +109046,7 @@ async function loadProjectAgentsSkills(directory) {
   return skillsToCommandDefinitionRecord(deduplicateSkillsByName(allSkills.flat()));
 }
 async function loadGlobalAgentsSkills(homeDirectory2 = getHomeDirectory()) {
-  const agentsGlobalDir = join93(homeDirectory2, ".agents", "skills");
+  const agentsGlobalDir = join94(homeDirectory2, ".agents", "skills");
   const skills2 = await loadSkillsFromDir({ skillsDir: agentsGlobalDir, scope: "user" });
   return skillsToCommandDefinitionRecord(skills2);
 }
@@ -109002,7 +109101,7 @@ async function discoverSkills(options = {}) {
   ]);
 }
 async function discoverUserClaudeSkills() {
-  const userSkillsDir = join93(getClaudeConfigDir2(), "skills");
+  const userSkillsDir = join94(getClaudeConfigDir2(), "skills");
   return loadSkillsFromDir({ skillsDir: userSkillsDir, scope: "user" });
 }
 async function discoverProjectClaudeSkills(directory) {
@@ -109029,17 +109128,17 @@ async function discoverProjectAgentsSkills(directory) {
   return deduplicateSkillsByName(allSkills.flat());
 }
 async function discoverGlobalAgentsSkills(homeDirectory2 = getHomeDirectory()) {
-  const agentsGlobalDir = join93(homeDirectory2, ".agents", "skills");
+  const agentsGlobalDir = join94(homeDirectory2, ".agents", "skills");
   return loadSkillsFromDir({ skillsDir: agentsGlobalDir, scope: "user" });
 }
 // packages/skills-loader-core/src/features/opencode-skill-loader/merger/builtin-skill-converter.ts
-import { existsSync as existsSync74 } from "fs";
-import { join as join94 } from "path";
+import { existsSync as existsSync75 } from "fs";
+import { join as join95 } from "path";
 function resolveBuiltinSkillPath(builtin) {
   if (builtin.resolvedPath !== undefined)
     return builtin.resolvedPath;
-  const sharedSkillPath = join94(sharedSkillsRootPath(), builtin.name);
-  return existsSync74(sharedSkillPath) ? sharedSkillPath : undefined;
+  const sharedSkillPath = join95(sharedSkillsRootPath(), builtin.name);
+  return existsSync75(sharedSkillPath) ? sharedSkillPath : undefined;
 }
 function builtinToLoadedSkill(builtin) {
   const definition2 = {
@@ -109066,8 +109165,8 @@ function builtinToLoadedSkill(builtin) {
 
 // packages/skills-loader-core/src/features/opencode-skill-loader/merger/config-skill-entry-loader.ts
 init_src();
-import { existsSync as existsSync75, readFileSync as readFileSync48 } from "fs";
-import { dirname as dirname32, isAbsolute as isAbsolute12, resolve as resolve19 } from "path";
+import { existsSync as existsSync76, readFileSync as readFileSync48 } from "fs";
+import { dirname as dirname33, isAbsolute as isAbsolute13, resolve as resolve20 } from "path";
 import { homedir as homedir18 } from "os";
 function resolveFilePath5(from, configDir) {
   let filePath = from;
@@ -109075,17 +109174,17 @@ function resolveFilePath5(from, configDir) {
     filePath = filePath.slice(6, -1);
   }
   if (filePath.startsWith("~/")) {
-    return resolve19(homedir18(), filePath.slice(2));
+    return resolve20(homedir18(), filePath.slice(2));
   }
-  if (isAbsolute12(filePath)) {
+  if (isAbsolute13(filePath)) {
     return filePath;
   }
   const baseDir = configDir || process.cwd();
-  return resolve19(baseDir, filePath);
+  return resolve20(baseDir, filePath);
 }
 function loadSkillFromFile(filePath) {
   try {
-    if (!existsSync75(filePath))
+    if (!existsSync76(filePath))
       return null;
     const content = readFileSync48(filePath, "utf-8");
     const { data, body } = parseFrontmatter(content);
@@ -109123,7 +109222,7 @@ function configEntryToLoadedSkill(name, entry, configDir) {
     return null;
   }
   const description = entry.description || fileMetadata.description || "";
-  const resolvedPath = sourcePath ? dirname32(sourcePath) : configDir || process.cwd();
+  const resolvedPath = sourcePath ? dirname33(sourcePath) : configDir || process.cwd();
   const resolvedTemplate = resolveSkillPathReferences(template.trim(), resolvedPath);
   const wrappedTemplate = `<skill-instruction>
 Base directory for this skill: ${resolvedPath}/
@@ -109491,7 +109590,7 @@ playwright-cli close
 };
 // packages/skills-loader-core/src/features/builtin-skills/skill-file-loader.ts
 import { readFileSync as readFileSync49 } from "fs";
-import { join as join95 } from "path";
+import { join as join96 } from "path";
 init_src();
 function createSharedSkillTemplateLoader(readFile8 = readFileSync49, skillsRootPath = sharedSkillsRootPath()) {
   const cache2 = new Map;
@@ -109500,7 +109599,7 @@ function createSharedSkillTemplateLoader(readFile8 = readFileSync49, skillsRootP
     if (cached2 !== undefined)
       return cached2;
     try {
-      const { body } = parseFrontmatter(readFile8(join95(skillsRootPath, skillName, "SKILL.md"), "utf8"));
+      const { body } = parseFrontmatter(readFile8(join96(skillsRootPath, skillName, "SKILL.md"), "utf8"));
       cache2.set(skillName, body);
       return body;
     } catch (error) {
@@ -110637,9 +110736,9 @@ var gitMasterSkill = {
   template: GIT_MASTER_TEMPLATE
 };
 // packages/skills-loader-core/src/features/builtin-skills/skills/dev-browser.ts
-import { dirname as dirname33, join as join96 } from "path";
+import { dirname as dirname34, join as join97 } from "path";
 import { fileURLToPath as fileURLToPath7 } from "url";
-var CURRENT_DIR = dirname33(fileURLToPath7(import.meta.url));
+var CURRENT_DIR = dirname34(fileURLToPath7(import.meta.url));
 var devBrowserSkill = {
   name: "dev-browser",
   description: "Browser automation with persistent page state. Use when users ask to navigate websites, fill forms, take screenshots, extract web data, test web apps, or automate browser workflows. Trigger phrases include 'go to [url]', 'click on', 'fill out the form', 'take a screenshot', 'scrape', 'automate', 'test the website', 'log into', or any browser interaction request.",
@@ -110857,7 +110956,7 @@ console.log({
 await client.disconnect();
 EOF
 \`\`\``,
-  resolvedPath: join96(CURRENT_DIR, "..", "dev-browser")
+  resolvedPath: join97(CURRENT_DIR, "..", "dev-browser")
 };
 // packages/skills-loader-core/src/features/builtin-skills/skills/review-work.ts
 var reviewWorkSkill = {
@@ -111813,7 +111912,7 @@ init_src();
 var import_picomatch2 = __toESM(require_picomatch2(), 1);
 import * as fs18 from "fs/promises";
 import { homedir as homedir19 } from "os";
-import { dirname as dirname34, extname, isAbsolute as isAbsolute13, join as join97, relative as relative13 } from "path";
+import { dirname as dirname35, extname, isAbsolute as isAbsolute14, join as join98, relative as relative14 } from "path";
 var MAX_RECURSIVE_DEPTH = 10;
 function isHttpUrl(path18) {
   return path18.startsWith("http://") || path18.startsWith("https://");
@@ -111823,12 +111922,12 @@ function toAbsolutePath(path18, configDir) {
     return homedir19();
   }
   if (path18.startsWith("~/")) {
-    return join97(homedir19(), path18.slice(2));
+    return join98(homedir19(), path18.slice(2));
   }
-  if (isAbsolute13(path18)) {
+  if (isAbsolute14(path18)) {
     return path18;
   }
-  return join97(configDir, path18);
+  return join98(configDir, path18);
 }
 function isMarkdownPath(path18) {
   return extname(path18).toLowerCase() === ".md";
@@ -111842,7 +111941,7 @@ function filterByGlob(skills2, sourceBaseDir, globPattern) {
   return skills2.filter((skill) => {
     if (!skill.path)
       return false;
-    const rel = normalizePathForGlob(relative13(sourceBaseDir, skill.path));
+    const rel = normalizePathForGlob(relative14(sourceBaseDir, skill.path));
     return import_picomatch2.default.isMatch(rel, globPattern, { dot: true, bash: true });
   });
 }
@@ -111868,13 +111967,13 @@ async function loadSourcePath(options) {
       return [];
     const loaded = await loadSkillFromPath({
       skillPath: realSourcePath,
-      resolvedPath: dirname34(realSourcePath),
+      resolvedPath: dirname35(realSourcePath),
       defaultName: inferSkillNameFromFileName(realSourcePath),
       scope: "config"
     });
     if (!loaded)
       return [];
-    return filterByGlob([loaded], dirname34(realSourcePath), options.globPattern);
+    return filterByGlob([loaded], dirname35(realSourcePath), options.globPattern);
   }
   if (!stat5.isDirectory())
     return [];
@@ -111957,8 +112056,8 @@ function readOpencodeConfigSkills(directory) {
   return { paths, urls };
 }
 // packages/omo-opencode/src/tools/slashcommand/command-discovery.ts
-import { existsSync as existsSync77, readdirSync as readdirSync23, readFileSync as readFileSync52, statSync as statSync12 } from "fs";
-import { basename as basename15, join as join99 } from "path";
+import { existsSync as existsSync78, readdirSync as readdirSync23, readFileSync as readFileSync52, statSync as statSync12 } from "fs";
+import { basename as basename16, join as join100 } from "path";
 init_logger2();
 
 // packages/omo-opencode/src/features/builtin-commands/templates/goal.ts
@@ -113472,7 +113571,7 @@ function loadBuiltinCommands(disabledCommands, options) {
 // packages/omo-opencode/src/tools/slashcommand/command-discovery.ts
 var NESTED_COMMAND_SEPARATOR = "/";
 function discoverCommandsFromDir(commandsDir, scope, prefix = "") {
-  if (!existsSync77(commandsDir))
+  if (!existsSync78(commandsDir))
     return [];
   if (!statSync12(commandsDir).isDirectory()) {
     log2(`[command-discovery] Skipping non-directory path: ${commandsDir}`);
@@ -113487,13 +113586,13 @@ function discoverCommandsFromDir(commandsDir, scope, prefix = "") {
       if (entry.name.startsWith("."))
         continue;
       const nestedPrefix = prefix ? `${prefix}${NESTED_COMMAND_SEPARATOR}${entry.name}` : entry.name;
-      commands2.push(...discoverCommandsFromDir(join99(commandsDir, entry.name), scope, nestedPrefix));
+      commands2.push(...discoverCommandsFromDir(join100(commandsDir, entry.name), scope, nestedPrefix));
       continue;
     }
     if (!isMarkdownFile(entry))
       continue;
-    const commandPath = join99(commandsDir, entry.name);
-    const baseCommandName = basename15(entry.name, ".md");
+    const commandPath = join100(commandsDir, entry.name);
+    const baseCommandName = basename16(entry.name, ".md");
     const commandName = prefix ? `${prefix}${NESTED_COMMAND_SEPARATOR}${baseCommandName}` : baseCommandName;
     try {
       const content = readFileSync52(commandPath, "utf-8");
@@ -113551,8 +113650,8 @@ function deduplicateCommandInfosByName(commands2) {
   return deduplicatedCommands;
 }
 function discoverCommandsSync(directory, options) {
-  const userCommandsDir = join99(getClaudeConfigDir(), "commands");
-  const projectCommandsDir = join99(directory ?? process.cwd(), ".claude", "commands");
+  const userCommandsDir = join100(getClaudeConfigDir(), "commands");
+  const projectCommandsDir = join100(directory ?? process.cwd(), ".claude", "commands");
   const opencodeGlobalDirs = getOpenCodeCommandDirs({ binary: "opencode" });
   const opencodeProjectDirs = findProjectOpencodeCommandDirs(directory ?? process.cwd());
   const userCommands = discoverCommandsFromDir(userCommandsDir, "user");
@@ -113683,7 +113782,7 @@ async function formatCommandTemplate(cmd, args, sessionID) {
   if (!content && cmd.lazyContentLoader) {
     content = await cmd.lazyContentLoader.load();
   }
-  const commandDir = cmd.path ? dirname35(cmd.path) : process.cwd();
+  const commandDir = cmd.path ? dirname36(cmd.path) : process.cwd();
   const withFileRefs = await resolveFileReferencesInText(content, commandDir);
   const resolvedContent = await resolveCommandsInText(withFileRefs);
   const substitutedContent = substituteCommandTemplate(resolvedContent, args, sessionID);
@@ -114108,11 +114207,11 @@ function isPrometheusAgent(agentName) {
 }
 
 // packages/omo-opencode/src/hooks/prometheus-md-only/path-policy.ts
-import { relative as relative14, resolve as resolve20, isAbsolute as isAbsolute14 } from "path";
+import { relative as relative15, resolve as resolve21, isAbsolute as isAbsolute15 } from "path";
 function isAllowedFile(filePath, workspaceRoot) {
-  const resolved = resolve20(workspaceRoot, filePath);
-  const rel = relative14(workspaceRoot, resolved);
-  if (rel.startsWith("..") || isAbsolute14(rel)) {
+  const resolved = resolve21(workspaceRoot, filePath);
+  const rel = relative15(workspaceRoot, resolved);
+  if (rel.startsWith("..") || isAbsolute15(rel)) {
     return false;
   }
   if (!/(^|[/\\])\.omo([/\\]|$)/i.test(rel)) {
@@ -114256,9 +114355,9 @@ to continue: task(task_id="${taskId}", load_skills=[], run_in_background=true, p
   };
 }
 // packages/omo-senpi/src/components/agent-home/resolve-agent-home.ts
-import { existsSync as existsSync78 } from "fs";
+import { existsSync as existsSync79 } from "fs";
 import { homedir as homedir20 } from "os";
-import { join as join100, resolve as resolve21 } from "path";
+import { join as join101, resolve as resolve22 } from "path";
 var AGENT_DIR_ENV_NAMES = [
   "OMO_CODING_AGENT_DIR",
   "SENPI_CODING_AGENT_DIR",
@@ -114266,22 +114365,22 @@ var AGENT_DIR_ENV_NAMES = [
 ];
 var AGENT_HOME_SENTINEL = "settings.json";
 function resolveAgentHome(options) {
-  const { env, homeDir = homedir20(), exists = existsSync78 } = options;
+  const { env, homeDir = homedir20(), exists = existsSync79 } = options;
   for (const name of AGENT_DIR_ENV_NAMES) {
     const configured = env[name]?.trim();
     if (configured)
-      return resolve21(configured);
+      return resolve22(configured);
   }
-  const brandedHome = join100(homeDir, ".omo");
-  const canonical = join100(brandedHome, "agent");
-  if (exists(join100(canonical, AGENT_HOME_SENTINEL)))
+  const brandedHome = join101(homeDir, ".omo");
+  const canonical = join101(brandedHome, "agent");
+  if (exists(join101(canonical, AGENT_HOME_SENTINEL)))
     return canonical;
-  if (exists(join100(brandedHome, AGENT_HOME_SENTINEL)))
+  if (exists(join101(brandedHome, AGENT_HOME_SENTINEL)))
     return brandedHome;
-  return join100(homeDir, ".senpi", "agent");
+  return join101(homeDir, ".senpi", "agent");
 }
 function resolveAgentSessionsDirectory(options) {
-  return join100(resolveAgentHome(options), "sessions");
+  return join101(resolveAgentHome(options), "sessions");
 }
 
 // packages/omo-opencode/src/hooks/ulw-execute/ulw-execute-hook.ts
@@ -114289,11 +114388,11 @@ init_logger2();
 
 // packages/omo-opencode/src/hooks/ulw-execute/worktree-detector.ts
 import { execFileSync as execFileSync5 } from "child_process";
-import { existsSync as existsSync79, realpathSync as realpathSync15 } from "fs";
-import { resolve as resolve22, win32 as win329 } from "path";
+import { existsSync as existsSync80, realpathSync as realpathSync15 } from "fs";
+import { resolve as resolve23, win32 as win329 } from "path";
 function normalizePath5(path19) {
-  const resolvedPath = process.platform !== "win32" && win329.isAbsolute(path19) ? path19 : resolve22(path19);
-  if (!existsSync79(resolvedPath)) {
+  const resolvedPath = process.platform !== "win32" && win329.isAbsolute(path19) ? path19 : resolve23(path19);
+  if (!existsSync80(resolvedPath)) {
     return resolvedPath;
   }
   try {
@@ -114399,8 +114498,8 @@ ${completionInstruction}`;
 
 // packages/omo-opencode/src/hooks/ulw-execute/notepad-scaffold.ts
 init_logger2();
-import { mkdirSync as mkdirSync20, writeFileSync as writeFileSync21 } from "fs";
-import { join as join101 } from "path";
+import { mkdirSync as mkdirSync21, writeFileSync as writeFileSync22 } from "fs";
+import { join as join102 } from "path";
 var NOTEPAD_FILES = [
   "learnings.md",
   "decisions.md",
@@ -114434,14 +114533,14 @@ ${NOTEPAD_FOOTER}
 }
 function ensureNotepadScaffold(params) {
   const { directory, planName, timestamp = new Date().toISOString() } = params;
-  const notepadDir = join101(directory, ".omo", "notepads", planName);
-  mkdirSync20(notepadDir, { recursive: true });
+  const notepadDir = join102(directory, ".omo", "notepads", planName);
+  mkdirSync21(notepadDir, { recursive: true });
   const created = [];
   const skipped = [];
   for (const fileName of NOTEPAD_FILES) {
     const header = buildHeader(fileName, planName, timestamp);
     try {
-      writeFileSync21(join101(notepadDir, fileName), header, { flag: "wx" });
+      writeFileSync22(join102(notepadDir, fileName), header, { flag: "wx" });
       created.push(fileName);
     } catch (err) {
       if (err.code === "EEXIST") {
@@ -115755,7 +115854,7 @@ async function isSessionInBoulderLineage(input) {
 
 // packages/omo-opencode/src/hooks/atlas/session-last-agent.ts
 import { readFileSync as readFileSync53, readdirSync as readdirSync24 } from "fs";
-import { join as join102 } from "path";
+import { join as join103 } from "path";
 var defaultSessionLastAgentDeps = {
   getMessageDir,
   isSqliteBackend,
@@ -115815,7 +115914,7 @@ async function getLastAgentFromSession(sessionID, client3, deps = {}) {
   try {
     const messages = readdirSync24(messageDir).filter((fileName) => fileName.endsWith(".json")).map((fileName) => {
       try {
-        const content = readFileSync53(join102(messageDir, fileName), "utf-8");
+        const content = readFileSync53(join103(messageDir, fileName), "utf-8");
         const parsed = JSON.parse(content);
         return {
           fileName,
@@ -116487,7 +116586,7 @@ async function validateSubagentSessionId(input) {
 }
 
 // packages/omo-opencode/src/hooks/atlas/tool-execute-after-direct-work.ts
-import { resolve as resolve23 } from "path";
+import { resolve as resolve24 } from "path";
 init_logger2();
 
 // packages/omo-opencode/src/hooks/atlas/omo-path.ts
@@ -116496,7 +116595,7 @@ function isOmoPath(filePath) {
 }
 
 // packages/omo-opencode/src/hooks/atlas/tool-execute-after-plan-tasks.ts
-import { existsSync as existsSync80, readFileSync as readFileSync54 } from "fs";
+import { existsSync as existsSync81, readFileSync as readFileSync54 } from "fs";
 var TODO_HEADING_PATTERN2 = /^##\s+TODOs\b/i;
 var FINAL_VERIFICATION_HEADING_PATTERN2 = /^##\s+Final Verification Wave\b/i;
 var SECOND_LEVEL_HEADING_PATTERN = /^##\s+/;
@@ -116504,7 +116603,7 @@ var CHECKED_CHECKBOX_PATTERN = /^(\s*)[-*]\s*\[[xX]\]\s*(.+)$/;
 var TODO_TASK_PATTERN = /^(\d+)\.\s+(.+)$/;
 var FINAL_WAVE_TASK_PATTERN = /^(F\d+)\.\s+(.+)$/i;
 function isTrackedTaskChecked(planPath, taskKey) {
-  if (!existsSync80(planPath)) {
+  if (!existsSync81(planPath)) {
     return false;
   }
   const [section, label] = taskKey.split(":");
@@ -116558,7 +116657,7 @@ function parseCheckedTopLevelTaskKeys(planContent) {
   return checkedKeys;
 }
 function readCheckedTaskKeysFromPlan(planPath) {
-  if (!existsSync80(planPath)) {
+  if (!existsSync81(planPath)) {
     return new Set;
   }
   try {
@@ -116597,7 +116696,7 @@ async function handleDirectWorkToolAfter(input) {
     const sessionWork = getWorkForSession(ctx.directory, toolInput.sessionID);
     if (sessionWork) {
       const planPath = resolveBoulderPlanPathForWork(ctx.directory, sessionWork);
-      if (resolve23(filePath) === resolve23(planPath) && planSnapshot !== undefined) {
+      if (resolve24(filePath) === resolve24(planPath) && planSnapshot !== undefined) {
         const beforeCheckedKeys = parseCheckedTopLevelTaskKeys(planSnapshot);
         const afterCheckedKeys = readCheckedTaskKeysFromPlan(planPath);
         for (const taskKey of afterCheckedKeys) {
@@ -116737,7 +116836,7 @@ async function resolveFallbackTrackedSessionId(input) {
 }
 
 // packages/omo-opencode/src/hooks/atlas/final-wave-plan-state.ts
-import { existsSync as existsSync81, readFileSync as readFileSync55 } from "fs";
+import { existsSync as existsSync82, readFileSync as readFileSync55 } from "fs";
 var TODO_HEADING_PATTERN3 = /^##\s+TODOs\b/i;
 var FINAL_VERIFICATION_HEADING_PATTERN3 = /^##\s+Final Verification Wave\b/i;
 var SECOND_LEVEL_HEADING_PATTERN2 = /^##\s+/;
@@ -116745,7 +116844,7 @@ var UNCHECKED_CHECKBOX_PATTERN = /^\s*[-*]\s*\[\s*\]\s*(.+)$/;
 var TODO_TASK_PATTERN2 = /^\d+\./;
 var FINAL_WAVE_TASK_PATTERN2 = /^F\d+\./i;
 function readFinalWavePlanState(planPath) {
-  if (!existsSync81(planPath)) {
+  if (!existsSync82(planPath)) {
     return null;
   }
   try {
@@ -117354,8 +117453,8 @@ function createToolExecuteAfterHandler2(input) {
 
 // packages/omo-opencode/src/hooks/atlas/tool-execute-before.ts
 init_logger2();
-import { existsSync as existsSync82, readFileSync as readFileSync56 } from "fs";
-import { resolve as resolve24 } from "path";
+import { existsSync as existsSync83, readFileSync as readFileSync56 } from "fs";
+import { resolve as resolve25 } from "path";
 var TASK_SECTION_HEADER_PATTERN = /^##\s*1\.\s*TASK\s*$/i;
 var TODO_TASK_LINE_PATTERN = /^(?:[-*]\s*\[\s*\]\s*)?(\d+)\.\s+(.+)$/;
 var FINAL_WAVE_TASK_LINE_PATTERN = /^(?:[-*]\s*\[\s*\]\s*)?(F\d+)\.\s+(.+)$/i;
@@ -117416,9 +117515,9 @@ function createToolExecuteBeforeHandler2(input) {
       const sessionWork = sessionID ? getWorkForSession(ctx.directory, sessionID) : null;
       const state3 = sessionWork ? null : readBoulderState(ctx.directory);
       const planPath = sessionWork ? resolveBoulderPlanPathForWork(ctx.directory, sessionWork) : state3 ? resolveBoulderPlanPath(ctx.directory, state3) : null;
-      if (planPath && resolve24(filePath) === resolve24(planPath) && pendingPlanSnapshots) {
+      if (planPath && resolve25(filePath) === resolve25(planPath) && pendingPlanSnapshots) {
         try {
-          if (existsSync82(planPath)) {
+          if (existsSync83(planPath)) {
             pendingPlanSnapshots.set(toolInput.callID, readFileSync56(planPath, "utf-8"));
             trackPlanSnapshot?.(toolInput.callID, readFileSync56(planPath, "utf-8"));
           }
@@ -121443,11 +121542,11 @@ function createRuntimeFallbackHook(ctx, options, factoryOverrides = {}) {
   };
 }
 // packages/omo-opencode/src/hooks/write-existing-file-guard/hook.ts
-import { existsSync as existsSync84, realpathSync as realpathSync16 } from "fs";
-import { basename as basename16, dirname as dirname36, isAbsolute as isAbsolute15, join as join103, normalize as normalize2, relative as relative15, resolve as resolve25 } from "path";
+import { existsSync as existsSync85, realpathSync as realpathSync16 } from "fs";
+import { basename as basename17, dirname as dirname37, isAbsolute as isAbsolute16, join as join104, normalize as normalize2, relative as relative16, resolve as resolve26 } from "path";
 
 // packages/omo-opencode/src/hooks/write-existing-file-guard/tool-execute-before-handler.ts
-import { existsSync as existsSync83 } from "fs";
+import { existsSync as existsSync84 } from "fs";
 
 // packages/omo-opencode/src/hooks/write-existing-file-guard/session-read-permissions.ts
 function touchSession(sessionLastAccess, sessionID) {
@@ -121548,7 +121647,7 @@ async function handleWriteExistingFileGuardToolExecuteBefore(params) {
     return;
   }
   if (toolName === "read") {
-    if (!existsSync83(resolvedPath) || !input.sessionID) {
+    if (!existsSync84(resolvedPath) || !input.sessionID) {
       return;
     }
     registerReadPermission({
@@ -121566,7 +121665,7 @@ async function handleWriteExistingFileGuardToolExecuteBefore(params) {
     const { overwrite: _, ...rest } = argsRecord;
     output.args = rest;
   }
-  if (!existsSync83(resolvedPath)) {
+  if (!existsSync84(resolvedPath)) {
     return;
   }
   if (isOmoWorkspacePath(canonicalPath2)) {
@@ -121616,24 +121715,24 @@ function getPathFromArgs(args) {
   return args?.filePath ?? args?.path ?? args?.file_path;
 }
 function resolveInputPath(ctx, inputPath) {
-  return normalize2(isAbsolute15(inputPath) ? inputPath : resolve25(ctx.directory, inputPath));
+  return normalize2(isAbsolute16(inputPath) ? inputPath : resolve26(ctx.directory, inputPath));
 }
 function isPathInsideDirectory(pathToCheck, directory) {
-  const relativePath = relative15(directory, pathToCheck);
-  return relativePath === "" || !relativePath.startsWith("..") && !isAbsolute15(relativePath);
+  const relativePath = relative16(directory, pathToCheck);
+  return relativePath === "" || !relativePath.startsWith("..") && !isAbsolute16(relativePath);
 }
 function toCanonicalPath2(absolutePath) {
   let canonicalPath2 = absolutePath;
-  if (existsSync84(absolutePath)) {
+  if (existsSync85(absolutePath)) {
     try {
       canonicalPath2 = realpathSync16.native(absolutePath);
     } catch (canonicalPathError) {
       canonicalPath2 = absolutePath;
     }
   } else {
-    const absoluteDir = dirname36(absolutePath);
-    const resolvedDir = existsSync84(absoluteDir) ? realpathSync16.native(absoluteDir) : absoluteDir;
-    canonicalPath2 = join103(resolvedDir, basename16(absolutePath));
+    const absoluteDir = dirname37(absolutePath);
+    const resolvedDir = existsSync85(absoluteDir) ? realpathSync16.native(absoluteDir) : absoluteDir;
+    canonicalPath2 = join104(resolvedDir, basename17(absolutePath));
   }
   return normalize2(canonicalPath2);
 }
@@ -124394,23 +124493,23 @@ init_logger2();
 init_plugin_identity();
 
 // packages/omo-opencode/src/hooks/legacy-plugin-toast/auto-migrate.ts
-import { existsSync as existsSync85, readFileSync as readFileSync57 } from "fs";
-import { join as join104 } from "path";
+import { existsSync as existsSync86, readFileSync as readFileSync57 } from "fs";
+import { join as join105 } from "path";
 init_plugin_identity();
 function detectOpenCodeConfigPath(overrideConfigDir) {
   if (overrideConfigDir) {
-    const jsoncPath = join104(overrideConfigDir, "opencode.jsonc");
-    const jsonPath = join104(overrideConfigDir, "opencode.json");
-    if (existsSync85(jsoncPath))
+    const jsoncPath = join105(overrideConfigDir, "opencode.jsonc");
+    const jsonPath = join105(overrideConfigDir, "opencode.json");
+    if (existsSync86(jsoncPath))
       return jsoncPath;
-    if (existsSync85(jsonPath))
+    if (existsSync86(jsonPath))
       return jsonPath;
     return null;
   }
   const paths = getOpenCodeConfigPaths({ binary: "opencode", version: null });
-  if (existsSync85(paths.configJsonc))
+  if (existsSync86(paths.configJsonc))
     return paths.configJsonc;
-  if (existsSync85(paths.configJson))
+  if (existsSync86(paths.configJson))
     return paths.configJson;
   return null;
 }
@@ -124561,9 +124660,9 @@ function decideNativeEditionNudge(input) {
   return { show: true, reason: "eligible", nextState: shownState(current, input.now, input.version) };
 }
 // packages/omo-opencode/src/hooks/native-edition-nudge/hook.ts
-import { existsSync as existsSync86 } from "fs";
+import { existsSync as existsSync87 } from "fs";
 import { homedir as homedir21 } from "os";
-import { join as join106 } from "path";
+import { join as join107 } from "path";
 
 // packages/omo-opencode/src/cli/install-native/plan.ts
 function nativePackageSpec(pluginVersion = getBundledVersion()) {
@@ -124590,8 +124689,8 @@ var NATIVE_EDITION_INSTALL_COMMAND = formatNativeInstallEntryCommand(resolveNati
 init_logger2();
 
 // packages/omo-opencode/src/hooks/native-edition-nudge/state.ts
-import { mkdirSync as mkdirSync21, readFileSync as readFileSync58, unlinkSync as unlinkSync15, writeFileSync as writeFileSync22 } from "fs";
-import { join as join105 } from "path";
+import { mkdirSync as mkdirSync22, readFileSync as readFileSync58, unlinkSync as unlinkSync15, writeFileSync as writeFileSync23 } from "fs";
+import { join as join106 } from "path";
 var NUDGE_STATE_FILE = "native-nudge.json";
 function isDecision(value) {
   return value === "none" || value === "snoozed" || value === "never" || value === "migrated";
@@ -124625,7 +124724,7 @@ function parseNudgeState(raw) {
   };
 }
 function createNudgeStateStore(stateDir) {
-  const path19 = join105(stateDir, NUDGE_STATE_FILE);
+  const path19 = join106(stateDir, NUDGE_STATE_FILE);
   return {
     read: () => {
       let raw;
@@ -124638,8 +124737,8 @@ function createNudgeStateStore(stateDir) {
     },
     write: (state3) => {
       try {
-        mkdirSync21(stateDir, { recursive: true });
-        writeFileSync22(path19, `${JSON.stringify(state3, null, 2)}
+        mkdirSync22(stateDir, { recursive: true });
+        writeFileSync23(path19, `${JSON.stringify(state3, null, 2)}
 `, { mode: 384 });
         return true;
       } catch {
@@ -124647,10 +124746,10 @@ function createNudgeStateStore(stateDir) {
       }
     },
     probeWritable: () => {
-      const probe2 = join105(stateDir, `.${NUDGE_STATE_FILE}.probe`);
+      const probe2 = join106(stateDir, `.${NUDGE_STATE_FILE}.probe`);
       try {
-        mkdirSync21(stateDir, { recursive: true });
-        writeFileSync22(probe2, "", { mode: 384 });
+        mkdirSync22(stateDir, { recursive: true });
+        writeFileSync23(probe2, "", { mode: 384 });
       } catch {
         return false;
       }
@@ -124667,10 +124766,10 @@ var NATIVE_NUDGE_TOAST_TITLE = "Try OmO Native: no host app needed";
 var NATIVE_NUDGE_TOAST_MESSAGE = `Same agent, one binary, nothing else to keep updated.
 Install: ${NATIVE_EDITION_INSTALL_COMMAND}`;
 function nativeEditionStateDir() {
-  return join106(getUserConfigDir(), "oh-my-openagent");
+  return join107(getUserConfigDir(), "oh-my-openagent");
 }
 function detectNativeEdition() {
-  return existsSync86(join106(homedir21(), ".omo", "agent"));
+  return existsSync87(join107(homedir21(), ".omo", "agent"));
 }
 function defaultInteractive() {
   if (process.env["CI"] !== undefined && process.env["CI"] !== "")
@@ -124858,8 +124957,8 @@ function createNotepadWriteGuardHook() {
   };
 }
 // packages/omo-opencode/src/hooks/plan-format-validator/hook.ts
-import { existsSync as existsSync87, readFileSync as readFileSync59, writeFileSync as writeFileSync23 } from "fs";
-import { resolve as resolve26 } from "path";
+import { existsSync as existsSync88, readFileSync as readFileSync59, writeFileSync as writeFileSync24 } from "fs";
+import { resolve as resolve27 } from "path";
 init_logger2();
 var WRITE_TOOLS = new Set(["Write", "Edit", "write", "edit"]);
 var SECTION_BOUNDARY_HEADING = /^#{1,2}(?:[ \t]+|$)/;
@@ -125055,14 +125154,14 @@ function createPlanFormatValidatorHook(_ctx) {
         return;
       if (!isPlanFilePath(filePath))
         return;
-      const resolvedPath = resolve26(_ctx.directory, filePath);
-      if (!existsSync87(resolvedPath))
+      const resolvedPath = resolve27(_ctx.directory, filePath);
+      if (!existsSync88(resolvedPath))
         return;
       let content = readFileSync59(resolvedPath, "utf-8");
       const effort = normalizePlanEffort(content);
       if (effort !== null) {
         content = effort.content;
-        writeFileSync23(resolvedPath, content, "utf-8");
+        writeFileSync24(resolvedPath, content, "utf-8");
         log2(`[plan-format-validator] Plan ${filePath}: Effort "${effort.original}" normalized to ${effort.band}`, {
           sessionID: input.sessionID,
           filePath
@@ -125165,7 +125264,7 @@ function createMonitorStatusInjectorHook(monitorManager, config2) {
   };
 }
 // packages/omo-opencode/src/tools/grep/tools.ts
-import { resolve as resolve27 } from "path";
+import { resolve as resolve28 } from "path";
 
 // node_modules/.bun/@opencode-ai+plugin@1.18.31+7445fc152a67980a/node_modules/@opencode-ai/plugin/dist/tool.js
 import { z as z54 } from "zod";
@@ -125176,19 +125275,19 @@ tool.schema = z54;
 
 // packages/omo-opencode/src/shared/ripgrep-cli.ts
 import { spawnSync as spawnSync2 } from "child_process";
-import { existsSync as existsSync89 } from "fs";
-import { dirname as dirname37, join as join108 } from "path";
+import { existsSync as existsSync90 } from "fs";
+import { dirname as dirname38, join as join109 } from "path";
 
 // packages/omo-opencode/src/tools/grep/downloader.ts
-import { existsSync as existsSync88, readdirSync as readdirSync25 } from "fs";
-import { join as join107 } from "path";
+import { existsSync as existsSync89, readdirSync as readdirSync25 } from "fs";
+import { join as join108 } from "path";
 init_plugin_identity();
 function findFileRecursive(dir, filename) {
   try {
     const entries = readdirSync25(dir, { withFileTypes: true, recursive: true });
     for (const entry of entries) {
       if (entry.isFile() && entry.name === filename) {
-        return join107(entry.parentPath ?? dir, entry.name);
+        return join108(entry.parentPath ?? dir, entry.name);
       }
     }
   } catch (error) {
@@ -125212,11 +125311,11 @@ function getPlatformKey() {
 }
 function getInstallDir() {
   const homeDir = process.env.HOME || process.env.USERPROFILE || ".";
-  return join107(homeDir, ".cache", CACHE_DIR_NAME, "bin");
+  return join108(homeDir, ".cache", CACHE_DIR_NAME, "bin");
 }
 function getRgPath() {
   const isWindows2 = process.platform === "win32";
-  return join107(getInstallDir(), isWindows2 ? "rg.exe" : "rg");
+  return join108(getInstallDir(), isWindows2 ? "rg.exe" : "rg");
 }
 async function extractTarGz2(archivePath, destDir) {
   const platformKey = getPlatformKey();
@@ -125233,7 +125332,7 @@ async function extractZip2(archivePath, destDir) {
   const binaryName = process.platform === "win32" ? "rg.exe" : "rg";
   const foundPath = findFileRecursive(destDir, binaryName);
   if (foundPath) {
-    const destPath = join107(destDir, binaryName);
+    const destPath = join108(destDir, binaryName);
     if (foundPath !== destPath) {
       const { renameSync: renameSync9 } = await import("fs");
       renameSync9(foundPath, destPath);
@@ -125248,13 +125347,13 @@ async function downloadAndInstallRipgrep() {
   }
   const installDir = getInstallDir();
   const rgPath = getRgPath();
-  if (existsSync88(rgPath)) {
+  if (existsSync89(rgPath)) {
     return rgPath;
   }
   ensureCacheDir(installDir);
   const filename = `ripgrep-${RG_VERSION}-${config2.platform}.${config2.extension}`;
   const url = `https://github.com/BurntSushi/ripgrep/releases/download/${RG_VERSION}/${filename}`;
-  const archivePath = join107(installDir, filename);
+  const archivePath = join108(installDir, filename);
   try {
     await downloadArchive(url, archivePath);
     if (config2.extension === "tar.gz") {
@@ -125263,7 +125362,7 @@ async function downloadAndInstallRipgrep() {
       await extractZip2(archivePath, installDir);
     }
     ensureExecutable(rgPath);
-    if (!existsSync88(rgPath)) {
+    if (!existsSync89(rgPath)) {
       throw new Error("ripgrep binary not found after extraction");
     }
     return rgPath;
@@ -125279,7 +125378,7 @@ async function downloadAndInstallRipgrep() {
 }
 function getInstalledRipgrepPath() {
   const rgPath = getRgPath();
-  return existsSync88(rgPath) ? rgPath : null;
+  return existsSync89(rgPath) ? rgPath : null;
 }
 
 // packages/omo-opencode/src/shared/ripgrep-cli.ts
@@ -125315,19 +125414,19 @@ function findExecutable(name) {
 }
 function getOpenCodeBundledRg() {
   const execPath = process.execPath;
-  const execDir = dirname37(execPath);
+  const execDir = dirname38(execPath);
   const isWindows2 = process.platform === "win32";
   const rgName = isWindows2 ? "rg.exe" : "rg";
   const candidates = [
-    join108(getOpenCodeCacheDir(), "bin", rgName),
-    join108(getDataDir(), "opencode", "bin", rgName),
-    join108(execDir, rgName),
-    join108(execDir, "bin", rgName),
-    join108(execDir, "..", "bin", rgName),
-    join108(execDir, "..", "libexec", rgName)
+    join109(getOpenCodeCacheDir(), "bin", rgName),
+    join109(getDataDir(), "opencode", "bin", rgName),
+    join109(execDir, rgName),
+    join109(execDir, "bin", rgName),
+    join109(execDir, "..", "bin", rgName),
+    join109(execDir, "..", "libexec", rgName)
   ];
   for (const candidate2 of candidates) {
-    if (existsSync89(candidate2)) {
+    if (existsSync90(candidate2)) {
       return candidate2;
     }
   }
@@ -125412,10 +125511,10 @@ class Semaphore {
       this.running++;
       return;
     }
-    return new Promise((resolve27) => {
+    return new Promise((resolve28) => {
       this.queue.push(() => {
         this.running++;
-        resolve27();
+        resolve28();
       });
     });
   }
@@ -125730,7 +125829,7 @@ function createGrepTools(ctx) {
         const globs = args.include ? [args.include] : undefined;
         const runtimeCtx = context;
         const dir = typeof runtimeCtx.directory === "string" ? runtimeCtx.directory : ctx.directory;
-        const searchPath = args.path ? resolve27(dir, args.path) : dir;
+        const searchPath = args.path ? resolve28(dir, args.path) : dir;
         const paths = [searchPath];
         const outputMode = args.output_mode ?? "files_with_matches";
         const headLimit = args.head_limit ?? 0;
@@ -125761,11 +125860,11 @@ function createGrepTools(ctx) {
   return { grep };
 }
 // packages/omo-opencode/src/tools/glob/tools.ts
-import { resolve as resolve29 } from "path";
+import { resolve as resolve30 } from "path";
 
 // packages/omo-opencode/src/tools/glob/cli.ts
 init_bun_spawn_shim();
-import { resolve as resolve28 } from "path";
+import { resolve as resolve29 } from "path";
 
 // packages/omo-opencode/src/tools/glob/constants.ts
 var DEFAULT_TIMEOUT_MS3 = 60000;
@@ -125893,7 +125992,7 @@ async function runRgFilesInternal(options, resolvedCli, processSpawner = spawn) 
       }
       let filePath;
       if (isRg) {
-        filePath = cwd ? resolve28(cwd, line) : line;
+        filePath = cwd ? resolve29(cwd, line) : line;
       } else if (isWindows2) {
         filePath = line.trim();
       } else {
@@ -125953,7 +126052,7 @@ function createGlobTools(ctx) {
         const cli = await resolveGrepCliWithAutoInstall();
         const runtimeCtx = context;
         const dir = typeof runtimeCtx.directory === "string" ? runtimeCtx.directory : ctx.directory;
-        const searchPath = args.path ? resolve29(dir, args.path) : dir;
+        const searchPath = args.path ? resolve30(dir, args.path) : dir;
         const result = await runRgFiles({
           pattern: args.pattern,
           paths: [searchPath]
@@ -125979,7 +126078,7 @@ Use this when a task matches an available skill's or command's description.
 - The tool will return detailed instructions with your context applied.
 `;
 // packages/omo-opencode/src/tools/skill/tools.ts
-import { dirname as dirname39 } from "path";
+import { dirname as dirname40 } from "path";
 // packages/omo-opencode/src/tools/skill/session-skill-cache.ts
 var seenSessionIDs = new Set;
 function shouldInvalidateSkillCacheForSession(sessionID) {
@@ -125990,7 +126089,7 @@ function shouldInvalidateSkillCacheForSession(sessionID) {
   return true;
 }
 // packages/omo-opencode/src/tools/slashcommand/command-output-formatter.ts
-import { dirname as dirname38 } from "path";
+import { dirname as dirname39 } from "path";
 async function formatLoadedCommand(command, userMessage) {
   const sections = [];
   sections.push(`# /${command.name} Command
@@ -126029,7 +126128,7 @@ async function formatLoadedCommand(command, userMessage) {
   if (!content && command.lazyContentLoader) {
     content = await command.lazyContentLoader.load();
   }
-  const commandDir = command.path ? dirname38(command.path) : process.cwd();
+  const commandDir = command.path ? dirname39(command.path) : process.cwd();
   const withFileReferences = await resolveFileReferencesInText(content, commandDir);
   const resolvedContent = await resolveCommandsInText(withFileReferences);
   let finalContent = resolvedContent.trim();
@@ -126461,7 +126560,7 @@ function createSkillTool(options) {
         if (matchedSkill.name === "git-master") {
           body = injectGitMasterConfig(body, options.gitMasterConfig);
         }
-        const dir = matchedSkill.path ? dirname39(matchedSkill.path) : matchedSkill.resolvedPath || process.cwd();
+        const dir = matchedSkill.path ? dirname40(matchedSkill.path) : matchedSkill.resolvedPath || process.cwd();
         const output = [
           `## Skill: ${matchedSkill.name}`,
           "",
@@ -126501,9 +126600,9 @@ function createSkillTool(options) {
 }
 var skill = createSkillTool({ directory: process.cwd() });
 // packages/omo-opencode/src/tools/session-manager/constants.ts
-import { join as join109 } from "path";
-var TODO_DIR2 = join109(getClaudeConfigDir(), "todos");
-var TRANSCRIPT_DIR2 = join109(getClaudeConfigDir(), "transcripts");
+import { join as join110 } from "path";
+var TODO_DIR2 = join110(getClaudeConfigDir(), "todos");
+var TRANSCRIPT_DIR2 = join110(getClaudeConfigDir(), "transcripts");
 var SESSION_LIST_DESCRIPTION = `List all OpenCode sessions with optional filtering.
 
 Returns a list of available session IDs with metadata including message count, date range, and agents used.
@@ -126576,9 +126675,9 @@ Has Todos: Yes (12 items, 8 completed)
 Has Transcript: Yes (234 entries)`;
 
 // packages/omo-opencode/src/tools/session-manager/file-storage.ts
-import { existsSync as existsSync90 } from "fs";
+import { existsSync as existsSync91 } from "fs";
 import { readdir as readdir6, readFile as readFile8 } from "fs/promises";
-import { join as join110 } from "path";
+import { join as join111 } from "path";
 
 // packages/omo-opencode/src/tools/session-manager/directory-filter.ts
 import { normalize as normalize4, parse as parse3, sep as sep3 } from "path";
@@ -126602,7 +126701,7 @@ function ignoreFileStorageError(error) {
   throw error;
 }
 async function getFileMainSessions(directory) {
-  if (!existsSync90(SESSION_STORAGE))
+  if (!existsSync91(SESSION_STORAGE))
     return [];
   const sessions = [];
   try {
@@ -126610,13 +126709,13 @@ async function getFileMainSessions(directory) {
     for (const projectDir of projectDirs) {
       if (!projectDir.isDirectory())
         continue;
-      const projectPath = join110(SESSION_STORAGE, projectDir.name);
+      const projectPath = join111(SESSION_STORAGE, projectDir.name);
       const sessionFiles = await readdir6(projectPath);
       for (const file2 of sessionFiles) {
         if (!file2.endsWith(".json"))
           continue;
         try {
-          const content = await readFile8(join110(projectPath, file2), "utf-8");
+          const content = await readFile8(join111(projectPath, file2), "utf-8");
           const meta = JSON.parse(content);
           if (meta.parentID)
             continue;
@@ -126636,7 +126735,7 @@ async function getFileMainSessions(directory) {
   return sessions.sort((a, b) => b.time.updated - a.time.updated);
 }
 async function getFileAllSessions() {
-  if (!existsSync90(MESSAGE_STORAGE))
+  if (!existsSync91(MESSAGE_STORAGE))
     return [];
   const sessions = [];
   async function scanDirectory(dir) {
@@ -126645,7 +126744,7 @@ async function getFileAllSessions() {
       for (const entry of entries) {
         if (!entry.isDirectory())
           continue;
-        const sessionPath = join110(dir, entry.name);
+        const sessionPath = join111(dir, entry.name);
         const files = await readdir6(sessionPath);
         if (files.some((file2) => file2.endsWith(".json"))) {
           sessions.push(entry.name);
@@ -126666,7 +126765,7 @@ async function fileSessionExists(sessionID) {
 }
 async function getFileSessionMessages(sessionID) {
   const messageDir = getMessageDir(sessionID);
-  if (!messageDir || !existsSync90(messageDir))
+  if (!messageDir || !existsSync91(messageDir))
     return [];
   const messages = [];
   try {
@@ -126675,7 +126774,7 @@ async function getFileSessionMessages(sessionID) {
       if (!file2.endsWith(".json"))
         continue;
       try {
-        const content = await readFile8(join110(messageDir, file2), "utf-8");
+        const content = await readFile8(join111(messageDir, file2), "utf-8");
         const meta = JSON.parse(content);
         const parts = await readParts2(meta.id);
         messages.push({
@@ -126703,8 +126802,8 @@ async function getFileSessionMessages(sessionID) {
   });
 }
 async function readParts2(messageID) {
-  const partDir = join110(PART_STORAGE, messageID);
-  if (!existsSync90(partDir))
+  const partDir = join111(PART_STORAGE, messageID);
+  if (!existsSync91(partDir))
     return [];
   const parts = [];
   try {
@@ -126713,7 +126812,7 @@ async function readParts2(messageID) {
       if (!file2.endsWith(".json"))
         continue;
       try {
-        const content = await readFile8(join110(partDir, file2), "utf-8");
+        const content = await readFile8(join111(partDir, file2), "utf-8");
         parts.push(JSON.parse(content));
       } catch (error) {
         ignoreFileStorageError(error);
@@ -126727,14 +126826,14 @@ async function readParts2(messageID) {
   return parts.sort((a, b) => a.id.localeCompare(b.id));
 }
 async function getFileSessionTodos(sessionID) {
-  if (!existsSync90(TODO_DIR2))
+  if (!existsSync91(TODO_DIR2))
     return [];
   try {
     const allFiles = await readdir6(TODO_DIR2);
     const todoFiles = allFiles.filter((file2) => file2 === `${sessionID}.json`);
     for (const file2 of todoFiles) {
       try {
-        const content = await readFile8(join110(TODO_DIR2, file2), "utf-8");
+        const content = await readFile8(join111(TODO_DIR2, file2), "utf-8");
         const data = JSON.parse(content);
         if (!Array.isArray(data))
           continue;
@@ -126756,10 +126855,10 @@ async function getFileSessionTodos(sessionID) {
   return [];
 }
 async function getFileSessionTranscript(sessionID) {
-  if (!existsSync90(TRANSCRIPT_DIR2))
+  if (!existsSync91(TRANSCRIPT_DIR2))
     return 0;
-  const transcriptFile = join110(TRANSCRIPT_DIR2, `${sessionID}.jsonl`);
-  if (!existsSync90(transcriptFile))
+  const transcriptFile = join111(TRANSCRIPT_DIR2, `${sessionID}.jsonl`);
+  if (!existsSync91(transcriptFile))
     return 0;
   try {
     const content = await readFile8(transcriptFile, "utf-8");
@@ -127760,7 +127859,7 @@ init_logger2();
 
 // packages/omo-opencode/src/tools/background-task/delay.ts
 function delay5(ms) {
-  return new Promise((resolve30) => setTimeout(resolve30, ms));
+  return new Promise((resolve31) => setTimeout(resolve31, ms));
 }
 // packages/omo-opencode/src/tools/background-task/create-background-output.ts
 init_logger2();
@@ -128621,23 +128720,23 @@ Other built-in agents, custom agents, and task categories are intentionally not 
 
 Pass \`session_id=<id>\` to continue previous agent with full context. Nested subagent depth is tracked automatically and blocked past the configured limit. Prompts MUST be in English. Use \`background_output\` for async results.`;
 // packages/claude-code-compat-core/src/features/claude-code-agent-loader/loader.ts
-import { existsSync as existsSync95, readdirSync as readdirSync26 } from "fs";
-import { join as join116 } from "path";
+import { existsSync as existsSync96, readdirSync as readdirSync26 } from "fs";
+import { join as join117 } from "path";
 
 // packages/claude-code-compat-core/src/shared/claude-config-dir.ts
 import { homedir as homedir22 } from "os";
-import { join as join111 } from "path";
+import { join as join112 } from "path";
 function getClaudeConfigDir3() {
   const envConfigDir = process.env.CLAUDE_CONFIG_DIR;
   if (envConfigDir) {
     return envConfigDir;
   }
-  return join111(process.env.HOME || process.env.USERPROFILE || homedir22(), ".claude");
+  return join112(process.env.HOME || process.env.USERPROFILE || homedir22(), ".claude");
 }
 // packages/claude-code-compat-core/src/shared/opencode-config-dir.ts
-import { existsSync as existsSync91, realpathSync as realpathSync17 } from "fs";
+import { existsSync as existsSync92, realpathSync as realpathSync17 } from "fs";
 import { homedir as homedir23 } from "os";
-import { join as join112, posix as posix10, resolve as resolve30, win32 as win3211 } from "path";
+import { join as join113, posix as posix10, resolve as resolve31, win32 as win3211 } from "path";
 var TAURI_APP_IDENTIFIER3 = "ai.opencode.desktop";
 var TAURI_APP_IDENTIFIER_DEV3 = "ai.opencode.desktop.dev";
 function isDevBuild3(version) {
@@ -128649,15 +128748,15 @@ function getTauriConfigDir3(identifier) {
   const platform2 = process.platform;
   switch (platform2) {
     case "darwin":
-      return join112(homedir23(), "Library", "Application Support", identifier);
+      return join113(homedir23(), "Library", "Application Support", identifier);
     case "win32": {
-      const appData = process.env.APPDATA || join112(homedir23(), "AppData", "Roaming");
+      const appData = process.env.APPDATA || join113(homedir23(), "AppData", "Roaming");
       return win3211.join(appData, identifier);
     }
     case "linux":
     default: {
-      const xdgConfig = process.env.XDG_CONFIG_HOME || join112(homedir23(), ".config");
-      return join112(xdgConfig, identifier);
+      const xdgConfig = process.env.XDG_CONFIG_HOME || join113(homedir23(), ".config");
+      return join113(xdgConfig, identifier);
     }
   }
 }
@@ -128665,8 +128764,8 @@ function resolveConfigPath3(pathValue) {
   if (isWslEnvironment3() && pathValue.startsWith("/")) {
     return posix10.normalize(pathValue);
   }
-  const resolvedPath = resolve30(pathValue);
-  if (!existsSync91(resolvedPath))
+  const resolvedPath = resolve31(pathValue);
+  if (!existsSync92(resolvedPath))
     return resolvedPath;
   try {
     return realpathSync17(resolvedPath);
@@ -128700,8 +128799,8 @@ function getWslLinuxHomeDir3(windowsConfigRoot) {
 function getCliDefaultConfigDir3() {
   const envXdgConfig = process.env.XDG_CONFIG_HOME?.trim();
   const shouldIgnoreWindowsXdg = envXdgConfig !== undefined && envXdgConfig.length > 0 && isWslEnvironment3() && isWindowsUserConfigRoot3(envXdgConfig);
-  const xdgConfig = shouldIgnoreWindowsXdg ? posix10.join(getWslLinuxHomeDir3(envXdgConfig) ?? "/home", ".config") : envXdgConfig || join112(homedir23(), ".config");
-  const configDir = isWslEnvironment3() ? posix10.join(xdgConfig, "opencode") : join112(xdgConfig, "opencode");
+  const xdgConfig = shouldIgnoreWindowsXdg ? posix10.join(getWslLinuxHomeDir3(envXdgConfig) ?? "/home", ".config") : envXdgConfig || join113(homedir23(), ".config");
+  const configDir = isWslEnvironment3() ? posix10.join(xdgConfig, "opencode") : join113(xdgConfig, "opencode");
   return resolveConfigPath3(configDir);
 }
 function getCliCustomConfigDir3() {
@@ -128734,9 +128833,9 @@ function getOpenCodeConfigDir3(options) {
   const tauriDir = process.platform === "win32" ? win3211.isAbsolute(tauriDirBase) ? win3211.normalize(tauriDirBase) : win3211.resolve(tauriDirBase) : resolveConfigPath3(tauriDirBase);
   if (checkExisting) {
     const legacyDir = getCliConfigDir3();
-    const legacyConfig = join112(legacyDir, "opencode.json");
-    const legacyConfigC = join112(legacyDir, "opencode.jsonc");
-    if (existsSync91(legacyConfig) || existsSync91(legacyConfigC)) {
+    const legacyConfig = join113(legacyDir, "opencode.json");
+    const legacyConfigC = join113(legacyDir, "opencode.jsonc");
+    if (existsSync92(legacyConfig) || existsSync92(legacyConfigC)) {
       return legacyDir;
     }
   }
@@ -128746,11 +128845,11 @@ function getOpenCodeConfigDir3(options) {
 init_src();
 // packages/claude-code-compat-core/src/shared/resolve-agent-definition-paths.ts
 import { homedir as homedir24 } from "os";
-import { isAbsolute as isAbsolute16, join as join113, resolve as resolve31 } from "path";
+import { isAbsolute as isAbsolute17, join as join114, resolve as resolve32 } from "path";
 function resolveAgentDefinitionPaths(paths, baseDir, containmentDir) {
   return paths.flatMap((p) => {
-    const expanded = p.startsWith("~/") ? join113(homedir24(), p.slice(2)) : p;
-    const resolved = isAbsolute16(expanded) ? expanded : resolve31(baseDir, expanded);
+    const expanded = p.startsWith("~/") ? join114(homedir24(), p.slice(2)) : p;
+    const resolved = isAbsolute17(expanded) ? expanded : resolve32(baseDir, expanded);
     if (containmentDir !== null && !isWithinProject(resolved, containmentDir)) {
       log4(`agent_definitions path rejected (outside project boundary): ${p} -> ${resolved}`);
       return [];
@@ -128777,13 +128876,13 @@ var EXCLUDED_DIR_NAMES2 = [
 ];
 var EXCLUDED_DIRS3 = Object.freeze(new Set(EXCLUDED_DIR_NAMES2));
 // packages/claude-code-compat-core/src/shared/opencode-command-dirs.ts
-import { basename as basename17, dirname as dirname40, join as join114 } from "path";
+import { basename as basename18, dirname as dirname41, join as join115 } from "path";
 function getParentOpencodeConfigDir3(configDir) {
-  const parentDir = dirname40(configDir);
-  if (basename17(parentDir) !== "profiles") {
+  const parentDir = dirname41(configDir);
+  if (basename18(parentDir) !== "profiles") {
     return null;
   }
-  return dirname40(parentDir);
+  return dirname41(parentDir);
 }
 function getOpenCodeCommandDirs2(options) {
   const configDirs = getOpenCodeConfigDirs3(options);
@@ -128791,21 +128890,21 @@ function getOpenCodeCommandDirs2(options) {
     ...configDirs.flatMap((configDir) => {
       const parentConfigDir = getParentOpencodeConfigDir3(configDir);
       return [
-        join114(configDir, "commands"),
-        join114(configDir, "command"),
-        ...parentConfigDir ? [join114(parentConfigDir, "commands"), join114(parentConfigDir, "command")] : []
+        join115(configDir, "commands"),
+        join115(configDir, "command"),
+        ...parentConfigDir ? [join115(parentConfigDir, "commands"), join115(parentConfigDir, "command")] : []
       ];
     })
   ]));
 }
 // packages/claude-code-compat-core/src/shared/project-discovery-dirs.ts
 import { execFileSync as execFileSync6 } from "child_process";
-import { existsSync as existsSync92, realpathSync as realpathSync18 } from "fs";
-import { dirname as dirname41, join as join115, resolve as resolve32, win32 as win3212 } from "path";
+import { existsSync as existsSync93, realpathSync as realpathSync18 } from "fs";
+import { dirname as dirname42, join as join116, resolve as resolve33, win32 as win3212 } from "path";
 var worktreePathCache3 = new Map;
 function normalizePath6(path19) {
-  const resolvedPath = process.platform !== "win32" && win3212.isAbsolute(path19) ? path19 : resolve32(path19);
-  if (!existsSync92(resolvedPath)) {
+  const resolvedPath = process.platform !== "win32" && win3212.isAbsolute(path19) ? path19 : resolve33(path19);
+  if (!existsSync93(resolvedPath)) {
     return resolvedPath;
   }
   try {
@@ -128829,7 +128928,7 @@ function pathKey4(path19) {
   return process.platform === "win32" ? normalized.toLowerCase() : normalized;
 }
 function detectWorktreePath4(directory) {
-  const resolvedDirectory = resolve32(directory);
+  const resolvedDirectory = resolve33(directory);
   const cacheKey = pathKey4(normalizePath6(resolvedDirectory));
   if (worktreePathCache3.has(cacheKey)) {
     return worktreePathCache3.get(cacheKey);
@@ -128860,10 +128959,10 @@ function detectWorktreePath4(directory) {
 function findGitMarkerAncestor(directory) {
   let currentDirectory = normalizePath6(directory);
   while (true) {
-    if (existsSync92(join115(currentDirectory, ".git"))) {
+    if (existsSync93(join116(currentDirectory, ".git"))) {
       return currentDirectory;
     }
-    const parentDirectory = dirname41(currentDirectory);
+    const parentDirectory = dirname42(currentDirectory);
     if (parentDirectory === currentDirectory) {
       return;
     }
@@ -128878,8 +128977,8 @@ function findAncestorDirectories3(startDirectory, targetPaths, stopDirectory) {
   const stopDirectoryKey = resolvedStopDirectory ? pathKey4(resolvedStopDirectory) : undefined;
   while (true) {
     for (const targetPath of targetPaths) {
-      const candidateDirectory = join115(currentDirectory, ...targetPath);
-      if (!existsSync92(candidateDirectory)) {
+      const candidateDirectory = join116(currentDirectory, ...targetPath);
+      if (!existsSync93(candidateDirectory)) {
         continue;
       }
       const normalizedCandidateDirectory = normalizePath6(candidateDirectory);
@@ -128893,7 +128992,7 @@ function findAncestorDirectories3(startDirectory, targetPaths, stopDirectory) {
     if (stopDirectoryKey === pathKey4(currentDirectory)) {
       return directories;
     }
-    const parentDirectory = dirname41(currentDirectory);
+    const parentDirectory = dirname42(currentDirectory);
     if (parentDirectory === currentDirectory) {
       return directories;
     }
@@ -128908,14 +129007,14 @@ function findProjectOpencodeCommandDirs2(startDirectory, stopDirectory) {
   ], detectedStopDirectory);
 }
 // packages/claude-code-compat-core/src/features/claude-code-agent-loader/agent-definitions-loader.ts
-import { existsSync as existsSync94, readFileSync as readFileSync61 } from "fs";
-import { basename as basename18, extname as extname3 } from "path";
+import { existsSync as existsSync95, readFileSync as readFileSync61 } from "fs";
+import { basename as basename19, extname as extname3 } from "path";
 
 // packages/claude-code-compat-core/src/features/claude-code-agent-loader/json-agent-loader.ts
-import { existsSync as existsSync93, readFileSync as readFileSync60 } from "fs";
+import { existsSync as existsSync94, readFileSync as readFileSync60 } from "fs";
 function parseJsonAgentFile(filePath, scope) {
   try {
-    if (!existsSync93(filePath)) {
+    if (!existsSync94(filePath)) {
       return null;
     }
     const content = readFileSync60(filePath, "utf-8");
@@ -128956,12 +129055,12 @@ function parseJsonAgentFile(filePath, scope) {
 // packages/claude-code-compat-core/src/features/claude-code-agent-loader/agent-definitions-loader.ts
 function parseMarkdownAgentFile(filePath, scope, anthropicProvider) {
   try {
-    if (!existsSync94(filePath)) {
+    if (!existsSync95(filePath)) {
       return null;
     }
     const content = readFileSync61(filePath, "utf-8");
     const { data, body } = parseFrontmatter(content);
-    const fileName = basename18(filePath);
+    const fileName = basename19(filePath);
     const agentName = fileName.replace(/\.md$/i, "");
     const name = data.name || agentName;
     const originalDescription = data.description || "";
@@ -128993,7 +129092,7 @@ function parseMarkdownAgentFile(filePath, scope, anthropicProvider) {
 function loadAgentDefinitions(paths, scope, anthropicProvider) {
   const result = Object.create(null);
   for (const filePath of paths) {
-    if (!existsSync94(filePath)) {
+    if (!existsSync95(filePath)) {
       log4(`[agent-definitions-loader] File not found, skipping: ${filePath}`);
       continue;
     }
@@ -129018,7 +129117,7 @@ function loadAgentDefinitions(paths, scope, anthropicProvider) {
 
 // packages/claude-code-compat-core/src/features/claude-code-agent-loader/loader.ts
 function loadAgentsFromDir(agentsDir, scope, anthropicProvider) {
-  if (!existsSync95(agentsDir)) {
+  if (!existsSync96(agentsDir)) {
     return [];
   }
   const entries = readdirSync26(agentsDir, { withFileTypes: true });
@@ -129026,7 +129125,7 @@ function loadAgentsFromDir(agentsDir, scope, anthropicProvider) {
   for (const entry of entries) {
     if (!isMarkdownFile(entry))
       continue;
-    const agentPath = join116(agentsDir, entry.name);
+    const agentPath = join117(agentsDir, entry.name);
     const agent = parseMarkdownAgentFile(agentPath, scope, anthropicProvider);
     if (agent) {
       agents.push(agent);
@@ -129035,7 +129134,7 @@ function loadAgentsFromDir(agentsDir, scope, anthropicProvider) {
   return agents;
 }
 function loadUserAgents(anthropicProvider) {
-  const userAgentsDir = join116(getClaudeConfigDir3(), "agents");
+  const userAgentsDir = join117(getClaudeConfigDir3(), "agents");
   const agents = loadAgentsFromDir(userAgentsDir, "user", anthropicProvider);
   const result = Object.create(null);
   for (const agent of agents) {
@@ -129044,7 +129143,7 @@ function loadUserAgents(anthropicProvider) {
   return result;
 }
 function loadProjectAgents(directory, anthropicProvider) {
-  const projectAgentsDir = join116(directory ?? process.cwd(), ".claude", "agents");
+  const projectAgentsDir = join117(directory ?? process.cwd(), ".claude", "agents");
   const agents = loadAgentsFromDir(projectAgentsDir, "project", anthropicProvider);
   const result = Object.create(null);
   for (const agent of agents) {
@@ -129056,7 +129155,7 @@ function loadOpencodeGlobalAgents() {
   const result = Object.create(null);
   const configDirs = getOpenCodeConfigDirs3({ binary: "opencode" });
   for (const configDir of configDirs) {
-    const opencodeAgentsDir = join116(configDir, "agents");
+    const opencodeAgentsDir = join117(configDir, "agents");
     const agents = loadAgentsFromDir(opencodeAgentsDir, "opencode");
     for (const agent of agents) {
       if (!(agent.name in result)) {
@@ -129067,7 +129166,7 @@ function loadOpencodeGlobalAgents() {
   return result;
 }
 function loadOpencodeProjectAgents(directory) {
-  const opencodeProjectDir = join116(directory ?? process.cwd(), ".opencode", "agents");
+  const opencodeProjectDir = join117(directory ?? process.cwd(), ".opencode", "agents");
   const agents = loadAgentsFromDir(opencodeProjectDir, "opencode-project");
   const result = Object.create(null);
   for (const agent of agents) {
@@ -129267,7 +129366,7 @@ Task ID: ${task.id}`;
       if (toolContext.abort?.aborted) {
         break;
       }
-      await new Promise((resolve33) => setTimeout(resolve33, WAIT_FOR_SESSION_INTERVAL_MS));
+      await new Promise((resolve34) => setTimeout(resolve34, WAIT_FOR_SESSION_INTERVAL_MS));
     }
     await toolContext.metadata?.({
       title: args.description,
@@ -129354,7 +129453,7 @@ async function waitForCompletion(sessionID, toolContext, ctx) {
       log2(`[call_omo_agent] Aborted by user`);
       throw new Error("Task aborted.");
     }
-    await new Promise((resolve33) => setTimeout(resolve33, POLL_INTERVAL_MS));
+    await new Promise((resolve34) => setTimeout(resolve34, POLL_INTERVAL_MS));
     const statusResult = await ctx.client.session.status();
     const allStatuses = normalizeSDKResponse(statusResult, {});
     const sessionStatus = allStatuses[sessionID];
@@ -129890,14 +129989,14 @@ function validateArgs(args) {
 
 // packages/omo-opencode/src/tools/look-at/look-at-input-preparer.ts
 import { readFileSync as readFileSync64 } from "fs";
-import { basename as basename19 } from "path";
+import { basename as basename20 } from "path";
 import { pathToFileURL } from "url";
 
 // packages/omo-opencode/src/tools/look-at/image-converter.ts
 import * as childProcess2 from "child_process";
-import { existsSync as existsSync97, mkdtempSync, readFileSync as readFileSync63, rmSync as rmSync6, unlinkSync as unlinkSync16, writeFileSync as writeFileSync24 } from "fs";
+import { existsSync as existsSync98, mkdtempSync, readFileSync as readFileSync63, rmSync as rmSync6, unlinkSync as unlinkSync16, writeFileSync as writeFileSync25 } from "fs";
 import { tmpdir as tmpdir7 } from "os";
-import { dirname as dirname43, join as join118 } from "path";
+import { dirname as dirname44, join as join119 } from "path";
 var SUPPORTED_FORMATS = new Set([
   "image/jpeg",
   "image/png",
@@ -129927,7 +130026,7 @@ var UNSUPPORTED_FORMATS = new Set([
 var CONVERSION_TIMEOUT_MS = 30000;
 function cleanupTemporaryFileAfterFailure(filePath) {
   try {
-    if (existsSync97(filePath)) {
+    if (existsSync98(filePath)) {
       unlinkSync16(filePath);
     }
   } catch (cleanupError) {
@@ -129945,11 +130044,11 @@ function needsConversion(mimeType) {
   return mimeType.startsWith("image/");
 }
 function convertImageToJpeg(inputPath, mimeType) {
-  if (!existsSync97(inputPath)) {
+  if (!existsSync98(inputPath)) {
     throw new Error(`File not found: ${inputPath}`);
   }
-  const tempDir = mkdtempSync(join118(tmpdir7(), "opencode-img-"));
-  const outputPath = join118(tempDir, "converted.jpg");
+  const tempDir = mkdtempSync(join119(tmpdir7(), "opencode-img-"));
+  const outputPath = join119(tempDir, "converted.jpg");
   log2(`[image-converter] Converting ${mimeType} to JPEG: ${inputPath}`);
   try {
     if (process.platform === "darwin") {
@@ -129959,7 +130058,7 @@ function convertImageToJpeg(inputPath, mimeType) {
           encoding: "utf-8",
           timeout: CONVERSION_TIMEOUT_MS
         });
-        if (existsSync97(outputPath)) {
+        if (existsSync98(outputPath)) {
           log2(`[image-converter] Converted using sips: ${outputPath}`);
           return outputPath;
         }
@@ -129975,7 +130074,7 @@ function convertImageToJpeg(inputPath, mimeType) {
         encoding: "utf-8",
         timeout: CONVERSION_TIMEOUT_MS
       });
-      if (existsSync97(outputPath)) {
+      if (existsSync98(outputPath)) {
         log2(`[image-converter] Converted using ImageMagick: ${outputPath}`);
         return outputPath;
       }
@@ -129998,12 +130097,12 @@ function convertImageToJpeg(inputPath, mimeType) {
 }
 function cleanupConvertedImage(filePath) {
   try {
-    const tempDirectory = dirname43(filePath);
-    if (existsSync97(filePath)) {
+    const tempDirectory = dirname44(filePath);
+    if (existsSync98(filePath)) {
       unlinkSync16(filePath);
       log2(`[image-converter] Cleaned up temporary file: ${filePath}`);
     }
-    if (existsSync97(tempDirectory)) {
+    if (existsSync98(tempDirectory)) {
       rmSync6(tempDirectory, { recursive: true, force: true });
       log2(`[image-converter] Cleaned up temporary directory: ${tempDirectory}`);
     }
@@ -130013,14 +130112,14 @@ function cleanupConvertedImage(filePath) {
   }
 }
 function convertBase64ImageToJpeg(base64Data, mimeType) {
-  const tempDir = mkdtempSync(join118(tmpdir7(), "opencode-b64-"));
+  const tempDir = mkdtempSync(join119(tmpdir7(), "opencode-b64-"));
   const inputExt = mimeType.split("/")[1] || "bin";
-  const inputPath = join118(tempDir, `input.${inputExt}`);
+  const inputPath = join119(tempDir, `input.${inputExt}`);
   const tempFiles = [inputPath];
   try {
     const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, "");
     const buffer = Buffer.from(cleanBase64, "base64");
-    writeFileSync24(inputPath, buffer);
+    writeFileSync25(inputPath, buffer);
     log2(`[image-converter] Converting Base64 ${mimeType} to JPEG`);
     const outputPath = convertImageToJpeg(inputPath, mimeType);
     tempFiles.push(outputPath);
@@ -130067,7 +130166,7 @@ function readJsonTextPart(filePath) {
     ok: true,
     value: {
       type: "text",
-      text: `Attached JSON file (${basename19(filePath)}):
+      text: `Attached JSON file (${basename20(filePath)}):
 
 ${fileContent}`
     }
@@ -130131,7 +130230,7 @@ function prepareLookAtInput(args) {
       type: "file",
       mime: mimeType,
       url: pathToFileURL(actualFilePath).href,
-      filename: basename19(actualFilePath)
+      filename: basename20(actualFilePath)
     });
   }
   for (const imageData of imageDataList) {
@@ -130284,8 +130383,8 @@ function extractLatestAssistantOutcome(messages) {
 // packages/omo-opencode/src/tools/look-at/look-at-prompt.ts
 var READ_ENABLED = false;
 function sanitizeFilename(filename) {
-  const basename20 = filename.split("/").pop() ?? filename;
-  return basename20.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 100);
+  const basename21 = filename.split("/").pop() ?? filename;
+  return basename21.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 100);
 }
 function buildLookAtPrompt(goal2, fileParts) {
   const isPlural = fileParts.length > 1;
@@ -130557,7 +130656,7 @@ async function waitForLookAtSessionResult(client3, sessionID, options) {
         sawNonIdleStatus
       });
     }
-    await new Promise((resolve33) => setTimeout(resolve33, pollInterval));
+    await new Promise((resolve34) => setTimeout(resolve34, pollInterval));
   }
   throw new Error(`[look_at] Polling timed out after ${timeout}ms waiting for session ${sessionID} to become idle`);
 }
@@ -132340,7 +132439,7 @@ async function executeUnstableAgentTask(args, ctx, executorCtx, parentContext, a
 
 Task ID: ${task.id}`;
       }
-      await new Promise((resolve33) => setTimeout(resolve33, timing.WAIT_FOR_SESSION_INTERVAL_MS));
+      await new Promise((resolve34) => setTimeout(resolve34, timing.WAIT_FOR_SESSION_INTERVAL_MS));
       const updated = manager.getTask(task.id);
       sessionID = updated?.sessionId;
     }
@@ -132402,7 +132501,7 @@ Session ID: ${sessionID}`;
       }
       const timeoutBudgetMs = syncPollTimeoutMs ?? DEFAULT_SYNC_POLL_TIMEOUT_MS;
       const remainingBudgetMs = timeoutBudgetMs - (Date.now() - pollStart);
-      await new Promise((resolve33) => setTimeout(resolve33, Math.min(timingCfg.POLL_INTERVAL_MS, Math.max(1, remainingBudgetMs))));
+      await new Promise((resolve34) => setTimeout(resolve34, Math.min(timingCfg.POLL_INTERVAL_MS, Math.max(1, remainingBudgetMs))));
       const statusResult = await client3.session.status();
       const allStatuses = normalizeSDKResponse(statusResult, {});
       const sessionStatus = allStatuses[sessionID];
@@ -132541,7 +132640,7 @@ function continueSessionSetup(args) {
   (async () => {
     const waitStart = Date.now();
     while (Date.now() - waitStart < args.timing.WAIT_FOR_SESSION_TIMEOUT_MS) {
-      await new Promise((resolve33) => setTimeout(resolve33, args.timing.WAIT_FOR_SESSION_INTERVAL_MS));
+      await new Promise((resolve34) => setTimeout(resolve34, args.timing.WAIT_FOR_SESSION_INTERVAL_MS));
       const updated = args.manager.getTask(args.taskID);
       if (!updated) {
         return;
@@ -132579,7 +132678,7 @@ async function waitForBackgroundSessionStart(args) {
       args.onAbort();
       return;
     }
-    await new Promise((resolve33) => setTimeout(resolve33, args.timing.WAIT_FOR_SESSION_INTERVAL_MS));
+    await new Promise((resolve34) => setTimeout(resolve34, args.timing.WAIT_FOR_SESSION_INTERVAL_MS));
   }
   return sessionId;
 }
@@ -134300,7 +134399,7 @@ function isExplicitSyncRun(runInBackground) {
   return runInBackground === false || runInBackground === "false";
 }
 // packages/omo-opencode/src/tools/task/task-create.ts
-import { join as join120 } from "path";
+import { join as join121 } from "path";
 
 // packages/omo-opencode/src/tools/task/types.ts
 import { z as z55 } from "zod";
@@ -134355,8 +134454,8 @@ var TaskDeleteInputSchema = z55.object({
 });
 
 // packages/omo-opencode/src/features/claude-tasks/storage.ts
-import { join as join119, dirname as dirname44, basename as basename20, isAbsolute as isAbsolute17 } from "path";
-import { existsSync as existsSync98, mkdirSync as mkdirSync22, readFileSync as readFileSync65, writeFileSync as writeFileSync25, renameSync as renameSync9, unlinkSync as unlinkSync17, readdirSync as readdirSync27 } from "fs";
+import { join as join120, dirname as dirname45, basename as basename21, isAbsolute as isAbsolute18 } from "path";
+import { existsSync as existsSync99, mkdirSync as mkdirSync23, readFileSync as readFileSync65, writeFileSync as writeFileSync26, renameSync as renameSync9, unlinkSync as unlinkSync17, readdirSync as readdirSync27 } from "fs";
 import { randomUUID as randomUUID9 } from "crypto";
 function ignoreClaudeTaskStorageError(error) {
   if (error instanceof Error)
@@ -134367,11 +134466,11 @@ function getTaskDir(config2 = {}) {
   const tasksConfig = config2.sisyphus?.tasks;
   const storagePath = tasksConfig?.storage_path;
   if (storagePath) {
-    return isAbsolute17(storagePath) ? storagePath : join119(process.cwd(), storagePath);
+    return isAbsolute18(storagePath) ? storagePath : join120(process.cwd(), storagePath);
   }
   const configDir = getOpenCodeConfigDir({ binary: "opencode" });
   const listId = resolveTaskListId(config2);
-  return join119(configDir, "tasks", listId);
+  return join120(configDir, "tasks", listId);
 }
 function sanitizePathSegment(value) {
   return value.replace(/[^a-zA-Z0-9_-]/g, "-") || "default";
@@ -134386,16 +134485,16 @@ function resolveTaskListId(config2 = {}) {
   const configId = config2.sisyphus?.tasks?.task_list_id?.trim();
   if (configId)
     return sanitizePathSegment(configId);
-  return sanitizePathSegment(basename20(process.cwd()));
+  return sanitizePathSegment(basename21(process.cwd()));
 }
 function ensureDir(dirPath) {
-  if (!existsSync98(dirPath)) {
-    mkdirSync22(dirPath, { recursive: true });
+  if (!existsSync99(dirPath)) {
+    mkdirSync23(dirPath, { recursive: true });
   }
 }
 function readJsonSafe(filePath, schema) {
   try {
-    if (!existsSync98(filePath)) {
+    if (!existsSync99(filePath)) {
       return null;
     }
     const content = readFileSync65(filePath, "utf-8");
@@ -134411,15 +134510,15 @@ function readJsonSafe(filePath, schema) {
   }
 }
 function writeJsonAtomic(filePath, data) {
-  const dir = dirname44(filePath);
+  const dir = dirname45(filePath);
   ensureDir(dir);
   const tempPath = `${filePath}.tmp.${Date.now()}`;
   try {
-    writeFileSync25(tempPath, JSON.stringify(data, null, 2), "utf-8");
+    writeFileSync26(tempPath, JSON.stringify(data, null, 2), "utf-8");
     renameSync9(tempPath, filePath);
   } catch (error) {
     try {
-      if (existsSync98(tempPath)) {
+      if (existsSync99(tempPath)) {
         unlinkSync17(tempPath);
       }
     } catch (cleanupError) {
@@ -134442,20 +134541,20 @@ function resolveLockWaitTimeoutMs() {
   return parsed;
 }
 function delay6(ms) {
-  return new Promise((resolve33) => {
-    setTimeout(resolve33, ms);
+  return new Promise((resolve34) => {
+    setTimeout(resolve34, ms);
   });
 }
 function generateTaskId() {
   return `T-${randomUUID9()}`;
 }
 async function acquireLock2(dirPath, options = {}) {
-  const lockPath = join119(dirPath, ".lock");
+  const lockPath = join120(dirPath, ".lock");
   const lockId = randomUUID9();
   const waitTimeoutMs = options.waitTimeoutMs ?? resolveLockWaitTimeoutMs();
   const baseRetryDelayMs = options.retryDelayMs ?? DEFAULT_LOCK_RETRY_DELAY_MS;
   const createLock = (timestamp) => {
-    writeFileSync25(lockPath, JSON.stringify({ id: lockId, timestamp }), {
+    writeFileSync26(lockPath, JSON.stringify({ id: lockId, timestamp }), {
       encoding: "utf-8",
       flag: "wx"
     });
@@ -134533,7 +134632,7 @@ async function acquireLock2(dirPath, options = {}) {
     acquired: true,
     release: () => {
       try {
-        if (!existsSync98(lockPath))
+        if (!existsSync99(lockPath))
           return;
         const lockContent = readFileSync65(lockPath, "utf-8");
         const lockData = JSON.parse(lockContent);
@@ -134701,7 +134800,7 @@ async function handleCreate(args, config2, ctx, context) {
         threadID: context.sessionID
       };
       validatedTask = TaskObjectSchema.parse(task);
-      writeJsonAtomic(join120(taskDir, `${taskId}.json`), validatedTask);
+      writeJsonAtomic(join121(taskDir, `${taskId}.json`), validatedTask);
     } finally {
       lock.release();
     }
@@ -134723,7 +134822,7 @@ async function handleCreate(args, config2, ctx, context) {
   }
 }
 // packages/omo-opencode/src/tools/task/task-get.ts
-import { join as join121 } from "path";
+import { join as join122 } from "path";
 var TASK_ID_PATTERN = /^T-[A-Za-z0-9-]+$/;
 function parseTaskId(id) {
   if (!TASK_ID_PATTERN.test(id))
@@ -134748,7 +134847,7 @@ Returns null if the task does not exist or the file is invalid.`,
           return JSON.stringify({ error: "invalid_task_id" });
         }
         const taskDir = getTaskDir(config2);
-        const taskPath = join121(taskDir, `${taskId}.json`);
+        const taskPath = join122(taskDir, `${taskId}.json`);
         const task = readJsonSafe(taskPath, TaskObjectSchema);
         return JSON.stringify({ task: task ?? null });
       } catch (error) {
@@ -134761,8 +134860,8 @@ Returns null if the task does not exist or the file is invalid.`,
   });
 }
 // packages/omo-opencode/src/tools/task/task-list.ts
-import { join as join122 } from "path";
-import { existsSync as existsSync99, readdirSync as readdirSync28 } from "fs";
+import { join as join123 } from "path";
+import { existsSync as existsSync100, readdirSync as readdirSync28 } from "fs";
 function createTaskList(config2) {
   return tool({
     description: `List all active tasks with summary information.
@@ -134773,7 +134872,7 @@ Returns summary format: id, subject, status, owner, blockedBy (not full descript
     args: {},
     execute: async () => {
       const taskDir = getTaskDir(config2);
-      if (!existsSync99(taskDir)) {
+      if (!existsSync100(taskDir)) {
         return JSON.stringify({ tasks: [] });
       }
       const files = readdirSync28(taskDir).filter((f) => f.endsWith(".json") && f.startsWith("T-")).map((f) => f.replace(".json", ""));
@@ -134782,7 +134881,7 @@ Returns summary format: id, subject, status, owner, blockedBy (not full descript
       }
       const allTasks = [];
       for (const fileId of files) {
-        const task = readJsonSafe(join122(taskDir, `${fileId}.json`), TaskObjectSchema);
+        const task = readJsonSafe(join123(taskDir, `${fileId}.json`), TaskObjectSchema);
         if (task) {
           allTasks.push(task);
         }
@@ -134810,7 +134909,7 @@ Returns summary format: id, subject, status, owner, blockedBy (not full descript
   });
 }
 // packages/omo-opencode/src/tools/task/task-update.ts
-import { join as join123 } from "path";
+import { join as join124 } from "path";
 var TASK_ID_PATTERN2 = /^T-[A-Za-z0-9-]+$/;
 function parseTaskId2(id) {
   if (!TASK_ID_PATTERN2.test(id))
@@ -134897,7 +134996,7 @@ async function handleUpdate(args, config2, ctx, context) {
     }
     let updatedTask = null;
     try {
-      updatedTask = applyTaskUpdate(join123(taskDir, `${taskId}.json`), validatedArgs);
+      updatedTask = applyTaskUpdate(join124(taskDir, `${taskId}.json`), validatedArgs);
     } finally {
       lock.release();
     }
@@ -136772,7 +136871,7 @@ function createHooks(args) {
   };
 }
 // packages/omo-opencode/src/features/background-agent/manager.ts
-import { join as join125 } from "path";
+import { join as join126 } from "path";
 
 // packages/omo-opencode/src/features/background-agent/abort-with-timeout.ts
 function getAbortResponseError(response) {
@@ -136802,9 +136901,9 @@ async function abortWithTimeout(client3, sessionID, timeoutMs = 1e4) {
         });
         return "failed";
       }),
-      new Promise((resolve33) => {
+      new Promise((resolve34) => {
         timeoutHandle = setTimeout(() => {
-          resolve33("timed_out");
+          resolve34("timed_out");
         }, timeoutMs);
       })
     ]);
@@ -137060,7 +137159,7 @@ function writeBackgroundTaskMarker(input) {
 
 // packages/omo-opencode/src/features/background-agent/compaction-aware-message-resolver.ts
 import { readdirSync as readdirSync29, readFileSync as readFileSync66 } from "fs";
-import { join as join124 } from "path";
+import { join as join125 } from "path";
 function hasFullAgentAndModel(message) {
   return !!message.agent && !isCompactionAgent(message.agent) && !!message.model?.providerID && !!message.model?.modelID;
 }
@@ -137144,7 +137243,7 @@ function findNearestMessageExcludingCompaction(messageDir, sessionID) {
     const messages = [];
     for (const file2 of files) {
       try {
-        const content = readFileSync66(join124(messageDir, file2), "utf-8");
+        const content = readFileSync66(join125(messageDir, file2), "utf-8");
         const parsed = JSON.parse(content);
         if (hasCompactionPartInStorage(parsed.id) || isCompactionAgent(parsed.agent)) {
           continue;
@@ -137211,7 +137310,7 @@ class ConcurrencyManager {
       this.counts.set(key, current + 1);
       return;
     }
-    return new Promise((resolve33, reject) => {
+    return new Promise((resolve34, reject) => {
       const queue = this.queues.get(key) ?? [];
       const entry = {
         taskId,
@@ -137219,7 +137318,7 @@ class ConcurrencyManager {
           if (entry.settled)
             return;
           entry.settled = true;
-          resolve33();
+          resolve34();
         },
         rawReject: reject,
         settled: false
@@ -141834,7 +141933,7 @@ The task was re-queued on a fallback model after a retryable failure.
           parentSessionID: task.parentSessionId
         });
       }
-      const messageDir = join125(MESSAGE_STORAGE, task.parentSessionId);
+      const messageDir = join126(MESSAGE_STORAGE, task.parentSessionId);
       const currentMessage = messageDir ? findNearestMessageExcludingCompaction(messageDir, task.parentSessionId) : null;
       agent = currentMessage?.agent ?? task.parentAgent;
       model = currentMessage?.model?.providerID && currentMessage?.model?.modelID ? { providerID: currentMessage.model.providerID, modelID: currentMessage.model.modelID } : undefined;
@@ -141868,10 +141967,10 @@ The task was re-queued on a fallback model after a retryable failure.
     return this.scheduledFlushSettledCounts.get(sessionID) ?? 0;
   }
   awaitScheduledFlush(sessionID, sinceCount) {
-    return new Promise((resolve33) => {
+    return new Promise((resolve34) => {
       const arm = () => {
         if ((this.scheduledFlushSettledCounts.get(sessionID) ?? 0) > sinceCount) {
-          resolve33();
+          resolve34();
           return;
         }
         const waiters = this.scheduledFlushSettledWaiters.get(sessionID) ?? [];
@@ -143034,8 +143133,8 @@ function spawnMonitoredProcess(opts, deps) {
   let watchdogTimer;
   let graceTimer;
   let resolvePublicExit = () => {};
-  const publicExit = new Promise((resolve33) => {
-    resolvePublicExit = resolve33;
+  const publicExit = new Promise((resolve34) => {
+    resolvePublicExit = resolve34;
   });
   function clearWatchdog() {
     if (watchdogTimer !== undefined) {
@@ -143513,23 +143612,23 @@ function createMonitorManager(options) {
 import { createHash as createHash4 } from "crypto";
 import {
   chmodSync as chmodSync4,
-  existsSync as existsSync102,
-  mkdirSync as mkdirSync23,
+  existsSync as existsSync103,
+  mkdirSync as mkdirSync24,
   readdirSync as readdirSync30,
   readFileSync as readFileSync68,
   renameSync as renameSync11,
   unlinkSync as unlinkSync18,
-  writeFileSync as writeFileSync27
+  writeFileSync as writeFileSync28
 } from "fs";
-import { basename as basename21, dirname as dirname45, join as join128 } from "path";
+import { basename as basename22, dirname as dirname46, join as join129 } from "path";
 
 // packages/mcp-client-core/src/config-dir.ts
-import { existsSync as existsSync100, realpathSync as realpathSync19 } from "fs";
+import { existsSync as existsSync101, realpathSync as realpathSync19 } from "fs";
 import { homedir as homedir25 } from "os";
-import { join as join126, resolve as resolve33 } from "path";
+import { join as join127, resolve as resolve34 } from "path";
 function resolveConfigPath4(pathValue) {
-  const resolvedPath = resolve33(pathValue);
-  if (!existsSync100(resolvedPath))
+  const resolvedPath = resolve34(pathValue);
+  if (!existsSync101(resolvedPath))
     return resolvedPath;
   try {
     return realpathSync19(resolvedPath);
@@ -143544,13 +143643,13 @@ function getOpenCodeCliConfigDir(env = process.env) {
   if (customConfigDir) {
     return resolveConfigPath4(customConfigDir);
   }
-  const xdgConfigDir = env["XDG_CONFIG_HOME"]?.trim() || join126(homedir25(), ".config");
-  return resolveConfigPath4(join126(xdgConfigDir, "opencode"));
+  const xdgConfigDir = env["XDG_CONFIG_HOME"]?.trim() || join127(homedir25(), ".config");
+  return resolveConfigPath4(join127(xdgConfigDir, "opencode"));
 }
 
 // packages/mcp-client-core/src/mcp-oauth/storage-index.ts
-import { chmodSync as chmodSync3, existsSync as existsSync101, readFileSync as readFileSync67, renameSync as renameSync10, writeFileSync as writeFileSync26 } from "fs";
-import { join as join127 } from "path";
+import { chmodSync as chmodSync3, existsSync as existsSync102, readFileSync as readFileSync67, renameSync as renameSync10, writeFileSync as writeFileSync27 } from "fs";
+import { join as join128 } from "path";
 var INDEX_FILE_NAME = "index.json";
 function isTokenIndex(value) {
   if (typeof value !== "object" || value === null || Array.isArray(value))
@@ -143558,11 +143657,11 @@ function isTokenIndex(value) {
   return Object.values(value).every((entry) => typeof entry === "string");
 }
 function getIndexPath(storageDir) {
-  return join127(storageDir, INDEX_FILE_NAME);
+  return join128(storageDir, INDEX_FILE_NAME);
 }
 function readTokenIndex(storageDir) {
   const indexPath = getIndexPath(storageDir);
-  if (!existsSync101(indexPath))
+  if (!existsSync102(indexPath))
     return {};
   try {
     const parsed = JSON.parse(readFileSync67(indexPath, "utf-8"));
@@ -143577,7 +143676,7 @@ function writeTokenIndex(storageDir, index) {
   try {
     const indexPath = getIndexPath(storageDir);
     const tempPath = `${indexPath}.tmp.${Date.now()}`;
-    writeFileSync26(tempPath, JSON.stringify(index, null, 2), { encoding: "utf-8", mode: 384 });
+    writeFileSync27(tempPath, JSON.stringify(index, null, 2), { encoding: "utf-8", mode: 384 });
     chmodSync3(tempPath, 384);
     renameSync10(tempPath, indexPath);
     return true;
@@ -143595,16 +143694,16 @@ function saveTokenIndexEntry(storageDir, hash, key) {
 var STORAGE_DIR_NAME = "mcp-oauth";
 var LEGACY_STORAGE_FILE_NAME = "mcp-oauth.json";
 function getMcpOauthStorageDir() {
-  return join128(getOpenCodeCliConfigDir(), STORAGE_DIR_NAME);
+  return join129(getOpenCodeCliConfigDir(), STORAGE_DIR_NAME);
 }
 function getMcpOauthServerHash(serverHost, resource) {
   return createHash4("sha256").update(buildKey(serverHost, resource)).digest("hex").slice(0, 32);
 }
 function getMcpOauthStoragePath(serverHost, resource) {
-  return join128(getMcpOauthStorageDir(), `${getMcpOauthServerHash(serverHost, resource)}.json`);
+  return join129(getMcpOauthStorageDir(), `${getMcpOauthServerHash(serverHost, resource)}.json`);
 }
 function getLegacyStoragePath() {
-  return join128(getOpenCodeCliConfigDir(), LEGACY_STORAGE_FILE_NAME);
+  return join129(getOpenCodeCliConfigDir(), LEGACY_STORAGE_FILE_NAME);
 }
 function normalizeHost(serverHost) {
   let host = serverHost.trim();
@@ -143665,7 +143764,7 @@ function isOAuthTokenData(value) {
   return clientSecret === undefined || typeof clientSecret === "string";
 }
 function readTokenFile(filePath) {
-  if (!existsSync102(filePath))
+  if (!existsSync103(filePath))
     return null;
   try {
     const parsed = JSON.parse(readFileSync68(filePath, "utf-8"));
@@ -143678,7 +143777,7 @@ function readTokenFile(filePath) {
 }
 function readLegacyStore() {
   const filePath = getLegacyStoragePath();
-  if (!existsSync102(filePath))
+  if (!existsSync103(filePath))
     return null;
   try {
     const parsed = JSON.parse(readFileSync68(filePath, "utf-8"));
@@ -143698,12 +143797,12 @@ function readLegacyStore() {
 }
 function writeTokenFile(filePath, token) {
   try {
-    const dir = dirname45(filePath);
-    if (!existsSync102(dir)) {
-      mkdirSync23(dir, { recursive: true });
+    const dir = dirname46(filePath);
+    if (!existsSync103(dir)) {
+      mkdirSync24(dir, { recursive: true });
     }
     const tempPath = `${filePath}.tmp.${Date.now()}`;
-    writeFileSync27(tempPath, JSON.stringify(token, null, 2), { encoding: "utf-8", mode: 384 });
+    writeFileSync28(tempPath, JSON.stringify(token, null, 2), { encoding: "utf-8", mode: 384 });
     chmodSync4(tempPath, 384);
     renameSync11(tempPath, filePath);
     return true;
@@ -143924,7 +144023,7 @@ function buildAuthorizationUrl(authorizationEndpoint, options) {
 }
 var CALLBACK_TIMEOUT_MS = 5 * 60 * 1000;
 function startCallbackServer(port) {
-  return new Promise((resolve34, reject) => {
+  return new Promise((resolve35, reject) => {
     let timeoutId;
     const server2 = createServer2((request, response) => {
       clearTimeout(timeoutId);
@@ -143950,7 +144049,7 @@ function startCallbackServer(port) {
       response.writeHead(200, { "content-type": "text/html" });
       response.end("<html><body><h1>Authorization successful. You can close this tab.</h1></body></html>");
       server2.close();
-      resolve34({ code, state: state3 });
+      resolve35({ code, state: state3 });
     });
     timeoutId = setTimeout(() => {
       server2.close();
@@ -145725,7 +145824,7 @@ class Protocol {
           return;
         }
         const pollInterval = task2.pollInterval ?? this._options?.defaultTaskPollInterval ?? 1000;
-        await new Promise((resolve34) => setTimeout(resolve34, pollInterval));
+        await new Promise((resolve35) => setTimeout(resolve35, pollInterval));
         options?.signal?.throwIfAborted();
       }
     } catch (error) {
@@ -145737,7 +145836,7 @@ class Protocol {
   }
   request(request, resultSchema, options) {
     const { relatedRequestId, resumptionToken, onresumptiontoken, task, relatedTask } = options ?? {};
-    return new Promise((resolve34, reject) => {
+    return new Promise((resolve35, reject) => {
       const earlyReject = (error) => {
         reject(error);
       };
@@ -145815,7 +145914,7 @@ class Protocol {
           if (!parseResult.success) {
             reject(parseResult.error);
           } else {
-            resolve34(parseResult.data);
+            resolve35(parseResult.data);
           }
         } catch (error) {
           reject(error);
@@ -146006,12 +146105,12 @@ class Protocol {
         interval = task.pollInterval;
       }
     } catch {}
-    return new Promise((resolve34, reject) => {
+    return new Promise((resolve35, reject) => {
       if (signal.aborted) {
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
         return;
       }
-      const timeoutId = setTimeout(resolve34, interval);
+      const timeoutId = setTimeout(resolve35, interval);
       signal.addEventListener("abort", () => {
         clearTimeout(timeoutId);
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
@@ -148560,7 +148659,7 @@ class StdioClientTransport {
     if (this._process) {
       throw new Error("StdioClientTransport already started! If using Client class, note that connect() calls start() automatically.");
     }
-    return new Promise((resolve34, reject) => {
+    return new Promise((resolve35, reject) => {
       this._process = import_cross_spawn2.default(this._serverParams.command, this._serverParams.args ?? [], {
         env: {
           ...getDefaultEnvironment(),
@@ -148576,7 +148675,7 @@ class StdioClientTransport {
         this.onerror?.(error);
       });
       this._process.on("spawn", () => {
-        resolve34();
+        resolve35();
       });
       this._process.on("close", (_code) => {
         this._process = undefined;
@@ -148628,20 +148727,20 @@ class StdioClientTransport {
     if (this._process) {
       const processToClose = this._process;
       this._process = undefined;
-      const closePromise = new Promise((resolve34) => {
+      const closePromise = new Promise((resolve35) => {
         processToClose.once("close", () => {
-          resolve34();
+          resolve35();
         });
       });
       try {
         processToClose.stdin?.end();
       } catch {}
-      await Promise.race([closePromise, new Promise((resolve34) => setTimeout(resolve34, 2000).unref())]);
+      await Promise.race([closePromise, new Promise((resolve35) => setTimeout(resolve35, 2000).unref())]);
       if (processToClose.exitCode === null) {
         try {
           processToClose.kill("SIGTERM");
         } catch {}
-        await Promise.race([closePromise, new Promise((resolve34) => setTimeout(resolve34, 2000).unref())]);
+        await Promise.race([closePromise, new Promise((resolve35) => setTimeout(resolve35, 2000).unref())]);
       }
       if (processToClose.exitCode === null) {
         try {
@@ -148652,15 +148751,15 @@ class StdioClientTransport {
     this._readBuffer.clear();
   }
   send(message) {
-    return new Promise((resolve34) => {
+    return new Promise((resolve35) => {
       if (!this._process?.stdin) {
         throw new Error("Not connected");
       }
       const json = serializeMessage(message);
       if (this._process.stdin.write(json)) {
-        resolve34();
+        resolve35();
       } else {
-        this._process.stdin.once("drain", resolve34);
+        this._process.stdin.once("drain", resolve35);
       }
     });
   }
@@ -149115,30 +149214,30 @@ var WRITE_DEBOUNCE_MS = 250;
 init_logger2();
 
 // packages/omo-opencode/src/features/tui-sidebar/mirror-io.ts
-import { mkdirSync as mkdirSync24, readFileSync as readFileSync69 } from "fs";
-import { dirname as dirname46 } from "path";
+import { mkdirSync as mkdirSync25, readFileSync as readFileSync69 } from "fs";
+import { dirname as dirname47 } from "path";
 
 // packages/omo-opencode/src/features/tui-sidebar/mirror-path.ts
 import { createHash as createHash6 } from "crypto";
 import { realpathSync as realpathSync20 } from "fs";
 import { homedir as homedir26 } from "os";
-import { join as join129, resolve as resolve34 } from "path";
+import { join as join130, resolve as resolve35 } from "path";
 function mirrorStorageDir() {
-  return join129(process.env.XDG_DATA_HOME ?? join129(homedir26(), ".local", "share"), "opencode", "storage", "oh-my-openagent", MIRROR_DIR_NAME);
+  return join130(process.env.XDG_DATA_HOME ?? join130(homedir26(), ".local", "share"), "opencode", "storage", "oh-my-openagent", MIRROR_DIR_NAME);
 }
 function canonicalProjectDir(projectDir) {
   try {
     return realpathSync20.native(projectDir);
   } catch (error) {
     if (error instanceof Error) {
-      return resolve34(projectDir);
+      return resolve35(projectDir);
     }
     throw error;
   }
 }
 function mirrorFilePath(projectDir) {
   const projectHash = createHash6("sha1").update(canonicalProjectDir(projectDir)).digest("hex").slice(0, 16);
-  return join129(mirrorStorageDir(), `${projectHash}.json`);
+  return join130(mirrorStorageDir(), `${projectHash}.json`);
 }
 
 // packages/omo-opencode/src/features/tui-sidebar/snapshot-schema.ts
@@ -149191,13 +149290,13 @@ var TuiRuntimeSnapshotSchema = z59.object({
 function writeMirror(projectDir, snapshot) {
   const filePath = mirrorFilePath(projectDir);
   const content = JSON.stringify(snapshot);
-  mkdirSync24(dirname46(filePath), { recursive: true });
+  mkdirSync25(dirname47(filePath), { recursive: true });
   writeFileAtomically2(filePath, content, { mode: 384 });
 }
 
 // packages/omo-opencode/src/features/tui-sidebar/loop-reader.ts
 import { readdirSync as readdirSync31, readFileSync as readFileSync70, statSync as statSync14 } from "fs";
-import { join as join130 } from "path";
+import { join as join131 } from "path";
 import { z as z60 } from "zod";
 var CriterionSchema = z60.object({
   status: z60.string()
@@ -149227,7 +149326,7 @@ function enumerateCandidates(projectDir) {
   return [...currentLoopCandidates(projectDir), legacyLoopCandidate(projectDir)].filter((candidate2) => candidate2 !== null);
 }
 function currentLoopCandidates(projectDir) {
-  const loopRoot = join130(projectDir, ".omo", "ulw-loop");
+  const loopRoot = join131(projectDir, ".omo", "ulw-loop");
   let entries;
   try {
     entries = readdirSync31(loopRoot, { withFileTypes: true });
@@ -149237,10 +149336,10 @@ function currentLoopCandidates(projectDir) {
     }
     throw error;
   }
-  return entries.filter((entry) => entry.isDirectory()).map((entry) => statCandidate(join130(loopRoot, entry.name, "goals.json"))).filter((candidate2) => candidate2 !== null);
+  return entries.filter((entry) => entry.isDirectory()).map((entry) => statCandidate(join131(loopRoot, entry.name, "goals.json"))).filter((candidate2) => candidate2 !== null);
 }
 function legacyLoopCandidate(projectDir) {
-  return statCandidate(join130(projectDir, ".omo", "loop", "goals.json"));
+  return statCandidate(join131(projectDir, ".omo", "loop", "goals.json"));
 }
 function statCandidate(path22) {
   try {
@@ -150449,8 +150548,8 @@ async function waitForSessionReady(params) {
     } catch (error) {
       log2("[tmux-session-manager] session status check error", { error: String(error) });
     }
-    await new Promise((resolve35) => {
-      setTimeout(resolve35, SESSION_READY_POLL_INTERVAL_MS);
+    await new Promise((resolve36) => {
+      setTimeout(resolve36, SESSION_READY_POLL_INTERVAL_MS);
     });
   }
   log2("[tmux-session-manager] session ready timeout", {
@@ -151634,7 +151733,7 @@ init_tmux();
 var SESSION_TIMEOUT_MS2 = 10 * 60 * 1000;
 var MIN_STABILITY_TIME_MS4 = 10 * 1000;
 // packages/openclaw-core/src/index.ts
-import { basename as basename22 } from "path";
+import { basename as basename23 } from "path";
 
 // packages/openclaw-core/src/gateway-url-validation.ts
 function validateGatewayUrl(url2) {
@@ -152038,40 +152137,40 @@ async function isTmuxAvailableWithDeps(deps) {
 import {
   appendFileSync as appendFileSync6,
   chmodSync as chmodSync5,
-  existsSync as existsSync104,
+  existsSync as existsSync105,
   renameSync as renameSync12,
   statSync as statSync15,
   unlinkSync as unlinkSync19,
-  writeFileSync as writeFileSync28
+  writeFileSync as writeFileSync29
 } from "fs";
 
 // packages/openclaw-core/src/reply-listener-paths.ts
-import { existsSync as existsSync103, mkdirSync as mkdirSync25 } from "fs";
+import { existsSync as existsSync104, mkdirSync as mkdirSync26 } from "fs";
 import { homedir as homedir27 } from "os";
-import { join as join131 } from "path";
+import { join as join132 } from "path";
 var REPLY_LISTENER_SECURE_FILE_MODE = 384;
 function resolveReplyListenerHomeDir() {
   return process.env.HOME ?? process.env.USERPROFILE ?? homedir27();
 }
 function getReplyListenerStateDir() {
-  return join131(resolveReplyListenerHomeDir(), ".omo", "openclaw", "state");
+  return join132(resolveReplyListenerHomeDir(), ".omo", "openclaw", "state");
 }
 function getReplyListenerPidFilePath() {
-  return join131(getReplyListenerStateDir(), "reply-listener.pid");
+  return join132(getReplyListenerStateDir(), "reply-listener.pid");
 }
 function getReplyListenerStateFilePath() {
-  return join131(getReplyListenerStateDir(), "reply-listener-state.json");
+  return join132(getReplyListenerStateDir(), "reply-listener-state.json");
 }
 function getReplyListenerConfigFilePath() {
-  return join131(getReplyListenerStateDir(), "reply-listener-config.json");
+  return join132(getReplyListenerStateDir(), "reply-listener-config.json");
 }
 function getReplyListenerLogFilePath() {
-  return join131(getReplyListenerStateDir(), "reply-listener.log");
+  return join132(getReplyListenerStateDir(), "reply-listener.log");
 }
 function ensureReplyListenerStateDir() {
   const stateDir = getReplyListenerStateDir();
-  if (!existsSync103(stateDir)) {
-    mkdirSync25(stateDir, { recursive: true, mode: 448 });
+  if (!existsSync104(stateDir)) {
+    mkdirSync26(stateDir, { recursive: true, mode: 448 });
   }
 }
 
@@ -152084,7 +152183,7 @@ function ignoreReplyListenerLogError(error) {
 }
 function writeSecureReplyListenerFile(filePath, content) {
   ensureReplyListenerStateDir();
-  writeFileSync28(filePath, content, { mode: REPLY_LISTENER_SECURE_FILE_MODE });
+  writeFileSync29(filePath, content, { mode: REPLY_LISTENER_SECURE_FILE_MODE });
   try {
     chmodSync5(filePath, REPLY_LISTENER_SECURE_FILE_MODE);
   } catch (error) {
@@ -152093,13 +152192,13 @@ function writeSecureReplyListenerFile(filePath, content) {
 }
 function rotateReplyListenerLogIfNeeded(logPath) {
   try {
-    if (!existsSync104(logPath))
+    if (!existsSync105(logPath))
       return;
     const stats = statSync15(logPath);
     if (stats.size <= MAX_REPLY_LISTENER_LOG_SIZE_BYTES)
       return;
     const backupPath = `${logPath}.old`;
-    if (existsSync104(backupPath)) {
+    if (existsSync105(backupPath)) {
       unlinkSync19(backupPath);
     }
     renameSync12(logPath, backupPath);
@@ -152126,7 +152225,7 @@ import { constants as constants24, closeSync as closeSync5, openSync as openSync
 
 // packages/openclaw-core/src/session-registry-paths.ts
 init_src();
-import { join as join132 } from "path";
+import { join as join133 } from "path";
 var SECURE_FILE_MODE = 384;
 var MAX_AGE_MS = 24 * 60 * 60 * 1000;
 var LOCK_TIMEOUT_MS = 2000;
@@ -152137,16 +152236,16 @@ var cachedRegistryPaths = null;
 function resolveRegistryPaths() {
   if (cachedRegistryPaths !== null)
     return cachedRegistryPaths;
-  const openClawStorageDir = join132(getOpenCodeStorageDir2(), "openclaw");
+  const openClawStorageDir = join133(getOpenCodeStorageDir2(), "openclaw");
   cachedRegistryPaths = {
     openClawStorageDir,
-    registryPath: join132(openClawStorageDir, "reply-session-registry.jsonl"),
-    registryLockPath: join132(openClawStorageDir, "reply-session-registry.lock")
+    registryPath: join133(openClawStorageDir, "reply-session-registry.jsonl"),
+    registryLockPath: join133(openClawStorageDir, "reply-session-registry.lock")
   };
   return cachedRegistryPaths;
 }
 function getOpenCodeStorageDir2() {
-  return join132(resolveXdgDataDir("opencode"), "opencode", "storage");
+  return join133(resolveXdgDataDir("opencode"), "opencode", "storage");
 }
 function getRegistryPath() {
   return resolveRegistryPaths().registryPath;
@@ -152156,12 +152255,12 @@ function getRegistryLockPath() {
 }
 
 // packages/openclaw-core/src/session-registry-lock.ts
-import { constants as constants23, closeSync as closeSync4, existsSync as existsSync106, openSync as openSync4, readFileSync as readFileSync72, statSync as statSync16, unlinkSync as unlinkSync20, writeSync } from "fs";
+import { constants as constants23, closeSync as closeSync4, existsSync as existsSync107, openSync as openSync4, readFileSync as readFileSync72, statSync as statSync16, unlinkSync as unlinkSync20, writeSync } from "fs";
 import { randomUUID as randomUUID12 } from "crypto";
 
 // packages/openclaw-core/src/session-registry-storage.ts
-import { existsSync as existsSync105, mkdirSync as mkdirSync26, readFileSync as readFileSync71, writeFileSync as writeFileSync29 } from "fs";
-import { dirname as dirname47 } from "path";
+import { existsSync as existsSync106, mkdirSync as mkdirSync27, readFileSync as readFileSync71, writeFileSync as writeFileSync30 } from "fs";
+import { dirname as dirname48 } from "path";
 function isSessionMapping(value) {
   if (typeof value !== "object" || value === null)
     return false;
@@ -152182,14 +152281,14 @@ function isSessionMapping(value) {
   return true;
 }
 function ensureRegistryDir() {
-  const registryDir = dirname47(getRegistryPath());
-  if (!existsSync105(registryDir)) {
-    mkdirSync26(registryDir, { recursive: true, mode: 448 });
+  const registryDir = dirname48(getRegistryPath());
+  if (!existsSync106(registryDir)) {
+    mkdirSync27(registryDir, { recursive: true, mode: 448 });
   }
 }
 function readAllMappingsUnsafe() {
   const registryPath = getRegistryPath();
-  if (!existsSync105(registryPath))
+  if (!existsSync106(registryPath))
     return [];
   try {
     const content = readFileSync71(registryPath, "utf-8");
@@ -152214,13 +152313,13 @@ function rewriteRegistryUnsafe(mappings) {
   ensureRegistryDir();
   const registryPath = getRegistryPath();
   if (mappings.length === 0) {
-    writeFileSync29(registryPath, "", { mode: SECURE_FILE_MODE });
+    writeFileSync30(registryPath, "", { mode: SECURE_FILE_MODE });
     return;
   }
   const content = mappings.map((mapping) => JSON.stringify(mapping)).join(`
 `) + `
 `;
-  writeFileSync29(registryPath, content, { mode: SECURE_FILE_MODE });
+  writeFileSync30(registryPath, content, { mode: SECURE_FILE_MODE });
 }
 
 // packages/openclaw-core/src/session-registry-lock.ts
@@ -152243,7 +152342,7 @@ function isPidAlive2(pid) {
 function readLockSnapshot() {
   try {
     const registryLockPath = getRegistryLockPath();
-    if (!existsSync106(registryLockPath))
+    if (!existsSync107(registryLockPath))
       return null;
     const raw = readFileSync72(registryLockPath, "utf-8");
     const trimmed = raw.trim();
@@ -152274,7 +152373,7 @@ function readLockSnapshot() {
 function removeLockIfUnchanged(snapshot) {
   try {
     const registryLockPath = getRegistryLockPath();
-    if (!existsSync106(registryLockPath))
+    if (!existsSync107(registryLockPath))
       return false;
     const currentRaw = readFileSync72(registryLockPath, "utf-8");
     if (currentRaw !== snapshot.raw)
@@ -152446,7 +152545,7 @@ class ReplyListenerRateLimiter {
 }
 
 // packages/openclaw-core/src/reply-listener-state.ts
-import { existsSync as existsSync107, readFileSync as readFileSync73, unlinkSync as unlinkSync21 } from "fs";
+import { existsSync as existsSync108, readFileSync as readFileSync73, unlinkSync as unlinkSync21 } from "fs";
 var REPLY_LISTENER_STARTUP_TOKEN_ENV = "OMO_OPENCLAW_REPLY_LISTENER_STARTUP_TOKEN";
 function ignoreReplyListenerStateReadError(error) {
   if (error instanceof Error)
@@ -152513,7 +152612,7 @@ function createPendingReplyListenerState(startupToken) {
 function readReplyListenerDaemonState() {
   try {
     const stateFilePath = getReplyListenerStateFilePath();
-    if (!existsSync107(stateFilePath))
+    if (!existsSync108(stateFilePath))
       return null;
     return normalizeReplyListenerState(JSON.parse(readFileSync73(stateFilePath, "utf-8")));
   } catch (error) {
@@ -152531,7 +152630,7 @@ function writeReplyListenerDaemonState(state3) {
 function readReplyListenerDaemonConfig() {
   try {
     const configFilePath = getReplyListenerConfigFilePath();
-    if (!existsSync107(configFilePath))
+    if (!existsSync108(configFilePath))
       return null;
     return JSON.parse(readFileSync73(configFilePath, "utf-8"));
   } catch (error) {
@@ -152545,7 +152644,7 @@ function writeReplyListenerDaemonConfig(config2) {
 function readReplyListenerPid() {
   try {
     const pidFilePath = getReplyListenerPidFilePath();
-    if (!existsSync107(pidFilePath))
+    if (!existsSync108(pidFilePath))
       return null;
     const pid = Number.parseInt(readFileSync73(pidFilePath, "utf-8").trim(), 10);
     return Number.isNaN(pid) ? null : pid;
@@ -152559,7 +152658,7 @@ function writeReplyListenerPid(pid) {
 }
 function removeReplyListenerPid() {
   const pidFilePath = getReplyListenerPidFilePath();
-  if (existsSync107(pidFilePath)) {
+  if (existsSync108(pidFilePath)) {
     unlinkSync21(pidFilePath);
   }
 }
@@ -152576,7 +152675,7 @@ function markReplyListenerStopped(state3, error) {
 
 // packages/openclaw-core/src/reply-listener-sleep.ts
 function sleep2(ms) {
-  return new Promise((resolve35) => setTimeout(resolve35, ms));
+  return new Promise((resolve36) => setTimeout(resolve36, ms));
 }
 
 // packages/openclaw-core/src/reply-listener-signature.ts
@@ -152587,7 +152686,7 @@ function getReplyListenerRuntimeSignature(config2) {
 // packages/openclaw-core/src/reply-listener-poll-loop.ts
 var PRUNE_INTERVAL_MS = 60 * 60 * 1000;
 // packages/openclaw-core/src/reply-listener-start.ts
-import { dirname as dirname48, join as join134 } from "path";
+import { dirname as dirname49, join as join135 } from "path";
 import { fileURLToPath as fileURLToPath8 } from "url";
 
 // packages/openclaw-core/src/reply-listener-spawn.ts
@@ -152596,7 +152695,7 @@ init_runtime();
 // packages/openclaw-core/src/reply-listener-process.ts
 init_runtime();
 import { readFileSync as readFileSync74 } from "fs";
-import { join as join133 } from "path";
+import { join as join134 } from "path";
 var REPLY_LISTENER_DAEMON_IDENTITY_MARKER = "--openclaw-reply-listener-daemon";
 var REPLY_LISTENER_DAEMON_ENV_ALLOWLIST = [
   "PATH",
@@ -152632,7 +152731,7 @@ var REPLY_LISTENER_DAEMON_ENV_ALLOWLIST = [
 ];
 async function windowsProcessCommandLineHasMarker(pid, deps) {
   const systemRoot = process.env.SystemRoot ?? process.env.SYSTEMROOT ?? "C:\\Windows";
-  const powershell = join133(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+  const powershell = join134(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
   const processInfo = deps.spawn([
     powershell,
     "-NoProfile",
@@ -152849,7 +152948,7 @@ function createStartFailureResult(message, state3) {
 }
 function resolveReplyListenerDaemonScript(currentFileUrl) {
   const currentFilePath = fileURLToPath8(currentFileUrl);
-  return currentFilePath.endsWith(".ts") ? join134(dirname48(currentFilePath), "daemon.ts") : join134(dirname48(currentFilePath), "daemon.js");
+  return currentFilePath.endsWith(".ts") ? join135(dirname49(currentFilePath), "daemon.ts") : join135(dirname49(currentFilePath), "daemon.js");
 }
 async function startReplyListener(config2) {
   const normalizedConfig = getNormalizedReplyListenerConfig(config2);
@@ -153007,7 +153106,7 @@ async function wakeOpenClaw(config2, event, context) {
     const variables = {
       sessionId: enrichedContext.sessionId,
       projectPath: enrichedContext.projectPath,
-      projectName: enrichedContext.projectPath ? basename22(enrichedContext.projectPath) : undefined,
+      projectName: enrichedContext.projectPath ? basename23(enrichedContext.projectPath) : undefined,
       tmuxSession,
       prompt: enrichedContext.prompt,
       contextSummary: enrichedContext.contextSummary,
@@ -153033,7 +153132,7 @@ async function wakeOpenClaw(config2, event, context) {
         timestamp: now,
         sessionId: enrichedContext.sessionId,
         projectPath: enrichedContext.projectPath,
-        projectName: enrichedContext.projectPath ? basename22(enrichedContext.projectPath) : undefined,
+        projectName: enrichedContext.projectPath ? basename23(enrichedContext.projectPath) : undefined,
         tmuxSession,
         tmuxTail,
         ...replyChannel !== undefined && { channel: replyChannel },
@@ -153239,11 +153338,11 @@ async function createRuntimeSkillSourceServer(options, runtimeEnv = runtime6) {
         response.end(error instanceof Error ? error.message : String(error));
       }
     });
-    await new Promise((resolve35, reject) => {
+    await new Promise((resolve36, reject) => {
       const onError = (error) => reject(error);
       const onListening = () => {
         server3.off("error", onError);
-        resolve35();
+        resolve36();
       };
       server3.once("error", onError);
       server3.once("listening", onListening);
@@ -153272,13 +153371,13 @@ async function createRuntimeSkillSourceServer(options, runtimeEnv = runtime6) {
   };
 }
 // packages/claude-code-compat-core/src/features/claude-code-mcp-loader/loader.ts
-import { existsSync as existsSync108, readFileSync as readFileSync75 } from "fs";
-import { join as join135 } from "path";
+import { existsSync as existsSync109, readFileSync as readFileSync75 } from "fs";
+import { join as join136 } from "path";
 import { homedir as homedir28 } from "os";
 function resolveMcpLoaderContext(options = {}) {
   const cwd = options.cwd ?? process.cwd();
   const homeDir = options.homeDir ?? getHomeDir();
-  const claudeConfigDir = options.claudeConfigDir ?? (options.homeDir === undefined ? getClaudeConfigDir3() : join135(homeDir, ".claude"));
+  const claudeConfigDir = options.claudeConfigDir ?? (options.homeDir === undefined ? getClaudeConfigDir3() : join136(homeDir, ".claude"));
   return { cwd, homeDir, claudeConfigDir };
 }
 var mcpLoaderInternals = {
@@ -153287,17 +153386,17 @@ var mcpLoaderInternals = {
 function getMcpConfigPaths(context) {
   const { claudeConfigDir, homeDir, cwd } = context;
   return [
-    { path: join135(homeDir, ".claude.json"), scope: "user" },
-    { path: join135(claudeConfigDir, ".mcp.json"), scope: "user" },
-    { path: join135(cwd, ".mcp.json"), scope: "project" },
-    { path: join135(cwd, ".claude", ".mcp.json"), scope: "local" }
+    { path: join136(homeDir, ".claude.json"), scope: "user" },
+    { path: join136(claudeConfigDir, ".mcp.json"), scope: "user" },
+    { path: join136(cwd, ".mcp.json"), scope: "project" },
+    { path: join136(cwd, ".claude", ".mcp.json"), scope: "local" }
   ];
 }
 function getHomeDir() {
   return process.env.HOME || process.env.USERPROFILE || homedir28();
 }
 async function loadMcpConfigFile(filePath) {
-  if (!existsSync108(filePath)) {
+  if (!existsSync109(filePath)) {
     return null;
   }
   try {
@@ -153318,7 +153417,7 @@ function getSystemMcpServerNames(options = {}) {
   const paths2 = getMcpConfigPaths(context);
   const { cwd } = context;
   for (const { path: path22 } of paths2) {
-    if (!existsSync108(path22))
+    if (!existsSync109(path22))
       continue;
     try {
       const content = readFileSync75(path22, "utf-8");
@@ -162822,15 +162921,15 @@ function createHephaestusAgent(model, availableAgents, availableToolNames, avail
 }
 createHephaestusAgent.mode = MODE9;
 // packages/omo-opencode/src/agents/builtin-agents/resolve-file-uri.ts
-import { existsSync as existsSync109, readFileSync as readFileSync76 } from "fs";
+import { existsSync as existsSync110, readFileSync as readFileSync76 } from "fs";
 import { homedir as homedir29 } from "os";
-import { isAbsolute as isAbsolute18, join as join136, resolve as resolve35 } from "path";
+import { isAbsolute as isAbsolute19, join as join137, resolve as resolve36 } from "path";
 init_logger2();
 var ALLOWED_HOME_SUBDIRS = [
-  join136(homedir29(), ".config", "opencode"),
-  join136(homedir29(), ".config", "oh-my-openagent"),
-  join136(homedir29(), ".omo"),
-  join136(homedir29(), ".opencode")
+  join137(homedir29(), ".config", "opencode"),
+  join137(homedir29(), ".config", "oh-my-openagent"),
+  join137(homedir29(), ".omo"),
+  join137(homedir29(), ".opencode")
 ];
 function isWithinAllowedPaths(filePath, projectRoot) {
   if (isWithinProject(filePath, projectRoot))
@@ -162849,7 +162948,7 @@ function resolvePromptAppend(promptAppend, configDir) {
   try {
     const decoded = decodeURIComponent(encoded);
     const expanded = decoded.startsWith("~/") ? decoded.replace(/^~\//, `${homedir29()}/`) : decoded;
-    filePath = isAbsolute18(expanded) ? expanded : resolve35(configDir ?? process.cwd(), expanded);
+    filePath = isAbsolute19(expanded) ? expanded : resolve36(configDir ?? process.cwd(), expanded);
   } catch (error) {
     if (!(error instanceof Error)) {
       throw error;
@@ -162866,7 +162965,7 @@ function resolvePromptAppend(promptAppend, configDir) {
     });
     return `[WARNING: Path rejected: ${promptAppend} (resolved outside project root ${projectRoot} and allowed home directories; file:// prompts must reside within the project directory, ~/.config/opencode/, ~/.config/oh-my-openagent/, ~/.omo/, or ~/.opencode/)]`;
   }
-  if (!existsSync109(filePath)) {
+  if (!existsSync110(filePath)) {
     return `[WARNING: Could not resolve file URI: ${promptAppend}]`;
   }
   try {
@@ -165588,7 +165687,7 @@ async function applyAgentConfig(params) {
 }
 // packages/claude-code-compat-core/src/features/claude-code-command-loader/loader.ts
 import { promises as fs21 } from "fs";
-import { join as join137, basename as basename23 } from "path";
+import { join as join138, basename as basename24 } from "path";
 
 // packages/claude-code-compat-core/src/features/claude-code-command-loader/loader-cache.ts
 var commandLoaderCache = new Map;
@@ -165636,7 +165735,7 @@ async function loadCommandsFromDir(commandsDir, scope, visited = new Set, prefix
         continue;
       if (entry.name.startsWith("."))
         continue;
-      const subDirPath = join137(commandsDir, entry.name);
+      const subDirPath = join138(commandsDir, entry.name);
       const subPrefix = prefix ? `${prefix}/${entry.name}` : entry.name;
       const subCommands = await loadCommandsFromDir(subDirPath, scope, visited, subPrefix);
       commands2.push(...subCommands);
@@ -165644,8 +165743,8 @@ async function loadCommandsFromDir(commandsDir, scope, visited = new Set, prefix
     }
     if (!isMarkdownFile(entry))
       continue;
-    const commandPath = join137(commandsDir, entry.name);
-    const baseCommandName = basename23(entry.name, ".md");
+    const commandPath = join138(commandsDir, entry.name);
+    const baseCommandName = basename24(entry.name, ".md");
     const commandName = prefix ? `${prefix}/${baseCommandName}` : baseCommandName;
     try {
       const content = await fs21.readFile(commandPath, "utf-8");
@@ -165707,12 +165806,12 @@ function commandsToRecord(commands2) {
   return result;
 }
 async function loadUserCommands() {
-  const userCommandsDir = join137(getClaudeConfigDir3(), "commands");
+  const userCommandsDir = join138(getClaudeConfigDir3(), "commands");
   const commands2 = await loadCommandsFromDir(userCommandsDir, "user");
   return commandsToRecord(commands2);
 }
 async function loadProjectCommands(directory) {
-  const projectCommandsDir = join137(directory ?? process.cwd(), ".claude", "commands");
+  const projectCommandsDir = join138(directory ?? process.cwd(), ".claude", "commands");
   const commands2 = await loadCommandsFromDir(projectCommandsDir, "project");
   return commandsToRecord(commands2);
 }
@@ -165901,8 +166000,8 @@ var grep_app = {
 };
 
 // packages/omo-opencode/src/mcp/lsp.ts
-import { existsSync as existsSync110, readFileSync as readFileSync77 } from "fs";
-import { delimiter as delimiter2, dirname as dirname49, resolve as resolve37 } from "path";
+import { existsSync as existsSync111, readFileSync as readFileSync77 } from "fs";
+import { delimiter as delimiter2, dirname as dirname50, resolve as resolve38 } from "path";
 import { fileURLToPath as fileURLToPath9 } from "url";
 import { z as z61 } from "zod";
 
@@ -165916,7 +166015,7 @@ function hasCliSuffix(candidatePath, suffix) {
 
 // packages/omo-opencode/src/mcp/runtime-executable.ts
 init_bun_which_shim();
-import { basename as basename24 } from "path";
+import { basename as basename25 } from "path";
 var NODE_EXECUTABLE_NAMES = new Set(["node", "node.exe"]);
 function isUnsafeCommandName2(commandName) {
   if (commandName.length === 0)
@@ -165932,7 +166031,7 @@ function isUnsafeCommandName2(commandName) {
   return false;
 }
 function isNodeExecPath(execPath) {
-  return NODE_EXECUTABLE_NAMES.has(basename24(execPath).toLowerCase());
+  return NODE_EXECUTABLE_NAMES.has(basename25(execPath).toLowerCase());
 }
 function resolveRuntimeExecutable(commandName, options = {}) {
   if (isUnsafeCommandName2(commandName)) {
@@ -165950,7 +166049,7 @@ function resolveRuntimeExecutable(commandName, options = {}) {
 }
 
 // packages/omo-opencode/src/mcp/shared/ancestor-cli-resolver.ts
-import { resolve as resolve36 } from "path";
+import { resolve as resolve37 } from "path";
 function resolveJavaScriptRuntime(resolveExecutable) {
   const node = resolveExecutable("node");
   return node.available ? node : resolveExecutable("bun");
@@ -165958,9 +166057,9 @@ function resolveJavaScriptRuntime(resolveExecutable) {
 function createAncestorCliCandidates(options) {
   const candidates = [];
   const seenPaths = new Set;
-  let currentDirectory = resolve36(options.startDirectory);
+  let currentDirectory = resolve37(options.startDirectory);
   while (true) {
-    const distCliPath = resolve36(currentDirectory, options.packageRel, options.distCliRel);
+    const distCliPath = resolve37(currentDirectory, options.packageRel, options.distCliRel);
     if (!seenPaths.has(distCliPath)) {
       const runtime7 = resolveJavaScriptRuntime(options.resolveExecutable);
       seenPaths.add(distCliPath);
@@ -165972,7 +166071,7 @@ function createAncestorCliCandidates(options) {
         runtimeAvailable: runtime7.available
       });
     }
-    const sourceCliPath = resolve36(currentDirectory, options.packageRel, options.sourceCliRel);
+    const sourceCliPath = resolve37(currentDirectory, options.packageRel, options.sourceCliRel);
     if (!seenPaths.has(sourceCliPath)) {
       const runtime7 = options.resolveExecutable("bun");
       const sourceCandidateAvailable = options.isSourceCandidateAvailable?.({
@@ -165989,7 +166088,7 @@ function createAncestorCliCandidates(options) {
         runtimeAvailable: runtime7.available
       });
     }
-    const parentDirectory = resolve36(currentDirectory, "..");
+    const parentDirectory = resolve37(currentDirectory, "..");
     if (parentDirectory === currentDirectory)
       return candidates;
     currentDirectory = parentDirectory;
@@ -166034,7 +166133,7 @@ var LSP_BOOTSTRAP_SCRIPT = [
 ].join(";");
 function getModuleDirectory(moduleUrl) {
   try {
-    return dirname49(fileURLToPath9(moduleUrl));
+    return dirname50(fileURLToPath9(moduleUrl));
   } catch (error) {
     if (!(error instanceof Error))
       throw error;
@@ -166042,11 +166141,11 @@ function getModuleDirectory(moduleUrl) {
   }
 }
 function findBootstrapRoot(candidates, pathExists) {
-  return candidates.find((candidate2) => pathExists(resolve37(candidate2.root, "package.json")))?.root ?? process.cwd();
+  return candidates.find((candidate2) => pathExists(resolve38(candidate2.root, "package.json")))?.root ?? process.cwd();
 }
 function readDaemonPackageVersion(root) {
   try {
-    const packageJson = JSON.parse(readFileSync77(resolve37(root, PACKAGE_REL, "package.json"), "utf-8"));
+    const packageJson = JSON.parse(readFileSync77(resolve38(root, PACKAGE_REL, "package.json"), "utf-8"));
     return DaemonPackageSchema.parse(packageJson).version;
   } catch (error) {
     if (!(error instanceof Error))
@@ -166058,17 +166157,17 @@ function createBootstrapCandidate(root, pathExists, resolveExecutable) {
   const runtime7 = resolveJavaScriptRuntime(resolveExecutable);
   const bun = resolveExecutable("bun");
   const npm = resolveExecutable("npm");
-  const packageManifestPath = resolve37(root, PACKAGE_REL, "package.json");
+  const packageManifestPath = resolve38(root, PACKAGE_REL, "package.json");
   return {
     command: [runtime7.command, "-e", LSP_BOOTSTRAP_SCRIPT, root, npm.command, bun.command],
     root,
-    path: resolve37(root, PACKAGE_REL, DIST_CLI_REL),
+    path: resolve38(root, PACKAGE_REL, DIST_CLI_REL),
     exists: runtime7.available && npm.available && pathExists(packageManifestPath),
     runtimeAvailable: runtime7.available
   };
 }
 function resolveLspCommand(options = {}) {
-  const pathExists = options.exists ?? existsSync110;
+  const pathExists = options.exists ?? existsSync111;
   const resolveExecutable = options.resolveExecutable ?? resolveRuntimeExecutable;
   const moduleDirectory = getModuleDirectory(options.moduleUrl ?? import.meta.url);
   const candidates = moduleDirectory ? createAncestorCliCandidates({
@@ -166078,7 +166177,7 @@ function resolveLspCommand(options = {}) {
     sourceCliRel: SOURCE_CLI_REL,
     pathExists,
     resolveExecutable,
-    isSourceCandidateAvailable: ({ root }) => pathExists(resolve37(root, LSP_TOOLS_PACKAGE_REL, DIST_CLI_REL)) && readDaemonPackageVersion(root) !== null
+    isSourceCandidateAvailable: ({ root }) => pathExists(resolve38(root, LSP_TOOLS_PACKAGE_REL, DIST_CLI_REL)) && readDaemonPackageVersion(root) !== null
   }) : [];
   const distCandidate = candidates.find((candidate2) => hasCliSuffix(candidate2.path, DIST_CLI_REL) && candidate2.exists);
   if (distCandidate) {
@@ -166092,7 +166191,7 @@ function resolveLspCommand(options = {}) {
 }
 function createLspMcpConfig(options = {}) {
   const resolvedCommand = resolveLspCommand(options);
-  const cwd = resolve37(options.cwd ?? process.cwd());
+  const cwd = resolve38(options.cwd ?? process.cwd());
   const configDir = getOpenCodeConfigDir({ binary: "opencode" });
   const sourceVersion = hasCliSuffix(resolvedCommand.path, SOURCE_CLI_REL) ? readDaemonPackageVersion(resolvedCommand.root) : null;
   return {
@@ -166102,9 +166201,9 @@ function createLspMcpConfig(options = {}) {
     cwd,
     environment: {
       LSP_TOOLS_MCP_CWD: cwd,
-      LSP_TOOLS_MCP_PROJECT_CONFIG: PROJECT_LSP_CONFIGS.map((configPath) => resolve37(cwd, configPath)).join(delimiter2),
-      LSP_TOOLS_MCP_USER_CONFIG: resolve37(configDir, "lsp.json"),
-      LSP_TOOLS_MCP_INSTALL_DECISIONS: resolve37(configDir, "lsp-install-decisions.json"),
+      LSP_TOOLS_MCP_PROJECT_CONFIG: PROJECT_LSP_CONFIGS.map((configPath) => resolve38(cwd, configPath)).join(delimiter2),
+      LSP_TOOLS_MCP_USER_CONFIG: resolve38(configDir, "lsp.json"),
+      LSP_TOOLS_MCP_INSTALL_DECISIONS: resolve38(configDir, "lsp-install-decisions.json"),
       ...sourceVersion ? {
         [OMO_LSP_DAEMON_CLI]: resolvedCommand.path,
         [OMO_LSP_DAEMON_VERSION]: sourceVersion
@@ -166796,7 +166895,7 @@ function createTeamModeToolsRecord(args) {
 // node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/v2/gen/core/serverSentEvents.gen.js
 var createSseClient2 = ({ onRequest, onSseError, onSseEvent, responseTransformer, responseValidator, sseDefaultRetryDelay, sseMaxRetryAttempts, sseMaxRetryDelay, sseSleepFn, url: url2, ...options }) => {
   let lastEventId;
-  const sleep3 = sseSleepFn ?? ((ms) => new Promise((resolve38) => setTimeout(resolve38, ms)));
+  const sleep3 = sseSleepFn ?? ((ms) => new Promise((resolve39) => setTimeout(resolve39, ms)));
   const createStream = async function* () {
     let retryDelay = sseDefaultRetryDelay ?? 3000;
     let attempt = 0;
@@ -171334,7 +171433,7 @@ async function readRuntimeHostSkills(client5) {
 function createRuntimeSkillsResolver(args) {
   const { baseSkills, readRuntimeHostSkills: readHostSkills, buildMergedSkills } = args;
   let inflight;
-  const resolve38 = async () => {
+  const resolve39 = async () => {
     const hostSkills = await readHostSkills();
     if (!hostSkills)
       return baseSkills;
@@ -171346,7 +171445,7 @@ function createRuntimeSkillsResolver(args) {
   };
   return () => {
     if (!inflight)
-      inflight = resolve38();
+      inflight = resolve39();
     return inflight;
   };
 }
@@ -172197,7 +172296,7 @@ async function waitForTaskSessionId(bgMgr, task, deadlineAt) {
     }
     sessionId = updatedTask?.sessionId;
     if (!sessionId)
-      await new Promise((resolve38) => setTimeout(resolve38, SESSION_ID_POLL_MS));
+      await new Promise((resolve39) => setTimeout(resolve39, SESSION_ID_POLL_MS));
   }
   return sessionId;
 }
@@ -173667,8 +173766,8 @@ function createChatHeadersHandler(args) {
 }
 
 // packages/omo-opencode/src/plugin/ultrawork-db-model-override.ts
-import { join as join138 } from "path";
-import { existsSync as existsSync111 } from "fs";
+import { join as join139 } from "path";
+import { existsSync as existsSync112 } from "fs";
 async function importBunSqlite() {
   if (typeof globalThis.Bun === "undefined") {
     return null;
@@ -173684,20 +173783,20 @@ async function importBunSqlite() {
   }
 }
 function getDbPath() {
-  return join138(getDataDir(), "opencode", "opencode.db");
+  return join139(getDataDir(), "opencode", "opencode.db");
 }
 var MAX_MICROTASK_RETRIES = 10;
 function logCaughtDbError(message, metadata, error) {
   log2(message, { ...metadata, error: String(error) });
 }
 function nextMicrotask() {
-  return new Promise((resolve38) => {
-    queueMicrotask(resolve38);
+  return new Promise((resolve39) => {
+    queueMicrotask(resolve39);
   });
 }
 function nextTimerTick() {
-  return new Promise((resolve38) => {
-    setTimeout(resolve38, 0);
+  return new Promise((resolve39) => {
+    setTimeout(resolve39, 0);
   });
 }
 function closeDbWithLog(db, message, metadata) {
@@ -173787,7 +173886,7 @@ async function scheduleDeferredModelOverride(messageId, targetModel, variant) {
     return;
   }
   const dbPath = getDbPath();
-  if (!existsSync111(dbPath)) {
+  if (!existsSync112(dbPath)) {
     log2("[ultrawork-db-override] DB not found, skipping deferred override");
     return;
   }
@@ -176385,11 +176484,11 @@ init_logger2();
 // packages/omo-opencode/src/shared/omo-process-sweep.ts
 import { fileURLToPath as fileURLToPath10 } from "url";
 // packages/utils/src/process-sweep/sweeper.ts
-import { join as join141 } from "path";
+import { join as join142 } from "path";
 
 // packages/utils/src/process-sweep/family-sweeper.ts
-import { existsSync as existsSync112, mkdirSync as mkdirSync27, statSync as statSync17, utimesSync, writeFileSync as writeFileSync30 } from "fs";
-import { dirname as dirname50 } from "path";
+import { existsSync as existsSync113, mkdirSync as mkdirSync28, statSync as statSync17, utimesSync, writeFileSync as writeFileSync31 } from "fs";
+import { dirname as dirname51 } from "path";
 
 // packages/utils/src/process-sweep/exec.ts
 import { execFile as execFile2 } from "child_process";
@@ -176617,13 +176716,13 @@ async function safelyKill(pid, context2) {
   }
 }
 function isSweepThrottled(stampFile, nowMs, throttleMs) {
-  if (!existsSync112(stampFile))
+  if (!existsSync113(stampFile))
     return false;
   return nowMs - statSync17(stampFile).mtimeMs < throttleMs;
 }
 function writeSweepStamp(stampFile, nowMs) {
-  mkdirSync27(dirname50(stampFile), { recursive: true });
-  writeFileSync30(stampFile, `${new Date(nowMs).toISOString()}
+  mkdirSync28(dirname51(stampFile), { recursive: true });
+  writeFileSync31(stampFile, `${new Date(nowMs).toISOString()}
 `);
   const stampDate = new Date(nowMs);
   utimesSync(stampFile, stampDate, stampDate);
@@ -176639,7 +176738,7 @@ function delay7(ms) {
 // packages/utils/src/process-sweep/lsp-daemon-family.ts
 import { readFileSync as readFileSync78, readdirSync as readdirSync32 } from "fs";
 import { homedir as homedir30 } from "os";
-import { basename as basename25, join as join139, resolve as resolve38 } from "path";
+import { basename as basename26, join as join140, resolve as resolve39 } from "path";
 
 // packages/utils/src/process-sweep/lsp-daemon-owner-attestation.ts
 import { readFile as readFile13 } from "fs/promises";
@@ -176749,14 +176848,14 @@ var OMO_LSP_DAEMON_DIR_ENV = "OMO_LSP_DAEMON_DIR";
 var OMO_LSP_DAEMON_VERSION_ENV = "OMO_LSP_DAEMON_VERSION";
 function resolveLspDaemonBaseDir(options = {}) {
   if (options.lspDaemonDir !== undefined && options.lspDaemonDir.trim().length > 0) {
-    return resolve38(options.lspDaemonDir);
+    return resolve39(options.lspDaemonDir);
   }
   const env = options.env ?? process.env;
   const override = env[OMO_LSP_DAEMON_DIR_ENV];
   if (override !== undefined && override.trim().length > 0)
-    return resolve38(override);
+    return resolve39(override);
   const homeDir = options.homeDir ?? env["HOME"] ?? env["USERPROFILE"] ?? homedir30();
-  return join139(homeDir, ".omo", "lsp-daemon");
+  return join140(homeDir, ".omo", "lsp-daemon");
 }
 var VERSION_ENTRY_PATTERN = /^v([A-Za-z0-9][A-Za-z0-9._+-]{0,127})$/;
 function listLspDaemonVersionDirs(baseDir) {
@@ -176775,12 +176874,12 @@ function listLspDaemonVersionDirs(baseDir) {
     const version = VERSION_ENTRY_PATTERN.exec(entry.name)?.[1];
     if (version === undefined)
       continue;
-    versions.push({ dir: join139(baseDir, entry.name), version });
+    versions.push({ dir: join140(baseDir, entry.name), version });
   }
   return versions.sort((left, right) => left.version.localeCompare(right.version));
 }
 function readLspDaemonOwnerTarget(versionDir) {
-  const ownerPath = join139(versionDir, "daemon.owner");
+  const ownerPath = join140(versionDir, "daemon.owner");
   let raw;
   try {
     raw = requireOwnerText(ownerPath);
@@ -176791,7 +176890,7 @@ function readLspDaemonOwnerTarget(versionDir) {
     const owner = parseLspDaemonOwner(JSON.parse(raw));
     if (owner === null)
       return null;
-    return { authPath: join139(versionDir, "daemon.auth"), owner, ownerPath, pid: owner.pid };
+    return { authPath: join140(versionDir, "daemon.auth"), owner, ownerPath, pid: owner.pid };
   } catch {
     return null;
   }
@@ -176961,42 +177060,42 @@ function matchLspDaemonProxyCommand(command, roots, platform2) {
 }
 
 // packages/utils/src/process-sweep/roots.ts
-import { existsSync as existsSync113, readdirSync as readdirSync33, realpathSync as realpathSync21 } from "fs";
+import { existsSync as existsSync114, readdirSync as readdirSync33, realpathSync as realpathSync21 } from "fs";
 import { homedir as homedir31 } from "os";
-import { join as join140, resolve as resolve39 } from "path";
+import { join as join141, resolve as resolve40 } from "path";
 function discoverOmoOwnedRoots(options = {}) {
   const env = options.env ?? process.env;
   const homeDir = options.homeDir ?? env["HOME"] ?? env["USERPROFILE"] ?? homedir31();
   const roots = new Set;
-  addRoot(roots, join140(homeDir, ".claude", "omo"));
+  addRoot(roots, join141(homeDir, ".claude", "omo"));
   addRoot(roots, options.pluginRoot);
   for (const root of options.extraRoots ?? [])
     addRoot(roots, root);
-  for (const root of readCodexPluginCacheRoots(options.codexHome ?? env["CODEX_HOME"] ?? join140(homeDir, ".codex"))) {
+  for (const root of readCodexPluginCacheRoots(options.codexHome ?? env["CODEX_HOME"] ?? join141(homeDir, ".codex"))) {
     addRoot(roots, root);
   }
   return [...roots];
 }
 function readCodexPluginCacheRoots(codexHome) {
-  const cacheRoot = join140(codexHome, "plugins", "cache");
-  if (!existsSync113(cacheRoot))
+  const cacheRoot = join141(codexHome, "plugins", "cache");
+  if (!existsSync114(cacheRoot))
     return [];
   const roots = [];
   for (const publisher of safeReadDir(cacheRoot)) {
     if (!OMO_CODEX_PLUGIN_CACHE_PUBLISHERS.has(publisher))
       continue;
-    const omoRoot = join140(cacheRoot, publisher, "omo");
-    if (!existsSync113(omoRoot))
+    const omoRoot = join141(cacheRoot, publisher, "omo");
+    if (!existsSync114(omoRoot))
       continue;
     for (const version of safeReadDir(omoRoot))
-      roots.push(join140(omoRoot, version));
+      roots.push(join141(omoRoot, version));
   }
   return roots;
 }
 function addRoot(roots, root) {
   if (root === undefined || root.trim().length === 0)
     return;
-  const resolved = resolve39(root);
+  const resolved = resolve40(root);
   roots.add(resolved);
   roots.add(realpathIfPossible(resolved));
 }
@@ -177014,7 +177113,7 @@ function realpathIfPossible(path27) {
     return realpathSync21(path27);
   } catch (error) {
     if (error instanceof Error)
-      return resolve39(path27);
+      return resolve40(path27);
     throw error;
   }
 }
@@ -177029,7 +177128,7 @@ var OMO_CODEX_PLUGIN_CACHE_PUBLISHERS = new Set(["sisyphuslabs"]);
 // packages/utils/src/process-sweep/sweeper.ts
 var LSP_PROXY_SWEEP_STAMP_FILE = "lsp-proxy-sweep.stamp";
 async function sweepOrphanedLspDaemonProxies(options = {}) {
-  const stampFile = join141(resolveLspDaemonBaseDir(options), LSP_PROXY_SWEEP_STAMP_FILE);
+  const stampFile = join142(resolveLspDaemonBaseDir(options), LSP_PROXY_SWEEP_STAMP_FILE);
   const ownedRoots = options.ownedRoots ?? discoverOmoOwnedRoots(options);
   const result = await runProcessFamilySweep({
     familyLabel: "lsp-daemon proxy sweep",
@@ -177048,7 +177147,7 @@ async function sweepOrphanedLspDaemonProxies(options = {}) {
 var LSP_DAEMON_SWEEP_STAMP_FILE = "lsp-daemon-sweep.stamp";
 async function sweepStaleLspDaemonVersions(options = {}) {
   const baseDir = resolveLspDaemonBaseDir(options);
-  const stampFile = join141(baseDir, LSP_DAEMON_SWEEP_STAMP_FILE);
+  const stampFile = join142(baseDir, LSP_DAEMON_SWEEP_STAMP_FILE);
   const currentVersion = resolveCurrentLspDaemonVersion(options);
   const dryRun = options.dryRun === true;
   if (currentVersion === undefined) {
@@ -177120,20 +177219,20 @@ function defaultPluginRoot() {
 // packages/telemetry-core/src/activity-state.ts
 init_atomic_write();
 init_xdg_data_dir();
-import { existsSync as existsSync114, mkdirSync as mkdirSync29, readFileSync as readFileSync79 } from "fs";
-import { basename as basename26, join as join143 } from "path";
+import { existsSync as existsSync115, mkdirSync as mkdirSync30, readFileSync as readFileSync79 } from "fs";
+import { basename as basename27, join as join144 } from "path";
 
 // packages/telemetry-core/src/day-claim.ts
-import { closeSync as closeSync6, mkdirSync as mkdirSync28, openSync as openSync6, readdirSync as readdirSync34, rmSync as rmSync7 } from "fs";
-import { join as join142 } from "path";
+import { closeSync as closeSync6, mkdirSync as mkdirSync29, openSync as openSync6, readdirSync as readdirSync34, rmSync as rmSync7 } from "fs";
+import { join as join143 } from "path";
 var CLAIM_PREFIX = "daily-active.";
 var CLAIM_SUFFIX = ".claim";
 function getTelemetryDayClaimFilePath(stateDir, dayUTC) {
-  return join142(stateDir, `${CLAIM_PREFIX}${dayUTC}${CLAIM_SUFFIX}`);
+  return join143(stateDir, `${CLAIM_PREFIX}${dayUTC}${CLAIM_SUFFIX}`);
 }
 function claimUtcDay(stateDir, dayUTC) {
   try {
-    mkdirSync28(stateDir, { recursive: true });
+    mkdirSync29(stateDir, { recursive: true });
     closeSync6(openSync6(getTelemetryDayClaimFilePath(stateDir, dayUTC), "wx"));
   } catch (error) {
     return error.code === "EEXIST" ? "already-claimed" : "unavailable";
@@ -177155,7 +177254,7 @@ function pruneSupersededClaims(stateDir, dayUTC) {
     if (!entry.startsWith(CLAIM_PREFIX) || !entry.endsWith(CLAIM_SUFFIX))
       continue;
     try {
-      rmSync7(join142(stateDir, entry), { force: true });
+      rmSync7(join143(stateDir, entry), { force: true });
     } catch {}
   }
 }
@@ -177168,14 +177267,14 @@ function resolveTelemetryStateDir(product, options = {}) {
     env: options.env,
     osProvider: options.osProvider
   });
-  const xdgStateDir = options.env?.XDG_DATA_HOME === undefined ? undefined : join143(options.env.XDG_DATA_HOME, product.cacheDirName);
-  if (dataDir === xdgStateDir || xdgStateDir === undefined && basename26(dataDir) === product.cacheDirName) {
+  const xdgStateDir = options.env?.XDG_DATA_HOME === undefined ? undefined : join144(options.env.XDG_DATA_HOME, product.cacheDirName);
+  if (dataDir === xdgStateDir || xdgStateDir === undefined && basename27(dataDir) === product.cacheDirName) {
     return dataDir;
   }
-  return join143(dataDir, product.cacheDirName);
+  return join144(dataDir, product.cacheDirName);
 }
 function getTelemetryActivityStateFilePath(stateDir) {
-  return join143(stateDir, POSTHOG_ACTIVITY_STATE_FILE);
+  return join144(stateDir, POSTHOG_ACTIVITY_STATE_FILE);
 }
 function getDailyActiveCaptureState(input) {
   const dayUTC = getUtcDayString(input.now ?? new Date);
@@ -177208,7 +177307,7 @@ function isPostHogActivityState(value) {
 }
 function readPostHogActivityState(stateDir, diagnostics) {
   const stateFilePath = getTelemetryActivityStateFilePath(stateDir);
-  if (!existsSync114(stateFilePath)) {
+  if (!existsSync115(stateFilePath)) {
     return {};
   }
   try {
@@ -177231,7 +177330,7 @@ function readPostHogActivityState(stateDir, diagnostics) {
 function writePostHogActivityState(stateDir, nextState, diagnostics) {
   const stateFilePath = getTelemetryActivityStateFilePath(stateDir);
   try {
-    mkdirSync29(stateDir, { recursive: true });
+    mkdirSync30(stateDir, { recursive: true });
     writeFileAtomically(stateFilePath, `${JSON.stringify(nextState, null, 2)}
 `);
   } catch (error) {
@@ -177297,7 +177396,7 @@ function getTelemetryHost(env = process.env, defaultHost = DEFAULT_POSTHOG_HOST)
 }
 
 // node_modules/.bun/posthog-node@5.52.4/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/module.node.mjs
-import { dirname as dirname51, posix as posix12, sep as sep4 } from "path";
+import { dirname as dirname52, posix as posix12, sep as sep4 } from "path";
 function createModulerModifier() {
   const getModuleFromFileName = createGetModuleFromFilename();
   return async (frames) => {
@@ -177306,7 +177405,7 @@ function createModulerModifier() {
     return frames;
   };
 }
-function createGetModuleFromFilename(basePath = process.argv[1] ? dirname51(process.argv[1]) : process.cwd(), isWindows2 = sep4 === "\\") {
+function createGetModuleFromFilename(basePath = process.argv[1] ? dirname52(process.argv[1]) : process.cwd(), isWindows2 = sep4 === "\\") {
   const normalizedBase = isWindows2 ? normalizeWindowsPath(basePath) : basePath;
   return (filename) => {
     if (!filename)
@@ -178368,11 +178467,11 @@ async function raceWithTimeout(promise2, timeoutMs, onTimeout) {
   try {
     return await Promise.race([
       promise2,
-      new Promise((resolve40, reject) => {
+      new Promise((resolve41, reject) => {
         timeoutHandle = safeSetTimeout(() => {
           try {
             onTimeout?.();
-            resolve40();
+            resolve41();
           } catch (error) {
             reject(error);
           }
@@ -183434,7 +183533,7 @@ function resolveTracesConfig(config2, hostResourceAttributes, logger8) {
 // node_modules/.bun/posthog-node@5.52.4/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/context-lines.node.mjs
 import { constants as constants25 } from "fs";
 import { open as promises_open } from "fs/promises";
-import { isAbsolute as isAbsolute19 } from "path";
+import { isAbsolute as isAbsolute20 } from "path";
 import { createInterface } from "readline";
 var LRU_FILE_CONTENTS_CACHE = new exports_error_tracking.ReduceableCache(25);
 var LRU_FILE_CONTENTS_FS_READ_FAILED = new exports_error_tracking.ReduceableCache(20);
@@ -183453,7 +183552,7 @@ async function addSourceContext(frames, openSourceFile = promises_open, logger8)
     const filename = frame?.filename;
     if (!frame || typeof filename != "string" || typeof frame.lineno != "number" || shouldSkipContextLinesForFile(filename) || shouldSkipContextLinesForFrame(frame))
       continue;
-    if (!isAbsolute19(filename) && basePath === undefined)
+    if (!isAbsolute20(filename) && basePath === undefined)
       continue;
     const filesToLinesOutput = filesToLines[filename];
     if (!filesToLinesOutput)
@@ -183510,14 +183609,14 @@ async function getContextLinesFromFile(path27, ranges, output, cacheKey, openSou
   if (fileHandle === undefined)
     return void LRU_FILE_CONTENTS_FS_READ_FAILED.set(cacheKey, 1);
   const openedFileHandle = fileHandle;
-  return new Promise((resolve40) => {
+  return new Promise((resolve41) => {
     let finished = false;
     function destroyStreamAndResolve(stream2) {
       if (finished)
         return;
       finished = true;
       stream2?.destroy();
-      openedFileHandle.close().then(resolve40, resolve40);
+      openedFileHandle.close().then(resolve41, resolve41);
     }
     let stream;
     try {
@@ -183629,7 +183728,7 @@ function shouldSkipContextLinesForFrame(frame) {
   return false;
 }
 function makeSourceCacheKey(path27, basePath) {
-  if (isAbsolute19(path27))
+  if (isAbsolute20(path27))
     return JSON.stringify([
       null,
       path27
@@ -183719,7 +183818,7 @@ function snipLine(line, colno) {
 }
 
 // node_modules/.bun/posthog-node@5.52.4/node_modules/posthog-node/dist/extensions/error-tracking/modifiers/relative-path.node.mjs
-import { isAbsolute as isAbsolute20, relative as relative16, sep as sep5 } from "path";
+import { isAbsolute as isAbsolute21, relative as relative17, sep as sep5 } from "path";
 function createRelativePathModifier(basePath = process.cwd()) {
   const isWindows2 = sep5 === "\\";
   const toUnix = (p) => isWindows2 ? p.replace(/\\/g, "/") : p;
@@ -183727,8 +183826,8 @@ function createRelativePathModifier(basePath = process.cwd()) {
   return async (frames) => {
     for (const frame of frames)
       if (!(!frame.filename || frame.filename.startsWith("node:") || frame.filename.startsWith("data:"))) {
-        if (isAbsolute20(frame.filename))
-          frame.filename = toUnix(relative16(normalizedBase, toUnix(frame.filename)));
+        if (isAbsolute21(frame.filename))
+          frame.filename = toUnix(relative17(normalizedBase, toUnix(frame.filename)));
       }
     return frames;
   };
@@ -184858,7 +184957,7 @@ class V1CaptureSender {
     this.fetchFn = hooks2.fetch;
     this.onError = hooks2.onError;
     this.now = hooks2.now ?? Date.now;
-    this.sleep = hooks2.sleep ?? ((ms) => new Promise((resolve40) => safeSetTimeout(resolve40, ms)));
+    this.sleep = hooks2.sleep ?? ((ms) => new Promise((resolve41) => safeSetTimeout(resolve41, ms)));
     this.generateRequestId = hooks2.generateRequestId ?? uuidv7;
     this.compress = hooks2.compress ?? gzipCompress;
   }
@@ -185268,9 +185367,9 @@ class PostHogBackendClient extends PostHogCoreStateless {
     if (this.disabled || this.optedOut)
       return;
     if (!this._waitUntilCycle) {
-      let resolve40;
+      let resolve41;
       const promise2 = new Promise((r) => {
-        resolve40 = r;
+        resolve41 = r;
       });
       try {
         waitUntil(promise2);
@@ -185278,7 +185377,7 @@ class PostHogBackendClient extends PostHogCoreStateless {
         return;
       }
       this._waitUntilCycle = {
-        resolve: resolve40,
+        resolve: resolve41,
         startedAt: Date.now(),
         timer: undefined
       };
@@ -185304,11 +185403,11 @@ class PostHogBackendClient extends PostHogCoreStateless {
     return cycle?.resolve;
   }
   async resolveWaitUntilFlush() {
-    const resolve40 = this._consumeWaitUntilCycle();
+    const resolve41 = this._consumeWaitUntilCycle();
     try {
       await this._flushEventsAndSpans();
     } catch {} finally {
-      resolve40?.();
+      resolve41?.();
     }
   }
   getPersistedProperty(key) {
@@ -185629,15 +185728,15 @@ class PostHogBackendClient extends PostHogCoreStateless {
       return true;
     if (this.featureFlagsPoller === undefined)
       return false;
-    return new Promise((resolve40) => {
+    return new Promise((resolve41) => {
       const timeout = setTimeout(() => {
         cleanup();
-        resolve40(false);
+        resolve41(false);
       }, timeoutMs);
       const cleanup = this._events.on("localEvaluationFlagsLoaded", (count2) => {
         clearTimeout(timeout);
         cleanup();
-        resolve40(count2 > 0);
+        resolve41(count2 > 0);
       });
     });
   }
@@ -186196,7 +186295,7 @@ class PostHogBackendClient extends PostHogCoreStateless {
   }
   async _shutdown(shutdownTimeoutMs) {
     const shutdownDeadlineMs = Date.now() + (shutdownTimeoutMs ?? 30000);
-    const resolve40 = this._consumeWaitUntilCycle();
+    const resolve41 = this._consumeWaitUntilCycle();
     await this.featureFlagsPoller?.stopPoller(shutdownTimeoutMs);
     this.errorTracking.shutdown();
     if (this._metrics) {
@@ -186211,7 +186310,7 @@ class PostHogBackendClient extends PostHogCoreStateless {
       return await super._shutdown(Math.max(0, shutdownDeadlineMs - Date.now()));
     } finally {
       this.distinctIdHasSentFlagCalls = {};
-      resolve40?.();
+      resolve41?.();
     }
   }
   async _requestRemoteConfigPayload(flagKey) {
@@ -187188,21 +187287,21 @@ function createPluginModule(overrides2 = {}) {
 init_logger2();
 
 // packages/omo-opencode/src/v2/adapter-state.ts
-import { existsSync as existsSync115, mkdirSync as mkdirSync30, readFileSync as readFileSync80, writeFileSync as writeFileSync31 } from "fs";
-import { dirname as dirname52, join as join144 } from "path";
+import { existsSync as existsSync116, mkdirSync as mkdirSync31, readFileSync as readFileSync80, writeFileSync as writeFileSync32 } from "fs";
+import { dirname as dirname53, join as join145 } from "path";
 init_plugin_identity();
 init_logger2();
 function isRecord17(value) {
   return typeof value === "object" && value !== null;
 }
 function readJson(file2) {
-  if (!existsSync115(file2))
+  if (!existsSync116(file2))
     return;
   return JSON.parse(readFileSync80(file2, "utf8"));
 }
 function writeJson(file2, value) {
-  mkdirSync30(dirname52(file2), { recursive: true });
-  writeFileSync31(file2, JSON.stringify(value));
+  mkdirSync31(dirname53(file2), { recursive: true });
+  writeFileSync32(file2, JSON.stringify(value));
 }
 function todoItems(input) {
   const source = isRecord17(input) && Array.isArray(input.todos) ? input.todos : Array.isArray(input) ? input : [];
@@ -187220,7 +187319,7 @@ function todoItems(input) {
   return items;
 }
 function defaultTodoOwnersFile() {
-  return join144(getDataDir(), CACHE_DIR_NAME, "v2-todo-owners.json");
+  return join145(getDataDir(), CACHE_DIR_NAME, "v2-todo-owners.json");
 }
 function updateJsonRecord(file2, update) {
   let record15 = {};
@@ -187251,6 +187350,16 @@ function createAdapterState(directory, options = {}) {
     if (!isRecord17(parsed))
       return {};
     return Object.fromEntries(Object.entries(parsed).filter((entry) => typeof entry[1] === "string"));
+  }
+  function ownerOf(sessionID) {
+    try {
+      const owners2 = readJson(todoOwnersFile);
+      const owner = isRecord17(owners2) ? owners2[sessionID] : undefined;
+      return typeof owner === "string" ? owner : undefined;
+    } catch (error) {
+      log2("[oh-my-openagent] v2 todo owners unreadable", { error: error instanceof Error ? error.message : String(error) });
+      return;
+    }
   }
   function todosBySession() {
     const parsed = readJson(todosFile);
@@ -187288,21 +187397,38 @@ function createAdapterState(directory, options = {}) {
       }
     },
     todos(sessionID) {
-      let owner;
-      try {
-        const owners2 = readJson(todoOwnersFile);
-        owner = isRecord17(owners2) ? owners2[sessionID] : undefined;
-      } catch (error) {
-        log2("[oh-my-openagent] v2 todo owners unreadable", { error: error instanceof Error ? error.message : String(error) });
-        owner = undefined;
-      }
-      if (typeof owner === "string" && owner !== directory)
+      const owner = ownerOf(sessionID);
+      if (owner !== undefined && owner !== directory)
         return [];
       return todosBySession()[sessionID] ?? [];
     },
     forgetTodos(sessionID) {
       updateJsonRecord(todosFile, (todos) => delete todos[sessionID]);
       updateJsonRecord(todoOwnersFile, (owners2) => owners2[sessionID] === directory && delete owners2[sessionID]);
+    },
+    moveTodos(sessionID, fromDirectory, toDirectory) {
+      const source = ownerOf(sessionID) ?? fromDirectory;
+      if (source === toDirectory)
+        return false;
+      let list2;
+      updateJsonRecord(`${source}/todos.json`, (todos) => {
+        list2 = todos[sessionID];
+        if (list2 === undefined)
+          return false;
+        delete todos[sessionID];
+        return true;
+      });
+      if (list2 === undefined)
+        return false;
+      updateJsonRecord(`${toDirectory}/todos.json`, (todos) => {
+        todos[sessionID] = todoItems(list2);
+        return true;
+      });
+      updateJsonRecord(todoOwnersFile, (owners2) => {
+        owners2[sessionID] = toDirectory;
+        return true;
+      });
+      return true;
     },
     recordToast(input) {
       if (typeof input.duration === "number" && input.duration < 200)
@@ -187345,22 +187471,22 @@ function createAdapterState(directory, options = {}) {
 }
 
 // packages/omo-opencode/src/v2/client-state.ts
-import { existsSync as existsSync118, readdirSync as readdirSync36, readFileSync as readFileSync83 } from "fs";
+import { existsSync as existsSync119, readdirSync as readdirSync36, readFileSync as readFileSync83 } from "fs";
 import { readdir as readdir10 } from "fs/promises";
-import { join as join147 } from "path";
+import { join as join148 } from "path";
 init_paths();
 init_store();
 init_logger2();
 
 // packages/omo-opencode/src/v2/client-state-publisher.ts
-import { existsSync as existsSync117, mkdirSync as mkdirSync32, readFileSync as readFileSync82, writeFileSync as writeFileSync33 } from "fs";
-import { join as join146 } from "path";
+import { existsSync as existsSync118, mkdirSync as mkdirSync33, readFileSync as readFileSync82, writeFileSync as writeFileSync34 } from "fs";
+import { join as join147 } from "path";
 init_logger2();
 
 // packages/omo-opencode/src/v2/client-control.ts
 init_logger2();
-import { existsSync as existsSync116, mkdirSync as mkdirSync31, readdirSync as readdirSync35, readFileSync as readFileSync81, unlinkSync as unlinkSync22, writeFileSync as writeFileSync32 } from "fs";
-import { join as join145 } from "path";
+import { existsSync as existsSync117, mkdirSync as mkdirSync32, readdirSync as readdirSync35, readFileSync as readFileSync81, unlinkSync as unlinkSync22, writeFileSync as writeFileSync33 } from "fs";
+import { join as join146 } from "path";
 import { z as z65 } from "zod";
 var CLIENT_STATE_SCHEMA = 2;
 var isRecord18 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -187443,15 +187569,15 @@ async function runRequest(request, control) {
   return { ok: true, message: `Retrying "${task.description}"${providerID && modelID ? ` on ${providerID}/${modelID}` : ""} as ${retried.id}.` };
 }
 async function processClientRequests(stateDirectory, control) {
-  const requestDirectory = join145(stateDirectory, "requests");
-  if (!existsSync116(requestDirectory))
+  const requestDirectory = join146(stateDirectory, "requests");
+  if (!existsSync117(requestDirectory))
     return 0;
-  const resultsFile = join145(stateDirectory, "results.json");
+  const resultsFile = join146(stateDirectory, "results.json");
   let ran = 0;
   for (const name of readdirSync35(requestDirectory)) {
     if (!name.endsWith(".json"))
       continue;
-    const file2 = join145(requestDirectory, name);
+    const file2 = join146(requestDirectory, name);
     let parsed;
     try {
       parsed = RequestSchema2.parse(JSON.parse(readFileSync81(file2, "utf8")));
@@ -187469,14 +187595,14 @@ async function processClientRequests(stateDirectory, control) {
     log2("[oh-my-openagent] client request", { action: parsed.action, taskId: parsed.taskId, ok: outcome.ok });
     let results = {};
     try {
-      results = existsSync116(resultsFile) ? JSON.parse(readFileSync81(resultsFile, "utf8")) : {};
+      results = existsSync117(resultsFile) ? JSON.parse(readFileSync81(resultsFile, "utf8")) : {};
     } catch {
       results = {};
     }
     results[parsed.id] = { ...outcome, at: Date.now(), action: parsed.action, taskId: parsed.taskId };
     const kept = Object.entries(results).sort(([, left], [, right]) => right.at - left.at).slice(0, RESULTS_KEPT);
-    mkdirSync31(stateDirectory, { recursive: true });
-    writeFileSync32(resultsFile, JSON.stringify(Object.fromEntries(kept)));
+    mkdirSync32(stateDirectory, { recursive: true });
+    writeFileSync33(resultsFile, JSON.stringify(Object.fromEntries(kept)));
     ran += 1;
   }
   return ran;
@@ -187565,15 +187691,15 @@ var META_INTERVAL_MS = 30000;
 var SNAPSHOT_INTERVAL_MS = 5000;
 var CONTROL_INTERVAL_MS = 1500;
 function writeIfChanged(directory, name, value) {
-  const file2 = join146(directory, name);
-  const exists = existsSync117(file2);
+  const file2 = join147(directory, name);
+  const exists = existsSync118(file2);
   if (!exists && Object.keys(value).length === 0)
     return;
   const text = JSON.stringify(value);
   if (exists && readFileSync82(file2, "utf8") === text)
     return;
-  mkdirSync32(directory, { recursive: true });
-  writeFileSync33(file2, text);
+  mkdirSync33(directory, { recursive: true });
+  writeFileSync34(file2, text);
 }
 function startClientStatePublisher(input) {
   const readTasks = input.readTasks ?? (() => listRegisteredBackgroundTasks(input.owner));
@@ -187726,15 +187852,15 @@ function plansBySession(directory) {
   return bySession;
 }
 function goalsBySession(directory) {
-  const goalDir = join147(directory, ".omo", "goal");
-  if (!existsSync118(goalDir))
+  const goalDir = join148(directory, ".omo", "goal");
+  if (!existsSync119(goalDir))
     return {};
   const bySession = {};
   for (const name of readdirSync36(goalDir)) {
     if (!name.endsWith(".json"))
       continue;
     try {
-      const goal2 = GoalFileSchema.parse(JSON.parse(readFileSync83(join147(goalDir, name), "utf8"))).goal;
+      const goal2 = GoalFileSchema.parse(JSON.parse(readFileSync83(join148(goalDir, name), "utf8"))).goal;
       if (!goal2)
         continue;
       bySession[goal2.sessionID] = {
@@ -187755,8 +187881,8 @@ function goalsBySession(directory) {
   return bySession;
 }
 async function teamRunsByLead(config2) {
-  const runtimeDir = join147(resolveBaseDir(config2), "runtime");
-  if (!existsSync118(runtimeDir))
+  const runtimeDir = join148(resolveBaseDir(config2), "runtime");
+  if (!existsSync119(runtimeDir))
     return {};
   const byLead = {};
   for (const entry of await readdir10(runtimeDir, { withFileTypes: true })) {
@@ -187795,10 +187921,10 @@ function startSerialLoop(name, task, intervalMs, timeoutMs) {
     try {
       await Promise.race([
         task(),
-        new Promise((resolve40) => {
+        new Promise((resolve41) => {
           timer = setTimeout(() => {
             log2(`[oh-my-openagent] ${name} took longer than ${timeoutMs} ms; continuing`);
-            resolve40();
+            resolve41();
           }, timeoutMs);
           timer.unref?.();
         })
@@ -187827,8 +187953,8 @@ function configPathsOf(directory) {
 init_logger2();
 
 // packages/omo-opencode/src/v2/catalog.ts
-import { existsSync as existsSync120, readFileSync as readFileSync84 } from "fs";
-import { join as join149 } from "path";
+import { existsSync as existsSync121, readFileSync as readFileSync84 } from "fs";
+import { join as join150 } from "path";
 
 // packages/omo-opencode/src/v2/serve-http.ts
 class SessionHttpError extends Error {
@@ -187931,13 +188057,13 @@ async function patchSessionMetadata(origin, sessionID, metadata, fetchImpl) {
 }
 
 // packages/omo-opencode/src/v2/session-db.ts
-import { existsSync as existsSync119 } from "fs";
-import { join as join148 } from "path";
+import { existsSync as existsSync120 } from "fs";
+import { join as join149 } from "path";
 function isRecord20(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 async function openReadonly(file2) {
-  if (typeof globalThis.Bun === "undefined" || !existsSync119(file2))
+  if (typeof globalThis.Bun === "undefined" || !existsSync120(file2))
     return;
   try {
     const dynamicImport = new Function("return import('bun:sqlite')");
@@ -187950,7 +188076,7 @@ async function openReadonly(file2) {
   }
 }
 function openCodeDatabasePath() {
-  return join148(getDataDir(), "opencode", "opencode.db");
+  return join149(getDataDir(), "opencode", "opencode.db");
 }
 async function sessionsFromDatabase(file2 = openCodeDatabasePath()) {
   const db = await openReadonly(file2);
@@ -188030,8 +188156,8 @@ function stripJsonc(text) {
 }
 function configData(directory = getOpenCodeConfigDir({ binary: "opencode" })) {
   for (const name of ["opencode.jsonc", "opencode.json"]) {
-    const file2 = join149(directory, name);
-    if (!existsSync120(file2))
+    const file2 = join150(directory, name);
+    if (!existsSync121(file2))
       continue;
     const parsed = JSON.parse(stripJsonc(readFileSync84(file2, "utf8")));
     if (!isRecord21(parsed))
@@ -188657,6 +188783,118 @@ function toV1Event(event) {
   return { type, properties: { ...data } };
 }
 
+// packages/omo-opencode/src/v2/session-move.ts
+import { existsSync as existsSync122, mkdirSync as mkdirSync34, readdirSync as readdirSync37, readFileSync as readFileSync85, rmdirSync, rmSync as rmSync8, writeFileSync as writeFileSync35 } from "fs";
+import { dirname as dirname54, join as join151 } from "path";
+init_logger2();
+var STATE_DIRECTORY = ".omo/v2-state";
+function isRecord25(value) {
+  return typeof value === "object" && value !== null;
+}
+function goalUpdatedAt(file2) {
+  try {
+    return GoalFileSchema.parse(JSON.parse(readFileSync85(file2, "utf8"))).goal?.updatedAt ?? 0;
+  } catch {
+    return 0;
+  }
+}
+function moveGoal(fromDirectory, toDirectory, sessionID) {
+  const source = goalFilePath({ baseDir: join151(fromDirectory, ".omo", "goal"), sessionID });
+  if (!existsSync122(source))
+    return false;
+  const destination = goalFilePath({ baseDir: join151(toDirectory, ".omo", "goal"), sessionID });
+  const keepDestination = existsSync122(destination) && goalUpdatedAt(destination) > goalUpdatedAt(source);
+  if (!keepDestination) {
+    mkdirSync34(dirname54(destination), { recursive: true });
+    writeFileSync35(destination, readFileSync85(source));
+  }
+  rmSync8(source, { force: true });
+  const oldMirror = join151(fromDirectory, ".omo", "ulw-loop", sessionID);
+  rmSync8(join151(oldMirror, "goals.json"), { force: true });
+  if (existsSync122(oldMirror) && readdirSync37(oldMirror).length === 0)
+    rmdirSync(oldMirror);
+  createGoalController({ projectDir: toDirectory }).updateTui(sessionID);
+  return !keepDestination;
+}
+function moveMarker(fromDirectory, toDirectory, sessionID) {
+  const source = join151(fromDirectory, CONTINUATION_MARKER_DIR, `${sessionID}.json`);
+  if (!existsSync122(source))
+    return false;
+  const destination = join151(toDirectory, CONTINUATION_MARKER_DIR, `${sessionID}.json`);
+  mkdirSync34(dirname54(destination), { recursive: true });
+  writeFileSync35(destination, readFileSync85(source));
+  rmSync8(source, { force: true });
+  return true;
+}
+function readParents(file2) {
+  if (!existsSync122(file2))
+    return {};
+  const parsed = JSON.parse(readFileSync85(file2, "utf8"));
+  return isRecord25(parsed) ? parsed : {};
+}
+function copyParentLinks(fromDirectory, toDirectory, sessionID) {
+  const source = readParents(join151(fromDirectory, STATE_DIRECTORY, "parents.json"));
+  const links = Object.entries(source).filter(([child, parent]) => typeof parent === "string" && (child === sessionID || parent === sessionID));
+  if (links.length === 0)
+    return 0;
+  const destinationFile = join151(toDirectory, STATE_DIRECTORY, "parents.json");
+  const destination = readParents(destinationFile);
+  mkdirSync34(dirname54(destinationFile), { recursive: true });
+  writeFileSync35(destinationFile, JSON.stringify({ ...destination, ...Object.fromEntries(links) }));
+  return links.length;
+}
+function attempt(sessionID, step, action, fallback) {
+  try {
+    return action();
+  } catch (error) {
+    log2("[oh-my-openagent] v2 session move step failed", {
+      sessionID,
+      step,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    return fallback;
+  }
+}
+function moveSessionState(input) {
+  const { fromDirectory, toDirectory, sessionID, state: state3 } = input;
+  return {
+    goal: attempt(sessionID, "goal", () => moveGoal(fromDirectory, toDirectory, sessionID), false),
+    todos: attempt(sessionID, "todos", () => state3.moveTodos(sessionID, join151(fromDirectory, STATE_DIRECTORY), join151(toDirectory, STATE_DIRECTORY)), false),
+    marker: attempt(sessionID, "marker", () => moveMarker(fromDirectory, toDirectory, sessionID), false),
+    works: attempt(sessionID, "works", () => moveSessionWorks(fromDirectory, toDirectory, sessionID).length, 0),
+    parentLinks: attempt(sessionID, "parents", () => copyParentLinks(fromDirectory, toDirectory, sessionID), 0)
+  };
+}
+var HANDLED_MOVES = Symbol.for("oh-my-openagent:v2-handled-session-moves");
+var MAX_REMEMBERED_MOVES = 500;
+function claimMove(eventID) {
+  const remembered = Reflect.get(globalThis, HANDLED_MOVES);
+  const handled = remembered instanceof Set ? remembered : new Set;
+  if (!(remembered instanceof Set))
+    Reflect.set(globalThis, HANDLED_MOVES, handled);
+  if (handled.has(eventID))
+    return false;
+  handled.add(eventID);
+  if (handled.size > MAX_REMEMBERED_MOVES)
+    handled.delete(handled.values().next().value);
+  return true;
+}
+function followSessionMove(raw, state3) {
+  if (!isRecord25(raw) || raw.type !== "session.moved" || typeof raw.id !== "string")
+    return;
+  const data = isRecord25(raw.data) ? raw.data : {};
+  const fromDirectory = isRecord25(raw.location) ? raw.location.directory : undefined;
+  const toDirectory = isRecord25(data.location) ? data.location.directory : undefined;
+  const sessionID = data.sessionID;
+  if (typeof fromDirectory !== "string" || typeof toDirectory !== "string" || typeof sessionID !== "string")
+    return;
+  if (fromDirectory === toDirectory || !claimMove(raw.id))
+    return;
+  const result = moveSessionState({ fromDirectory, toDirectory, sessionID, state: state3 });
+  log2("[oh-my-openagent] v2 session state followed a move", { sessionID, fromDirectory, toDirectory, ...result });
+  return result;
+}
+
 // packages/omo-opencode/src/v2/tool-schema.ts
 init_logger2();
 import { z as z66 } from "zod";
@@ -188664,20 +188902,20 @@ var LOOSE_OBJECT_SCHEMA = {
   type: "object",
   additionalProperties: true
 };
-function isRecord25(value) {
+function isRecord26(value) {
   return typeof value === "object" && value !== null;
 }
 function isZodSchema(value) {
-  return isRecord25(value) && isRecord25(value._zod);
+  return isRecord26(value) && isRecord26(value._zod);
 }
 function isZodShape(value) {
-  if (!isRecord25(value) || isZodSchema(value))
+  if (!isRecord26(value) || isZodSchema(value))
     return false;
   const fields = Object.values(value);
   return fields.length > 0 && fields.every(isZodSchema);
 }
 function isJsonSchema(value) {
-  return isRecord25(value) && (value.type === "object" || Array.isArray(value.type) || value.properties !== undefined);
+  return isRecord26(value) && (value.type === "object" || Array.isArray(value.type) || value.properties !== undefined);
 }
 function asZod(value) {
   return isZodSchema(value) ? value : undefined;
@@ -188712,7 +188950,7 @@ function defToJsonSchema(schema) {
     case "array":
       return { json: described({ type: "array", items: inner("element").json }), optional: false };
     case "enum":
-      return { json: described({ type: "string", enum: Object.values(isRecord25(def.entries) ? def.entries : {}) }), optional: false };
+      return { json: described({ type: "string", enum: Object.values(isRecord26(def.entries) ? def.entries : {}) }), optional: false };
     case "literal":
       return { json: described({ enum: Array.isArray(def.values) ? def.values : [] }), optional: false };
     case "union":
@@ -188726,7 +188964,7 @@ function defToJsonSchema(schema) {
     case "record":
       return { json: described({ type: "object", additionalProperties: inner("valueType").json }), optional: false };
     case "object":
-      return { json: described(shapeToJsonSchema(isRecord25(def.shape) ? def.shape : {})), optional: false };
+      return { json: described(shapeToJsonSchema(isRecord26(def.shape) ? def.shape : {})), optional: false };
     default:
       return { json: described({}), optional: false };
   }
@@ -188774,7 +189012,7 @@ function toolInputSchema(tool3) {
 function jsonMetadata(metadata) {
   try {
     const plain = JSON.parse(JSON.stringify(metadata));
-    return isRecord25(plain) && !Array.isArray(plain) ? plain : {};
+    return isRecord26(plain) && !Array.isArray(plain) ? plain : {};
   } catch (error) {
     log2("[oh-my-openagent] dropped tool metadata that is not JSON", {
       error: error instanceof Error ? error.message : String(error)
@@ -188785,9 +189023,9 @@ function jsonMetadata(metadata) {
 function toolResult(result) {
   if (typeof result === "string")
     return { content: result };
-  if (!isRecord25(result))
+  if (!isRecord26(result))
     return { content: result == null ? "" : String(result) };
-  const metadata = isRecord25(result.metadata) ? jsonMetadata(result.metadata) : undefined;
+  const metadata = isRecord26(result.metadata) ? jsonMetadata(result.metadata) : undefined;
   if (typeof result.content === "string")
     return { content: result.content, ...metadata ? { metadata } : {} };
   if (typeof result.output === "string")
@@ -188799,14 +189037,14 @@ function toolResult(result) {
 function asHandler(value) {
   return typeof value === "function" ? value : undefined;
 }
-function isRecord26(value) {
+function isRecord27(value) {
   return typeof value === "object" && value !== null;
 }
 function textParts(parts) {
   if (!Array.isArray(parts))
     return "";
   return parts.map((part) => {
-    if (!isRecord26(part) || part.type !== "text" || typeof part.text !== "string")
+    if (!isRecord27(part) || part.type !== "text" || typeof part.text !== "string")
       return "";
     return part.text;
   }).filter((text) => text.length > 0).join(`
@@ -188837,10 +189075,10 @@ function noteRuntimeEvent(state3, event) {
     state3.sessions.delete(sessionID);
     state3.forgetTodos(sessionID);
   }
-  if (event.type === "session.created" && isRecord26(event.properties.info)) {
+  if (event.type === "session.created" && isRecord27(event.properties.info)) {
     state3.noteSession({ id: sessionID, ...event.properties.info });
   }
-  if (event.type === "session.status" && isRecord26(event.properties.status) && typeof event.properties.status.type === "string") {
+  if (event.type === "session.status" && isRecord27(event.properties.status) && typeof event.properties.status.type === "string") {
     state3.noteStatus(sessionID, event.properties.status.type);
   }
 }
@@ -188869,7 +189107,7 @@ function toolErrorText(error) {
     return error;
   if (error instanceof Error)
     return error.message;
-  if (isRecord26(error) && typeof error.message === "string")
+  if (isRecord27(error) && typeof error.message === "string")
     return error.message;
   return "tool failed";
 }
@@ -188898,7 +189136,7 @@ function resultText(content) {
   if (typeof content === "string")
     return content;
   if (Array.isArray(content)) {
-    return content.map((part) => isRecord26(part) && part.type === "text" && typeof part.text === "string" ? part.text : "").join("");
+    return content.map((part) => isRecord27(part) && part.type === "text" && typeof part.text === "string" ? part.text : "").join("");
   }
   return JSON.stringify(content ?? "");
 }
@@ -188993,7 +189231,7 @@ async function registerV1Hooks(ctx, hooks2, state3) {
     await ctx.tool.hook("execute.before", (event) => {
       return safeCall("tool.execute.before", async () => {
         const input = { tool: event.tool, sessionID: event.sessionID, callID: event.id };
-        const output = { args: isRecord26(event.input) ? event.input : {} };
+        const output = { args: isRecord27(event.input) ? event.input : {} };
         await toolBefore(input, output);
         event.tool = input.tool;
         event.input = output.args;
@@ -189065,7 +189303,9 @@ async function registerV1Hooks(ctx, hooks2, state3) {
     (async () => {
       try {
         for await (const raw of ctx.event.subscribe({ signal: controller.signal })) {
-          const location = isRecord26(raw) && isRecord26(raw.location) ? raw.location.directory : undefined;
+          if (state3)
+            followSessionMove(raw, state3);
+          const location = isRecord27(raw) && isRecord27(raw.location) ? raw.location.directory : undefined;
           if (typeof location === "string" && location !== ctx.location.directory)
             continue;
           for (const event of withV1Lifecycle(toV1Event(raw))) {
@@ -189090,11 +189330,11 @@ async function registerV1Hooks(ctx, hooks2, state3) {
 }
 
 // packages/omo-opencode/src/v2/goal-sync.ts
-import { existsSync as existsSync121, readdirSync as readdirSync37, readFileSync as readFileSync85 } from "fs";
-import { join as join150 } from "path";
+import { existsSync as existsSync123, readdirSync as readdirSync38, readFileSync as readFileSync86 } from "fs";
+import { join as join152 } from "path";
 init_logger2();
 var OMO_GOAL_DRIVER = "omo";
-var isRecord27 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
+var isRecord28 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
 function goalMirror(goal2) {
   return {
     id: goal2.id,
@@ -189113,28 +189353,29 @@ function goalMirror(goal2) {
   };
 }
 var MIRROR_KEYS = ["id", "objective", "status", "tokenBudget", "tokensUsed", "turnsUsed", "statusReason", "driver"];
-var sameMirror = (left, right) => isRecord27(left) && MIRROR_KEYS.every((key) => (left[key] ?? null) === (right[key] ?? null));
+var sameMirror = (left, right) => isRecord28(left) && MIRROR_KEYS.every((key) => (left[key] ?? null) === (right[key] ?? null));
 var USER_KEYS = ["status", "objective", "tokenBudget"];
 var userChanged = (mirror, written) => USER_KEYS.some((key) => (mirror[key] ?? null) !== (written[key] ?? null));
 function readGoals(projectDir) {
   const goals = new Map;
-  const goalDir = join150(projectDir, ".omo", "goal");
-  if (!existsSync121(goalDir))
+  const goalDir = join152(projectDir, ".omo", "goal");
+  if (!existsSync123(goalDir))
     return goals;
-  for (const name of readdirSync37(goalDir)) {
+  for (const name of readdirSync38(goalDir)) {
     if (!name.endsWith(".json"))
       continue;
     try {
-      const goal2 = GoalFileSchema.parse(JSON.parse(readFileSync85(join150(goalDir, name), "utf8"))).goal;
+      const goal2 = GoalFileSchema.parse(JSON.parse(readFileSync86(join152(goalDir, name), "utf8"))).goal;
       if (goal2)
         goals.set(goal2.sessionID, goal2);
     } catch {}
   }
   return goals;
 }
-var metadataOf = (session) => isRecord27(session) && isRecord27(session.metadata) ? session.metadata : {};
+var metadataOf = (session) => isRecord28(session) && isRecord28(session.metadata) ? session.metadata : {};
+var movedAway = (session, projectDir) => isRecord28(session) && isRecord28(session.location) && typeof session.location.directory === "string" && session.location.directory !== projectDir;
 var withGoal = (metadata, goal2) => {
-  const namespace = isRecord27(metadata.openchamber) ? { ...metadata.openchamber } : {};
+  const namespace = isRecord28(metadata.openchamber) ? { ...metadata.openchamber } : {};
   if (goal2)
     namespace.goal = goal2;
   else
@@ -189174,8 +189415,8 @@ function createGoalSync(input) {
   };
   const syncSession = async (sessionID, current) => {
     const metadata = metadataOf(await input.session.get({ sessionID }));
-    const namespace = isRecord27(metadata.openchamber) ? metadata.openchamber : {};
-    const mirror = isRecord27(namespace.goal) ? namespace.goal : null;
+    const namespace = isRecord28(metadata.openchamber) ? metadata.openchamber : {};
+    const mirror = isRecord28(namespace.goal) ? namespace.goal : null;
     let goal2 = current;
     if (mirrored.get(sessionID) === goal2.id && (!mirror || mirror.id !== goal2.id)) {
       controller.clearGoal(sessionID);
@@ -189225,10 +189466,12 @@ function createGoalSync(input) {
     return next;
   };
   const unmirror = async (sessionID, goalID) => {
-    const metadata = metadataOf(await input.session.get({ sessionID }));
-    const mirror = isRecord27(metadata.openchamber) && isRecord27(metadata.openchamber.goal) ? metadata.openchamber.goal : null;
-    if (mirror?.driver === OMO_GOAL_DRIVER && mirror.id === goalID)
+    const session = await input.session.get({ sessionID });
+    const metadata = metadataOf(session);
+    const mirror = isRecord28(metadata.openchamber) && isRecord28(metadata.openchamber.goal) ? metadata.openchamber.goal : null;
+    if (mirror?.driver === OMO_GOAL_DRIVER && mirror.id === goalID && !movedAway(session, input.projectDir)) {
       await write(sessionID, metadata, null);
+    }
     mirrored.delete(sessionID);
     written.delete(sessionID);
   };
@@ -189259,19 +189502,19 @@ function createGoalSync(input) {
 
 // packages/omo-opencode/src/v2/project-config.ts
 init_logger2();
-import { existsSync as existsSync122, readFileSync as readFileSync87, statSync as statSync18 } from "fs";
-import { join as join152 } from "path";
+import { existsSync as existsSync124, readFileSync as readFileSync88, statSync as statSync18 } from "fs";
+import { join as join154 } from "path";
 
 // packages/omo-opencode/src/v2/agent-markdown.ts
-import { mkdirSync as mkdirSync33, readFileSync as readFileSync86, writeFileSync as writeFileSync34 } from "fs";
-import { join as join151 } from "path";
+import { mkdirSync as mkdirSync35, readFileSync as readFileSync87, writeFileSync as writeFileSync36 } from "fs";
+import { join as join153 } from "path";
 var ACTION_ALIASES = {
   bash: "shell"
 };
 function agentMarkdownDirectory(override) {
   if (override)
     return override;
-  return join151(getOpenCodeConfigDir({ binary: "opencode" }), "agents");
+  return join153(getOpenCodeConfigDir({ binary: "opencode" }), "agents");
 }
 function agentFileName(name) {
   const cleaned = name.replace(/[\\/]/g, "-").replace(/^\.+/, "").trim();
@@ -189280,7 +189523,7 @@ function agentFileName(name) {
 function nestedAgentID(name) {
   return name;
 }
-function isRecord28(value) {
+function isRecord29(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function permissionEffect(value) {
@@ -189289,7 +189532,7 @@ function permissionEffect(value) {
   return;
 }
 function permissionsFromV1(permission) {
-  if (!isRecord28(permission))
+  if (!isRecord29(permission))
     return [];
   const rules = [];
   for (const [rawAction, value] of Object.entries(permission)) {
@@ -189299,7 +189542,7 @@ function permissionsFromV1(permission) {
       rules.push({ action, resource: "*", effect });
       continue;
     }
-    if (!isRecord28(value))
+    if (!isRecord29(value))
       continue;
     for (const [resource, nested] of Object.entries(value)) {
       const nestedEffect = permissionEffect(nested);
@@ -189354,23 +189597,23 @@ function renderAgentMarkdown(name, config2) {
 `)}`;
 }
 function writeAgentMarkdown(input) {
-  mkdirSync33(input.directory, { recursive: true });
+  mkdirSync35(input.directory, { recursive: true });
   const written = [];
   for (const [name, value] of Object.entries(input.agents)) {
-    if (!isRecord28(value) || value.disable === true || value.disabled === true)
+    if (!isRecord29(value) || value.disable === true || value.disabled === true)
       continue;
     const markdown = renderAgentMarkdown(name, value);
     if (!markdown)
       continue;
-    const path27 = join151(input.directory, agentFileName(name));
+    const path27 = join153(input.directory, agentFileName(name));
     let changed = true;
     try {
-      changed = readFileSync86(path27, "utf8") !== markdown;
+      changed = readFileSync87(path27, "utf8") !== markdown;
     } catch {
       changed = true;
     }
     if (changed)
-      writeFileSync34(path27, markdown);
+      writeFileSync36(path27, markdown);
     written.push({ name, id: nestedAgentID(name), path: path27, changed });
   }
   return written;
@@ -189378,15 +189621,15 @@ function writeAgentMarkdown(input) {
 
 // packages/omo-opencode/src/v2/project-config.ts
 var DIRECT_TOOL = { codemode: false };
-function isRecord29(value) {
+function isRecord30(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function mcpServerFromV1(value) {
-  if (!isRecord29(value))
+  if (!isRecord30(value))
     return;
   const disabled = value.enabled === false || value.disabled === true;
   if (typeof value.url === "string" && (value.type === "remote" || value.type === undefined)) {
-    const headers = isRecord29(value.headers) ? Object.fromEntries(Object.entries(value.headers).filter((entry) => typeof entry[1] === "string")) : undefined;
+    const headers = isRecord30(value.headers) ? Object.fromEntries(Object.entries(value.headers).filter((entry) => typeof entry[1] === "string")) : undefined;
     return {
       type: "remote",
       url: value.url,
@@ -189398,7 +189641,7 @@ function mcpServerFromV1(value) {
   const command = Array.isArray(value.command) ? value.command.filter((part) => typeof part === "string") : typeof value.command === "string" ? [value.command] : [];
   if (command.length === 0)
     return;
-  const environment2 = isRecord29(value.environment) ? Object.fromEntries(Object.entries(value.environment).filter((entry) => typeof entry[1] === "string")) : undefined;
+  const environment2 = isRecord30(value.environment) ? Object.fromEntries(Object.entries(value.environment).filter((entry) => typeof entry[1] === "string")) : undefined;
   return {
     type: "local",
     command,
@@ -189411,16 +189654,16 @@ function commandText(template, args, sessionID) {
   return template.replaceAll("$ARGUMENTS", args).replaceAll("$SESSION_ID", sessionID).replaceAll("$TIMESTAMP", new Date().toISOString());
 }
 function skillRecords(skills2) {
-  if (!isRecord29(skills2) || !Array.isArray(skills2.paths))
+  if (!isRecord30(skills2) || !Array.isArray(skills2.paths))
     return [];
   const records = [];
   for (const entry of skills2.paths) {
-    if (typeof entry !== "string" || !existsSync122(entry))
+    if (typeof entry !== "string" || !existsSync124(entry))
       continue;
-    const file2 = statSync18(entry).isDirectory() ? join152(entry, "SKILL.md") : entry;
-    if (!existsSync122(file2))
+    const file2 = statSync18(entry).isDirectory() ? join154(entry, "SKILL.md") : entry;
+    if (!existsSync124(file2))
       continue;
-    const content = readFileSync87(file2, "utf8");
+    const content = readFileSync88(file2, "utf8");
     const name = file2.split(/[\\/]/).at(-1)?.replace(/\.md$/i, "") || "skill";
     records.push({ id: name, name, path: file2, content });
   }
@@ -189429,7 +189672,7 @@ function skillRecords(skills2) {
 function reallowedToolPatterns(agents) {
   const patterns = new Set;
   for (const agent of Object.values(agents)) {
-    if (!isRecord29(agent) || !isRecord29(agent.permission))
+    if (!isRecord30(agent) || !isRecord30(agent.permission))
       continue;
     for (const [pattern, effect] of Object.entries(agent.permission)) {
       if (effect === "allow")
@@ -189439,10 +189682,10 @@ function reallowedToolPatterns(agents) {
   return patterns;
 }
 async function projectTools(input) {
-  const tools = isRecord29(input.tools) ? input.tools : {};
+  const tools = isRecord30(input.tools) ? input.tools : {};
   const definitions = new Map;
   for (const [name, value] of Object.entries(tools)) {
-    if (!isRecord29(value) || typeof value.execute !== "function")
+    if (!isRecord30(value) || typeof value.execute !== "function")
       continue;
     const description = typeof value.description === "string" ? value.description : name;
     const schema = toolInputSchema(value);
@@ -189452,7 +189695,7 @@ async function projectTools(input) {
     }
     definitions.set(name, {
       description: defined.description,
-      input: isRecord29(defined.parameters) ? defined.parameters : schema,
+      input: isRecord30(defined.parameters) ? defined.parameters : schema,
       execute: value.execute
     });
   }
@@ -189487,7 +189730,7 @@ async function projectTools(input) {
         });
       }
     }
-    if (!isRecord29(input.disabled))
+    if (!isRecord30(input.disabled))
       return;
     for (const [pattern, enabled] of Object.entries(input.disabled)) {
       if (enabled !== false)
@@ -189550,7 +189793,7 @@ async function registerTodoTools(ctx, todos) {
   });
 }
 async function projectV1Surface(input) {
-  const agents = isRecord29(input.config.agent) ? input.config.agent : {};
+  const agents = isRecord30(input.config.agent) ? input.config.agent : {};
   const written = writeAgentMarkdown({
     directory: input.agentDirectory ?? agentMarkdownDirectory(),
     agents
@@ -189560,7 +189803,7 @@ async function projectV1Surface(input) {
   await input.ctx.agent.transform((editor) => {
     for (const [name, id] of agentIDs) {
       const config2 = agents[name];
-      if (!isRecord29(config2))
+      if (!isRecord30(config2))
         continue;
       const apply = (agent) => {
         if (typeof config2.description === "string")
@@ -189591,10 +189834,10 @@ async function projectV1Surface(input) {
   });
   if (input.recordTodos)
     await registerTodoTools(input.ctx, input.recordTodos);
-  const commands3 = isRecord29(input.config.command) ? input.config.command : {};
+  const commands3 = isRecord30(input.config.command) ? input.config.command : {};
   await input.ctx.command.transform((editor) => {
     for (const [name, value] of Object.entries(commands3)) {
-      if (!isRecord29(value))
+      if (!isRecord30(value))
         continue;
       const template = typeof value.template === "string" ? value.template : typeof value.prompt === "string" ? value.prompt : undefined;
       if (!template)
@@ -189629,7 +189872,7 @@ async function projectV1Surface(input) {
       }
     }
   });
-  const mcp = isRecord29(input.config.mcp) ? input.config.mcp : {};
+  const mcp = isRecord30(input.config.mcp) ? input.config.mcp : {};
   await input.ctx.mcp.transform((editor) => {
     for (const [name, value] of Object.entries(mcp)) {
       const server3 = mcpServerFromV1(value);
@@ -189660,7 +189903,7 @@ async function projectV1Surface(input) {
       }
     });
   }
-  await projectProviders(input.ctx, isRecord29(input.config.provider) ? input.config.provider : {});
+  await projectProviders(input.ctx, isRecord30(input.config.provider) ? input.config.provider : {});
 }
 function nameOr(editor, bare, nested) {
   if (editor.get(nested))
@@ -189684,11 +189927,11 @@ async function projectProviders(ctx, providers) {
   }
   await ctx.provider.transform((editor) => {
     for (const [providerID, value] of Object.entries(providers)) {
-      if (!isRecord29(value))
+      if (!isRecord30(value))
         continue;
       try {
         const id = providerApi.ID.make(providerID);
-        const models = isRecord29(value.models) ? Object.keys(value.models).map((modelID) => ({
+        const models = isRecord30(value.models) ? Object.keys(value.models).map((modelID) => ({
           ...modelApi.Info.default(id, modelApi.ID.make(modelID)),
           name: modelID
         })) : [];
@@ -189698,7 +189941,7 @@ async function projectProviders(ctx, providers) {
             name: typeof value.name === "string" ? value.name : providerID,
             activation: "enabled",
             package: typeof value.npm === "string" ? value.npm : "@ai-sdk/openai-compatible",
-            settings: isRecord29(value.options) ? value.options : {}
+            settings: isRecord30(value.options) ? value.options : {}
           },
           models
         });
@@ -189712,17 +189955,17 @@ async function projectProviders(ctx, providers) {
   });
   await ctx.model.transform((editor) => {
     for (const [providerID, value] of Object.entries(providers)) {
-      if (!isRecord29(value) || !isRecord29(value.models))
+      if (!isRecord30(value) || !isRecord30(value.models))
         continue;
       for (const [modelID, modelConfig] of Object.entries(value.models)) {
-        if (!isRecord29(modelConfig))
+        if (!isRecord30(modelConfig))
           continue;
-        const context2 = isRecord29(modelConfig.limit) && typeof modelConfig.limit.context === "number" ? modelConfig.limit.context : undefined;
+        const context2 = isRecord30(modelConfig.limit) && typeof modelConfig.limit.context === "number" ? modelConfig.limit.context : undefined;
         if (context2 === undefined || !editor.get(providerID, modelID))
           continue;
         editor.update(providerID, modelID, (model) => {
           const record15 = model;
-          record15.limit = { ...isRecord29(record15.limit) ? record15.limit : {}, context: context2 };
+          record15.limit = { ...isRecord30(record15.limit) ? record15.limit : {}, context: context2 };
         });
       }
     }
@@ -189730,7 +189973,7 @@ async function projectProviders(ctx, providers) {
 }
 
 // packages/omo-opencode/src/v2/host.ts
-function isRecord30(value) {
+function isRecord31(value) {
   return typeof value === "object" && value !== null;
 }
 async function setupOpenCodeV2(ctx, deps) {
@@ -189747,7 +189990,7 @@ async function setupOpenCodeV2(ctx, deps) {
     });
     throw error;
   }
-  if (!isRecord30(hooks2) || Object.keys(hooks2).length === 0) {
+  if (!isRecord31(hooks2) || Object.keys(hooks2).length === 0) {
     log2("[oh-my-openagent] plugin startup returned no hooks");
     return;
   }
@@ -189831,7 +190074,7 @@ function jsonValue(value) {
       const json = jsonValue(item);
       return json === undefined ? [] : [json];
     });
-  return isRecord30(value) ? jsonRecord(value) : undefined;
+  return isRecord31(value) ? jsonRecord(value) : undefined;
 }
 function jsonRecord(value) {
   const record15 = {};
