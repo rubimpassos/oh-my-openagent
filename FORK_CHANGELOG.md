@@ -10,6 +10,13 @@ Releases of [rubimpassos/oh-my-openagent](https://github.com/rubimpassos/oh-my-o
 
 To release: add a `## [<version>] - YYYY-MM-DD` section here on `main` (with the `Fork-Patch: v2-support` trailer), then run the **Fork release** workflow with that version.
 
+## [5.0.1-fork.12] - 2026-10-30
+
+### Fixes
+
+- `/ulw-execute ".omo/plans/auth.md"` now selects that exact worktree-relative plan instead of a newer same-name legacy plan, a case-only sibling or an existing work for a different file. Missing or invalid exact paths do not fall back to another plan, and stored or explicit worktrees cannot redirect the selection to a different file. Basename and partial-name selection keep their existing behavior.
+- Quoted plan filenames preserve spaces, literal quotes, `ulw` and embedded flag names; only standalone `--worktree`, `--make-pr` and `--ship` arguments activate those options. This gives clients such as OpenChamber a native exact-path selector without changing their plan-selection UI in this release.
+
 ## [5.0.1-fork.11] - 2026-10-22
 
 ### Fixes
