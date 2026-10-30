@@ -4,6 +4,97 @@ import { describe, expect, test } from "bun:test"
 import { parseUserRequest } from "./parse-user-request"
 
 describe("parseUserRequest", () => {
+  test.each([
+    ".omo/plans/a'b'c.md",
+    '.omo/plans/a"b"c.md',
+    '.omo/plans/a`b`c.md',
+    '.omo/plans/a"--ship"--make-pr.md',
+    '.omo/plans/a\\"b.md',
+  ])("preserves interior literal quotes when parsing %s", (path) => {
+    // given
+    const request = `<user-request>${path}</user-request>`
+    // when
+    const result = parseUserRequest(request)
+    // then
+    expect(result).toEqual({ planName: path, explicitWorktreePath: null, makePr: false, ship: false })
+  })
+
+  test.each([
+    '.omo/plans/a"b"c.md',
+    '.omo/plans/a\\"b.md',
+    '.omo/plans/a\\b\\.md',
+    '.omo/plans/a " --ship --make-pr --worktree " ulw `b`\'c.md',
+  ])("decodes JSON-quoted exact selectors when parsing %s", (path) => {
+    // given
+    const request = `<user-request>${JSON.stringify(path)} --make-pr</user-request>`
+    // when
+    const result = parseUserRequest(request)
+    // then
+    expect(result).toEqual({ planName: path, explicitWorktreePath: null, makePr: true, ship: false })
+  })
+
+  test.each(['"', "'", '`'])("preserves literal backslashes and flag names inside %s wrappers", (quote) => {
+    // given
+    const path = '.omo/plans/a\\temp --ship --worktree.md'
+    // when
+    const result = parseUserRequest(`<user-request>${quote}${path}${quote}</user-request>`)
+    // then
+    expect(result).toEqual({ planName: path, explicitWorktreePath: null, makePr: false, ship: false })
+  })
+
+  test.each([
+    '".omo/plans/auth.md',
+    "'.omo/plans/auth.md",
+    '`.omo/plans/auth.md',
+    '".omo/plans/auth.md"suffix --ship',
+    '".omo/plans/auth.md"" --make-pr',
+    '--ship ".omo/plans/a\\"b.md',
+    'auth --worktree "unterminated --make-pr',
+  ])("retains the raw selector without activating flags when quoting is malformed: %s", (argument) => {
+    // given
+    const request = `<user-request>${argument}</user-request>`
+    // when
+    const result = parseUserRequest(request)
+    // then
+    expect(result).toEqual({ planName: argument, explicitWorktreePath: null, makePr: false, ship: false })
+  })
+
+  test.each([
+    '.omo/plans/ulw-auth.md',
+    '.omo/plans/ultrawork.md',
+    '.omo/plans/auth--ship.md',
+    '.omo/plans/auth--make-pr.md',
+    '.omo/plans/auth--worktree.md',
+    '".omo/plans/ulw ultrawork --ship --make-pr --worktree.md"',
+    "'.omo/plans/auth plan.md'",
+    '`./.omo/plans/auth plan.md`',
+    '.omo\\plans\\auth.md',
+  ])("preserves literal plan token %s when parsing", (argument) => {
+    // given
+    const expected = argument.replace(/^["'`]|["'`]$/g, "")
+    // when
+    const result = parseUserRequest(`<user-request>${argument}</user-request>`)
+    // then
+    expect(result).toEqual({ planName: expected, explicitWorktreePath: null, makePr: false, ship: false })
+  })
+
+  test("parses standalone flags with a quoted worktree when the plan embeds flag names", () => {
+    // given
+    const request = 'ulw ".omo/plans/ulw --ship.md" --ship --make-pr --worktree "/tmp/work tree"'
+    // when
+    const result = parseUserRequest(`<user-request>${request}</user-request>`)
+    // then
+    expect(result).toEqual({ planName: ".omo/plans/ulw --ship.md", explicitWorktreePath: "/tmp/work tree", makePr: true, ship: true })
+  })
+
+  test("keeps standalone delivery flags when worktree has no value", () => {
+    // given
+    const request = "auth --worktree --ship --make-pr"
+    // when
+    const result = parseUserRequest(`<user-request>${request}</user-request>`)
+    // then
+    expect(result).toEqual({ planName: "auth", explicitWorktreePath: null, makePr: true, ship: true })
+  })
   describe("when no user-request tag", () => {
     test("#given prompt without tag #when parsing #then returns nulls", () => {
       const result = parseUserRequest("Just a regular message without any tags")

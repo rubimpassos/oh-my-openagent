@@ -1,8 +1,34 @@
-const KEYWORD_PATTERN = /\b(ultrawork|ulw)\b/gi
-const WORKTREE_FLAG_PATTERN = /--worktree(?:\s+(\S+))?/
-const MAKE_PR_FLAG_PATTERN = /--make-pr\b/
-const SHIP_FLAG_PATTERN = /--ship\b/
-const WRAPPING_QUOTES_PATTERN = /^(["'`])([\s\S]*)\1$/
+function tokenizeRequest(argument: string): readonly { readonly value: string; readonly quoted: boolean }[] {
+  const tokens: { readonly value: string; readonly quoted: boolean }[] = []
+  let value = ""
+  let quote: string | null = null
+  let quoted = false
+  for (let index = 0; index < argument.length; index++) {
+    const character = argument.charAt(index)
+    const next = argument.charAt(index + 1)
+    if (quote !== null) {
+      if (quote === '"' && character === "\\" && (next === '"' || next === "\\")) {
+        value += next
+        index++
+      } else if (character === quote) {
+        if (next && !/\s/.test(next)) return [{ value: argument, quoted: true }]
+        quote = null
+      } else value += character
+    } else if (!value && !quoted && (character === '"' || character === "'" || character === "`")) {
+      quote = character
+      quoted = true
+    } else if (/\s/.test(character)) {
+      if (value || quoted) tokens.push({ value, quoted })
+      value = ""
+      quoted = false
+    } else {
+      value += character
+    }
+  }
+  if (quote !== null) return [{ value: argument, quoted: true }]
+  if (value || quoted) tokens.push({ value, quoted })
+  return tokens
+}
 
 export interface ParsedUserRequest {
   planName: string | null
@@ -22,26 +48,31 @@ export function parseUserRequest(promptText: string): ParsedUserRequest {
   const match = promptText.match(/<user-request>\s*([\s\S]*?)\s*<\/user-request>/i)
   if (!match) return EMPTY_REQUEST
 
-  let rawArg = match[1].trim()
-  if (!rawArg) return EMPTY_REQUEST
-
-  const worktreeMatch = rawArg.match(WORKTREE_FLAG_PATTERN)
-  const explicitWorktreePath = worktreeMatch ? (worktreeMatch[1] ?? null) : null
-
-  if (worktreeMatch) {
-    rawArg = rawArg.replace(worktreeMatch[0], "").trim()
+  const tokens = tokenizeRequest(match[1].trim())
+  const planTokens: string[] = []
+  let explicitWorktreePath: string | null = null
+  let makePr = false
+  let ship = false
+  for (let index = 0; index < tokens.length; index++) {
+    const token = tokens[index]
+    if (!token) continue
+    if (!token.quoted && token.value === "--worktree") {
+      const next = tokens[index + 1]
+      if (next && (next.quoted || !next.value.startsWith("--"))) {
+        explicitWorktreePath = next.value
+        index++
+      }
+    } else if (!token.quoted && token.value === "--make-pr") {
+      makePr = true
+    } else if (!token.quoted && token.value === "--ship") {
+      ship = true
+    } else if (token.quoted || !/^(ultrawork|ulw)$/i.test(token.value)) {
+      planTokens.push(token.value)
+    }
   }
 
-  const makePr = MAKE_PR_FLAG_PATTERN.test(rawArg)
-  const ship = SHIP_FLAG_PATTERN.test(rawArg)
-  rawArg = rawArg.replace(MAKE_PR_FLAG_PATTERN, "").replace(SHIP_FLAG_PATTERN, "").trim()
-
-  const cleanedArg = rawArg.replace(KEYWORD_PATTERN, "").trim()
-  const quotedPlanMatch = cleanedArg.match(WRAPPING_QUOTES_PATTERN)
-  const normalizedPlanName = quotedPlanMatch ? quotedPlanMatch[2].trim() : cleanedArg
-
   return {
-    planName: normalizedPlanName || null,
+    planName: planTokens.join(" ") || null,
     explicitWorktreePath,
     makePr,
     ship,
