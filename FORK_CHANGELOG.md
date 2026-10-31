@@ -10,6 +10,12 @@ Releases of [rubimpassos/oh-my-openagent](https://github.com/rubimpassos/oh-my-o
 
 To release: add a `## [<version>] - YYYY-MM-DD` section here on `main` (with the `Fork-Patch: v2-support` trailer), then run the **Fork release** workflow with that version.
 
+## [5.0.1-fork.13] - 2026-10-31
+
+### Fixes
+
+- Pausing a goal now stops automatic Todo and Atlas continuations as well as goal continuations. Pending dispatches synchronize the goal state and check the pause immediately before sending, so an idle event or an already-armed countdown cannot restart a paused goal. Explicit resume and background task result notifications keep working.
+
 ## [5.0.1-fork.12] - 2026-10-30
 
 ### Fixes

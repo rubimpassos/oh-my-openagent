@@ -130,6 +130,7 @@ export function createGoalHook(ctx: PluginInput, options: GoalHookOptions): Goal
           body: {
             parts: [{ type: "text", text: promptText }],
           },
+          query: { directory: options.projectDir },
         },
       })
       if (promptResult.status === "dispatched" || (promptResult.status === "failed" && isInternalPromptDispatchAccepted(promptResult))) {
