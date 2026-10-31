@@ -60720,2725 +60720,6 @@ var init_tmux = __esm(() => {
   init_runner2();
   init_tmux_utils2();
 });
-// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/types.gen.js
-var init_types_gen = () => {};
-
-// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/core/serverSentEvents.gen.js
-var createSseClient = ({ onSseError, onSseEvent, responseTransformer, responseValidator, sseDefaultRetryDelay, sseMaxRetryAttempts, sseMaxRetryDelay, sseSleepFn, url, ...options }) => {
-  let lastEventId;
-  const sleep = sseSleepFn ?? ((ms) => new Promise((resolve3) => setTimeout(resolve3, ms)));
-  const createStream = async function* () {
-    let retryDelay = sseDefaultRetryDelay ?? 3000;
-    let attempt = 0;
-    const signal = options.signal ?? new AbortController().signal;
-    while (true) {
-      if (signal.aborted)
-        break;
-      attempt++;
-      const headers = options.headers instanceof Headers ? options.headers : new Headers(options.headers);
-      if (lastEventId !== undefined) {
-        headers.set("Last-Event-ID", lastEventId);
-      }
-      try {
-        const response = await fetch(url, { ...options, headers, signal });
-        if (!response.ok)
-          throw new Error(`SSE failed: ${response.status} ${response.statusText}`);
-        if (!response.body)
-          throw new Error("No body in SSE response");
-        const reader = response.body.pipeThrough(new TextDecoderStream).getReader();
-        let buffer = "";
-        const abortHandler = () => {
-          try {
-            reader.cancel();
-          } catch {}
-        };
-        signal.addEventListener("abort", abortHandler);
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done)
-              break;
-            buffer += value;
-            const chunks = buffer.split(`
-
-`);
-            buffer = chunks.pop() ?? "";
-            for (const chunk of chunks) {
-              const lines = chunk.split(`
-`);
-              const dataLines = [];
-              let eventName;
-              for (const line of lines) {
-                if (line.startsWith("data:")) {
-                  dataLines.push(line.replace(/^data:\s*/, ""));
-                } else if (line.startsWith("event:")) {
-                  eventName = line.replace(/^event:\s*/, "");
-                } else if (line.startsWith("id:")) {
-                  lastEventId = line.replace(/^id:\s*/, "");
-                } else if (line.startsWith("retry:")) {
-                  const parsed = Number.parseInt(line.replace(/^retry:\s*/, ""), 10);
-                  if (!Number.isNaN(parsed)) {
-                    retryDelay = parsed;
-                  }
-                }
-              }
-              let data;
-              let parsedJson = false;
-              if (dataLines.length) {
-                const rawData = dataLines.join(`
-`);
-                try {
-                  data = JSON.parse(rawData);
-                  parsedJson = true;
-                } catch {
-                  data = rawData;
-                }
-              }
-              if (parsedJson) {
-                if (responseValidator) {
-                  await responseValidator(data);
-                }
-                if (responseTransformer) {
-                  data = await responseTransformer(data);
-                }
-              }
-              onSseEvent?.({
-                data,
-                event: eventName,
-                id: lastEventId,
-                retry: retryDelay
-              });
-              if (dataLines.length) {
-                yield data;
-              }
-            }
-          }
-        } finally {
-          signal.removeEventListener("abort", abortHandler);
-          reader.releaseLock();
-        }
-        break;
-      } catch (error) {
-        onSseError?.(error);
-        if (sseMaxRetryAttempts !== undefined && attempt >= sseMaxRetryAttempts) {
-          break;
-        }
-        const backoff = Math.min(retryDelay * 2 ** (attempt - 1), sseMaxRetryDelay ?? 30000);
-        await sleep(backoff);
-      }
-    }
-  };
-  const stream = createStream();
-  return { stream };
-};
-
-// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/core/auth.gen.js
-var getAuthToken = async (auth, callback) => {
-  const token = typeof callback === "function" ? await callback(auth) : callback;
-  if (!token) {
-    return;
-  }
-  if (auth.scheme === "bearer") {
-    return `Bearer ${token}`;
-  }
-  if (auth.scheme === "basic") {
-    return `Basic ${btoa(token)}`;
-  }
-  return token;
-};
-
-// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/core/bodySerializer.gen.js
-var jsonBodySerializer;
-var init_bodySerializer_gen = __esm(() => {
-  jsonBodySerializer = {
-    bodySerializer: (body) => JSON.stringify(body, (_key, value) => typeof value === "bigint" ? value.toString() : value)
-  };
-});
-
-// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/core/pathSerializer.gen.js
-var separatorArrayExplode = (style) => {
-  switch (style) {
-    case "label":
-      return ".";
-    case "matrix":
-      return ";";
-    case "simple":
-      return ",";
-    default:
-      return "&";
-  }
-}, separatorArrayNoExplode = (style) => {
-  switch (style) {
-    case "form":
-      return ",";
-    case "pipeDelimited":
-      return "|";
-    case "spaceDelimited":
-      return "%20";
-    default:
-      return ",";
-  }
-}, separatorObjectExplode = (style) => {
-  switch (style) {
-    case "label":
-      return ".";
-    case "matrix":
-      return ";";
-    case "simple":
-      return ",";
-    default:
-      return "&";
-  }
-}, serializeArrayParam = ({ allowReserved, explode, name, style, value }) => {
-  if (!explode) {
-    const joinedValues2 = (allowReserved ? value : value.map((v) => encodeURIComponent(v))).join(separatorArrayNoExplode(style));
-    switch (style) {
-      case "label":
-        return `.${joinedValues2}`;
-      case "matrix":
-        return `;${name}=${joinedValues2}`;
-      case "simple":
-        return joinedValues2;
-      default:
-        return `${name}=${joinedValues2}`;
-    }
-  }
-  const separator = separatorArrayExplode(style);
-  const joinedValues = value.map((v) => {
-    if (style === "label" || style === "simple") {
-      return allowReserved ? v : encodeURIComponent(v);
-    }
-    return serializePrimitiveParam({
-      allowReserved,
-      name,
-      value: v
-    });
-  }).join(separator);
-  return style === "label" || style === "matrix" ? separator + joinedValues : joinedValues;
-}, serializePrimitiveParam = ({ allowReserved, name, value }) => {
-  if (value === undefined || value === null) {
-    return "";
-  }
-  if (typeof value === "object") {
-    throw new Error("Deeply-nested arrays/objects aren\u2019t supported. Provide your own `querySerializer()` to handle these.");
-  }
-  return `${name}=${allowReserved ? value : encodeURIComponent(value)}`;
-}, serializeObjectParam = ({ allowReserved, explode, name, style, value, valueOnly }) => {
-  if (value instanceof Date) {
-    return valueOnly ? value.toISOString() : `${name}=${value.toISOString()}`;
-  }
-  if (style !== "deepObject" && !explode) {
-    let values = [];
-    Object.entries(value).forEach(([key, v]) => {
-      values = [...values, key, allowReserved ? v : encodeURIComponent(v)];
-    });
-    const joinedValues2 = values.join(",");
-    switch (style) {
-      case "form":
-        return `${name}=${joinedValues2}`;
-      case "label":
-        return `.${joinedValues2}`;
-      case "matrix":
-        return `;${name}=${joinedValues2}`;
-      default:
-        return joinedValues2;
-    }
-  }
-  const separator = separatorObjectExplode(style);
-  const joinedValues = Object.entries(value).map(([key, v]) => serializePrimitiveParam({
-    allowReserved,
-    name: style === "deepObject" ? `${name}[${key}]` : key,
-    value: v
-  })).join(separator);
-  return style === "label" || style === "matrix" ? separator + joinedValues : joinedValues;
-};
-
-// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/core/utils.gen.js
-var PATH_PARAM_RE, defaultPathSerializer = ({ path: path4, url: _url }) => {
-  let url = _url;
-  const matches = _url.match(PATH_PARAM_RE);
-  if (matches) {
-    for (const match of matches) {
-      let explode = false;
-      let name = match.substring(1, match.length - 1);
-      let style = "simple";
-      if (name.endsWith("*")) {
-        explode = true;
-        name = name.substring(0, name.length - 1);
-      }
-      if (name.startsWith(".")) {
-        name = name.substring(1);
-        style = "label";
-      } else if (name.startsWith(";")) {
-        name = name.substring(1);
-        style = "matrix";
-      }
-      const value = path4[name];
-      if (value === undefined || value === null) {
-        continue;
-      }
-      if (Array.isArray(value)) {
-        url = url.replace(match, serializeArrayParam({ explode, name, style, value }));
-        continue;
-      }
-      if (typeof value === "object") {
-        url = url.replace(match, serializeObjectParam({
-          explode,
-          name,
-          style,
-          value,
-          valueOnly: true
-        }));
-        continue;
-      }
-      if (style === "matrix") {
-        url = url.replace(match, `;${serializePrimitiveParam({
-          name,
-          value
-        })}`);
-        continue;
-      }
-      const replaceValue = encodeURIComponent(style === "label" ? `.${value}` : value);
-      url = url.replace(match, replaceValue);
-    }
-  }
-  return url;
-}, getUrl = ({ baseUrl, path: path4, query, querySerializer, url: _url }) => {
-  const pathUrl = _url.startsWith("/") ? _url : `/${_url}`;
-  let url = (baseUrl ?? "") + pathUrl;
-  if (path4) {
-    url = defaultPathSerializer({ path: path4, url });
-  }
-  let search = query ? querySerializer(query) : "";
-  if (search.startsWith("?")) {
-    search = search.substring(1);
-  }
-  if (search) {
-    url += `?${search}`;
-  }
-  return url;
-};
-var init_utils_gen = __esm(() => {
-  PATH_PARAM_RE = /\{[^{}]+\}/g;
-});
-
-// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/client/utils.gen.js
-class Interceptors {
-  _fns;
-  constructor() {
-    this._fns = [];
-  }
-  clear() {
-    this._fns = [];
-  }
-  getInterceptorIndex(id) {
-    if (typeof id === "number") {
-      return this._fns[id] ? id : -1;
-    } else {
-      return this._fns.indexOf(id);
-    }
-  }
-  exists(id) {
-    const index = this.getInterceptorIndex(id);
-    return !!this._fns[index];
-  }
-  eject(id) {
-    const index = this.getInterceptorIndex(id);
-    if (this._fns[index]) {
-      this._fns[index] = null;
-    }
-  }
-  update(id, fn) {
-    const index = this.getInterceptorIndex(id);
-    if (this._fns[index]) {
-      this._fns[index] = fn;
-      return id;
-    } else {
-      return false;
-    }
-  }
-  use(fn) {
-    this._fns = [...this._fns, fn];
-    return this._fns.length - 1;
-  }
-}
-var createQuerySerializer = ({ allowReserved, array, object } = {}) => {
-  const querySerializer = (queryParams) => {
-    const search = [];
-    if (queryParams && typeof queryParams === "object") {
-      for (const name in queryParams) {
-        const value = queryParams[name];
-        if (value === undefined || value === null) {
-          continue;
-        }
-        if (Array.isArray(value)) {
-          const serializedArray = serializeArrayParam({
-            allowReserved,
-            explode: true,
-            name,
-            style: "form",
-            value,
-            ...array
-          });
-          if (serializedArray)
-            search.push(serializedArray);
-        } else if (typeof value === "object") {
-          const serializedObject = serializeObjectParam({
-            allowReserved,
-            explode: true,
-            name,
-            style: "deepObject",
-            value,
-            ...object
-          });
-          if (serializedObject)
-            search.push(serializedObject);
-        } else {
-          const serializedPrimitive = serializePrimitiveParam({
-            allowReserved,
-            name,
-            value
-          });
-          if (serializedPrimitive)
-            search.push(serializedPrimitive);
-        }
-      }
-    }
-    return search.join("&");
-  };
-  return querySerializer;
-}, getParseAs = (contentType) => {
-  if (!contentType) {
-    return "stream";
-  }
-  const cleanContent = contentType.split(";")[0]?.trim();
-  if (!cleanContent) {
-    return;
-  }
-  if (cleanContent.startsWith("application/json") || cleanContent.endsWith("+json")) {
-    return "json";
-  }
-  if (cleanContent === "multipart/form-data") {
-    return "formData";
-  }
-  if (["application/", "audio/", "image/", "video/"].some((type) => cleanContent.startsWith(type))) {
-    return "blob";
-  }
-  if (cleanContent.startsWith("text/")) {
-    return "text";
-  }
-  return;
-}, checkForExistence = (options, name) => {
-  if (!name) {
-    return false;
-  }
-  if (options.headers.has(name) || options.query?.[name] || options.headers.get("Cookie")?.includes(`${name}=`)) {
-    return true;
-  }
-  return false;
-}, setAuthParams = async ({ security, ...options }) => {
-  for (const auth of security) {
-    if (checkForExistence(options, auth.name)) {
-      continue;
-    }
-    const token = await getAuthToken(auth, options.auth);
-    if (!token) {
-      continue;
-    }
-    const name = auth.name ?? "Authorization";
-    switch (auth.in) {
-      case "query":
-        if (!options.query) {
-          options.query = {};
-        }
-        options.query[name] = token;
-        break;
-      case "cookie":
-        options.headers.append("Cookie", `${name}=${token}`);
-        break;
-      case "header":
-      default:
-        options.headers.set(name, token);
-        break;
-    }
-  }
-}, buildUrl = (options) => getUrl({
-  baseUrl: options.baseUrl,
-  path: options.path,
-  query: options.query,
-  querySerializer: typeof options.querySerializer === "function" ? options.querySerializer : createQuerySerializer(options.querySerializer),
-  url: options.url
-}), mergeConfigs = (a, b) => {
-  const config = { ...a, ...b };
-  if (config.baseUrl?.endsWith("/")) {
-    config.baseUrl = config.baseUrl.substring(0, config.baseUrl.length - 1);
-  }
-  config.headers = mergeHeaders(a.headers, b.headers);
-  return config;
-}, mergeHeaders = (...headers) => {
-  const mergedHeaders = new Headers;
-  for (const header of headers) {
-    if (!header || typeof header !== "object") {
-      continue;
-    }
-    const iterator = header instanceof Headers ? header.entries() : Object.entries(header);
-    for (const [key, value] of iterator) {
-      if (value === null) {
-        mergedHeaders.delete(key);
-      } else if (Array.isArray(value)) {
-        for (const v of value) {
-          mergedHeaders.append(key, v);
-        }
-      } else if (value !== undefined) {
-        mergedHeaders.set(key, typeof value === "object" ? JSON.stringify(value) : value);
-      }
-    }
-  }
-  return mergedHeaders;
-}, createInterceptors = () => ({
-  error: new Interceptors,
-  request: new Interceptors,
-  response: new Interceptors
-}), defaultQuerySerializer, defaultHeaders, createConfig = (override = {}) => ({
-  ...jsonBodySerializer,
-  headers: defaultHeaders,
-  parseAs: "auto",
-  querySerializer: defaultQuerySerializer,
-  ...override
-});
-var init_utils_gen2 = __esm(() => {
-  init_bodySerializer_gen();
-  init_utils_gen();
-  defaultQuerySerializer = createQuerySerializer({
-    allowReserved: false,
-    array: {
-      explode: true,
-      style: "form"
-    },
-    object: {
-      explode: true,
-      style: "deepObject"
-    }
-  });
-  defaultHeaders = {
-    "Content-Type": "application/json"
-  };
-});
-
-// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/client/client.gen.js
-var createClient = (config = {}) => {
-  let _config = mergeConfigs(createConfig(), config);
-  const getConfig = () => ({ ..._config });
-  const setConfig = (config2) => {
-    _config = mergeConfigs(_config, config2);
-    return getConfig();
-  };
-  const interceptors = createInterceptors();
-  const beforeRequest = async (options) => {
-    const opts = {
-      ..._config,
-      ...options,
-      fetch: options.fetch ?? _config.fetch ?? globalThis.fetch,
-      headers: mergeHeaders(_config.headers, options.headers),
-      serializedBody: undefined
-    };
-    if (opts.security) {
-      await setAuthParams({
-        ...opts,
-        security: opts.security
-      });
-    }
-    if (opts.requestValidator) {
-      await opts.requestValidator(opts);
-    }
-    if (opts.body && opts.bodySerializer) {
-      opts.serializedBody = opts.bodySerializer(opts.body);
-    }
-    if (opts.serializedBody === undefined || opts.serializedBody === "") {
-      opts.headers.delete("Content-Type");
-    }
-    const url = buildUrl(opts);
-    return { opts, url };
-  };
-  const request = async (options) => {
-    const { opts, url } = await beforeRequest(options);
-    const requestInit = {
-      redirect: "follow",
-      ...opts,
-      body: opts.serializedBody
-    };
-    let request2 = new Request(url, requestInit);
-    for (const fn of interceptors.request._fns) {
-      if (fn) {
-        request2 = await fn(request2, opts);
-      }
-    }
-    const _fetch = opts.fetch;
-    let response = await _fetch(request2);
-    for (const fn of interceptors.response._fns) {
-      if (fn) {
-        response = await fn(response, request2, opts);
-      }
-    }
-    const result = {
-      request: request2,
-      response
-    };
-    if (response.ok) {
-      if (response.status === 204 || response.headers.get("Content-Length") === "0") {
-        return opts.responseStyle === "data" ? {} : {
-          data: {},
-          ...result
-        };
-      }
-      const parseAs = (opts.parseAs === "auto" ? getParseAs(response.headers.get("Content-Type")) : opts.parseAs) ?? "json";
-      let data;
-      switch (parseAs) {
-        case "arrayBuffer":
-        case "blob":
-        case "formData":
-        case "json":
-        case "text":
-          data = await response[parseAs]();
-          break;
-        case "stream":
-          return opts.responseStyle === "data" ? response.body : {
-            data: response.body,
-            ...result
-          };
-      }
-      if (parseAs === "json") {
-        if (opts.responseValidator) {
-          await opts.responseValidator(data);
-        }
-        if (opts.responseTransformer) {
-          data = await opts.responseTransformer(data);
-        }
-      }
-      return opts.responseStyle === "data" ? data : {
-        data,
-        ...result
-      };
-    }
-    const textError = await response.text();
-    let jsonError;
-    try {
-      jsonError = JSON.parse(textError);
-    } catch {}
-    const error = jsonError ?? textError;
-    let finalError = error;
-    for (const fn of interceptors.error._fns) {
-      if (fn) {
-        finalError = await fn(error, response, request2, opts);
-      }
-    }
-    finalError = finalError || {};
-    if (opts.throwOnError) {
-      throw finalError;
-    }
-    return opts.responseStyle === "data" ? undefined : {
-      error: finalError,
-      ...result
-    };
-  };
-  const makeMethod = (method) => {
-    const fn = (options) => request({ ...options, method });
-    fn.sse = async (options) => {
-      const { opts, url } = await beforeRequest(options);
-      return createSseClient({
-        ...opts,
-        body: opts.body,
-        headers: opts.headers,
-        method,
-        url
-      });
-    };
-    return fn;
-  };
-  return {
-    buildUrl,
-    connect: makeMethod("CONNECT"),
-    delete: makeMethod("DELETE"),
-    get: makeMethod("GET"),
-    getConfig,
-    head: makeMethod("HEAD"),
-    interceptors,
-    options: makeMethod("OPTIONS"),
-    patch: makeMethod("PATCH"),
-    post: makeMethod("POST"),
-    put: makeMethod("PUT"),
-    request,
-    setConfig,
-    trace: makeMethod("TRACE")
-  };
-};
-var init_client_gen = __esm(() => {
-  init_utils_gen2();
-});
-
-// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/core/params.gen.js
-var extraPrefixesMap, extraPrefixes;
-var init_params_gen = __esm(() => {
-  extraPrefixesMap = {
-    $body_: "body",
-    $headers_: "headers",
-    $path_: "path",
-    $query_: "query"
-  };
-  extraPrefixes = Object.entries(extraPrefixesMap);
-});
-
-// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/client/index.js
-var init_client = __esm(() => {
-  init_bodySerializer_gen();
-  init_params_gen();
-  init_client_gen();
-  init_utils_gen2();
-});
-
-// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/client.gen.js
-var client;
-var init_client_gen2 = __esm(() => {
-  init_client();
-  client = createClient(createConfig({
-    baseUrl: "http://localhost:4096"
-  }));
-});
-
-// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/sdk.gen.js
-class _HeyApiClient {
-  _client = client;
-  constructor(args) {
-    if (args?.client) {
-      this._client = args.client;
-    }
-  }
-}
-var Global, Project, Pty, Config, Tool, Instance, Path, Vcs, Session, Command, Oauth, Provider, Find, File2, App, Auth, Mcp, Lsp, Formatter, Control, Tui, Event, OpencodeClient;
-var init_sdk_gen = __esm(() => {
-  init_client_gen2();
-  Global = class Global extends _HeyApiClient {
-    event(options) {
-      return (options?.client ?? this._client).get.sse({
-        url: "/global/event",
-        ...options
-      });
-    }
-  };
-  Project = class Project extends _HeyApiClient {
-    list(options) {
-      return (options?.client ?? this._client).get({
-        url: "/project",
-        ...options
-      });
-    }
-    current(options) {
-      return (options?.client ?? this._client).get({
-        url: "/project/current",
-        ...options
-      });
-    }
-  };
-  Pty = class Pty extends _HeyApiClient {
-    list(options) {
-      return (options?.client ?? this._client).get({
-        url: "/pty",
-        ...options
-      });
-    }
-    create(options) {
-      return (options?.client ?? this._client).post({
-        url: "/pty",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options?.headers
-        }
-      });
-    }
-    remove(options) {
-      return (options.client ?? this._client).delete({
-        url: "/pty/{id}",
-        ...options
-      });
-    }
-    get(options) {
-      return (options.client ?? this._client).get({
-        url: "/pty/{id}",
-        ...options
-      });
-    }
-    update(options) {
-      return (options.client ?? this._client).put({
-        url: "/pty/{id}",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers
-        }
-      });
-    }
-    connect(options) {
-      return (options.client ?? this._client).get({
-        url: "/pty/{id}/connect",
-        ...options
-      });
-    }
-  };
-  Config = class Config extends _HeyApiClient {
-    get(options) {
-      return (options?.client ?? this._client).get({
-        url: "/config",
-        ...options
-      });
-    }
-    update(options) {
-      return (options?.client ?? this._client).patch({
-        url: "/config",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options?.headers
-        }
-      });
-    }
-    providers(options) {
-      return (options?.client ?? this._client).get({
-        url: "/config/providers",
-        ...options
-      });
-    }
-  };
-  Tool = class Tool extends _HeyApiClient {
-    ids(options) {
-      return (options?.client ?? this._client).get({
-        url: "/experimental/tool/ids",
-        ...options
-      });
-    }
-    list(options) {
-      return (options.client ?? this._client).get({
-        url: "/experimental/tool",
-        ...options
-      });
-    }
-  };
-  Instance = class Instance extends _HeyApiClient {
-    dispose(options) {
-      return (options?.client ?? this._client).post({
-        url: "/instance/dispose",
-        ...options
-      });
-    }
-  };
-  Path = class Path extends _HeyApiClient {
-    get(options) {
-      return (options?.client ?? this._client).get({
-        url: "/path",
-        ...options
-      });
-    }
-  };
-  Vcs = class Vcs extends _HeyApiClient {
-    get(options) {
-      return (options?.client ?? this._client).get({
-        url: "/vcs",
-        ...options
-      });
-    }
-  };
-  Session = class Session extends _HeyApiClient {
-    list(options) {
-      return (options?.client ?? this._client).get({
-        url: "/session",
-        ...options
-      });
-    }
-    create(options) {
-      return (options?.client ?? this._client).post({
-        url: "/session",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options?.headers
-        }
-      });
-    }
-    status(options) {
-      return (options?.client ?? this._client).get({
-        url: "/session/status",
-        ...options
-      });
-    }
-    delete(options) {
-      return (options.client ?? this._client).delete({
-        url: "/session/{id}",
-        ...options
-      });
-    }
-    get(options) {
-      return (options.client ?? this._client).get({
-        url: "/session/{id}",
-        ...options
-      });
-    }
-    update(options) {
-      return (options.client ?? this._client).patch({
-        url: "/session/{id}",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers
-        }
-      });
-    }
-    children(options) {
-      return (options.client ?? this._client).get({
-        url: "/session/{id}/children",
-        ...options
-      });
-    }
-    todo(options) {
-      return (options.client ?? this._client).get({
-        url: "/session/{id}/todo",
-        ...options
-      });
-    }
-    init(options) {
-      return (options.client ?? this._client).post({
-        url: "/session/{id}/init",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers
-        }
-      });
-    }
-    fork(options) {
-      return (options.client ?? this._client).post({
-        url: "/session/{id}/fork",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers
-        }
-      });
-    }
-    abort(options) {
-      return (options.client ?? this._client).post({
-        url: "/session/{id}/abort",
-        ...options
-      });
-    }
-    unshare(options) {
-      return (options.client ?? this._client).delete({
-        url: "/session/{id}/share",
-        ...options
-      });
-    }
-    share(options) {
-      return (options.client ?? this._client).post({
-        url: "/session/{id}/share",
-        ...options
-      });
-    }
-    diff(options) {
-      return (options.client ?? this._client).get({
-        url: "/session/{id}/diff",
-        ...options
-      });
-    }
-    summarize(options) {
-      return (options.client ?? this._client).post({
-        url: "/session/{id}/summarize",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers
-        }
-      });
-    }
-    messages(options) {
-      return (options.client ?? this._client).get({
-        url: "/session/{id}/message",
-        ...options
-      });
-    }
-    prompt(options) {
-      return (options.client ?? this._client).post({
-        url: "/session/{id}/message",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers
-        }
-      });
-    }
-    message(options) {
-      return (options.client ?? this._client).get({
-        url: "/session/{id}/message/{messageID}",
-        ...options
-      });
-    }
-    promptAsync(options) {
-      return (options.client ?? this._client).post({
-        url: "/session/{id}/prompt_async",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers
-        }
-      });
-    }
-    command(options) {
-      return (options.client ?? this._client).post({
-        url: "/session/{id}/command",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers
-        }
-      });
-    }
-    shell(options) {
-      return (options.client ?? this._client).post({
-        url: "/session/{id}/shell",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers
-        }
-      });
-    }
-    revert(options) {
-      return (options.client ?? this._client).post({
-        url: "/session/{id}/revert",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers
-        }
-      });
-    }
-    unrevert(options) {
-      return (options.client ?? this._client).post({
-        url: "/session/{id}/unrevert",
-        ...options
-      });
-    }
-  };
-  Command = class Command extends _HeyApiClient {
-    list(options) {
-      return (options?.client ?? this._client).get({
-        url: "/command",
-        ...options
-      });
-    }
-  };
-  Oauth = class Oauth extends _HeyApiClient {
-    authorize(options) {
-      return (options.client ?? this._client).post({
-        url: "/provider/{id}/oauth/authorize",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers
-        }
-      });
-    }
-    callback(options) {
-      return (options.client ?? this._client).post({
-        url: "/provider/{id}/oauth/callback",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers
-        }
-      });
-    }
-  };
-  Provider = class Provider extends _HeyApiClient {
-    list(options) {
-      return (options?.client ?? this._client).get({
-        url: "/provider",
-        ...options
-      });
-    }
-    auth(options) {
-      return (options?.client ?? this._client).get({
-        url: "/provider/auth",
-        ...options
-      });
-    }
-    oauth = new Oauth({ client: this._client });
-  };
-  Find = class Find extends _HeyApiClient {
-    text(options) {
-      return (options.client ?? this._client).get({
-        url: "/find",
-        ...options
-      });
-    }
-    files(options) {
-      return (options.client ?? this._client).get({
-        url: "/find/file",
-        ...options
-      });
-    }
-    symbols(options) {
-      return (options.client ?? this._client).get({
-        url: "/find/symbol",
-        ...options
-      });
-    }
-  };
-  File2 = class File2 extends _HeyApiClient {
-    list(options) {
-      return (options.client ?? this._client).get({
-        url: "/file",
-        ...options
-      });
-    }
-    read(options) {
-      return (options.client ?? this._client).get({
-        url: "/file/content",
-        ...options
-      });
-    }
-    status(options) {
-      return (options?.client ?? this._client).get({
-        url: "/file/status",
-        ...options
-      });
-    }
-  };
-  App = class App extends _HeyApiClient {
-    log(options) {
-      return (options?.client ?? this._client).post({
-        url: "/log",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options?.headers
-        }
-      });
-    }
-    agents(options) {
-      return (options?.client ?? this._client).get({
-        url: "/agent",
-        ...options
-      });
-    }
-  };
-  Auth = class Auth extends _HeyApiClient {
-    remove(options) {
-      return (options.client ?? this._client).delete({
-        url: "/mcp/{name}/auth",
-        ...options
-      });
-    }
-    start(options) {
-      return (options.client ?? this._client).post({
-        url: "/mcp/{name}/auth",
-        ...options
-      });
-    }
-    callback(options) {
-      return (options.client ?? this._client).post({
-        url: "/mcp/{name}/auth/callback",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers
-        }
-      });
-    }
-    authenticate(options) {
-      return (options.client ?? this._client).post({
-        url: "/mcp/{name}/auth/authenticate",
-        ...options
-      });
-    }
-    set(options) {
-      return (options.client ?? this._client).put({
-        url: "/auth/{id}",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers
-        }
-      });
-    }
-  };
-  Mcp = class Mcp extends _HeyApiClient {
-    status(options) {
-      return (options?.client ?? this._client).get({
-        url: "/mcp",
-        ...options
-      });
-    }
-    add(options) {
-      return (options?.client ?? this._client).post({
-        url: "/mcp",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options?.headers
-        }
-      });
-    }
-    connect(options) {
-      return (options.client ?? this._client).post({
-        url: "/mcp/{name}/connect",
-        ...options
-      });
-    }
-    disconnect(options) {
-      return (options.client ?? this._client).post({
-        url: "/mcp/{name}/disconnect",
-        ...options
-      });
-    }
-    auth = new Auth({ client: this._client });
-  };
-  Lsp = class Lsp extends _HeyApiClient {
-    status(options) {
-      return (options?.client ?? this._client).get({
-        url: "/lsp",
-        ...options
-      });
-    }
-  };
-  Formatter = class Formatter extends _HeyApiClient {
-    status(options) {
-      return (options?.client ?? this._client).get({
-        url: "/formatter",
-        ...options
-      });
-    }
-  };
-  Control = class Control extends _HeyApiClient {
-    next(options) {
-      return (options?.client ?? this._client).get({
-        url: "/tui/control/next",
-        ...options
-      });
-    }
-    response(options) {
-      return (options?.client ?? this._client).post({
-        url: "/tui/control/response",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options?.headers
-        }
-      });
-    }
-  };
-  Tui = class Tui extends _HeyApiClient {
-    appendPrompt(options) {
-      return (options?.client ?? this._client).post({
-        url: "/tui/append-prompt",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options?.headers
-        }
-      });
-    }
-    openHelp(options) {
-      return (options?.client ?? this._client).post({
-        url: "/tui/open-help",
-        ...options
-      });
-    }
-    openSessions(options) {
-      return (options?.client ?? this._client).post({
-        url: "/tui/open-sessions",
-        ...options
-      });
-    }
-    openThemes(options) {
-      return (options?.client ?? this._client).post({
-        url: "/tui/open-themes",
-        ...options
-      });
-    }
-    openModels(options) {
-      return (options?.client ?? this._client).post({
-        url: "/tui/open-models",
-        ...options
-      });
-    }
-    submitPrompt(options) {
-      return (options?.client ?? this._client).post({
-        url: "/tui/submit-prompt",
-        ...options
-      });
-    }
-    clearPrompt(options) {
-      return (options?.client ?? this._client).post({
-        url: "/tui/clear-prompt",
-        ...options
-      });
-    }
-    executeCommand(options) {
-      return (options?.client ?? this._client).post({
-        url: "/tui/execute-command",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options?.headers
-        }
-      });
-    }
-    showToast(options) {
-      return (options?.client ?? this._client).post({
-        url: "/tui/show-toast",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options?.headers
-        }
-      });
-    }
-    publish(options) {
-      return (options?.client ?? this._client).post({
-        url: "/tui/publish",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options?.headers
-        }
-      });
-    }
-    control = new Control({ client: this._client });
-  };
-  Event = class Event extends _HeyApiClient {
-    subscribe(options) {
-      return (options?.client ?? this._client).get.sse({
-        url: "/event",
-        ...options
-      });
-    }
-  };
-  OpencodeClient = class OpencodeClient extends _HeyApiClient {
-    postSessionIdPermissionsPermissionId(options) {
-      return (options.client ?? this._client).post({
-        url: "/session/{id}/permissions/{permissionID}",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers
-        }
-      });
-    }
-    global = new Global({ client: this._client });
-    project = new Project({ client: this._client });
-    pty = new Pty({ client: this._client });
-    config = new Config({ client: this._client });
-    tool = new Tool({ client: this._client });
-    instance = new Instance({ client: this._client });
-    path = new Path({ client: this._client });
-    vcs = new Vcs({ client: this._client });
-    session = new Session({ client: this._client });
-    command = new Command({ client: this._client });
-    provider = new Provider({ client: this._client });
-    find = new Find({ client: this._client });
-    file = new File2({ client: this._client });
-    app = new App({ client: this._client });
-    mcp = new Mcp({ client: this._client });
-    lsp = new Lsp({ client: this._client });
-    formatter = new Formatter({ client: this._client });
-    tui = new Tui({ client: this._client });
-    auth = new Auth({ client: this._client });
-    event = new Event({ client: this._client });
-  };
-});
-
-// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/error-interceptor.js
-function wrapClientError(error, response, request, opts) {
-  if (!opts?.throwOnError)
-    return error;
-  if (error instanceof Error)
-    return error;
-  if (typeof error === "object" && error !== null && Object.keys(error).length > 0) {
-    const obj = error;
-    const message = typeof obj.data?.message === "string" && obj.data.message || typeof obj.message === "string" && obj.message || typeof obj.name === "string" && obj.name || describe(request, response);
-    return new Error(message, { cause: { body: error, status: response?.status } });
-  }
-  if (typeof error === "string" && error.length > 0) {
-    return new Error(error, { cause: { body: error, status: response?.status } });
-  }
-  const reason = response ? "(empty response body)" : "network error (no response)";
-  return new Error(`opencode server ${describe(request, response)}: ${reason}`, {
-    cause: { body: error, status: response?.status }
-  });
-}
-function describe(request, response) {
-  const method = request?.method ?? "?";
-  const url = request?.url ?? "?";
-  const status = response?.status;
-  const statusText = response?.statusText;
-  return `${method} ${url}${status ? " \u2192 " + status : ""}${statusText ? " " + statusText : ""}`;
-}
-
-// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/client.js
-function pick(value, fallback) {
-  if (!value)
-    return;
-  if (!fallback)
-    return value;
-  if (value === fallback)
-    return fallback;
-  if (value === encodeURIComponent(fallback))
-    return fallback;
-  return value;
-}
-function rewrite(request, directory) {
-  if (request.method !== "GET" && request.method !== "HEAD")
-    return request;
-  const value = pick(request.headers.get("x-opencode-directory"), directory);
-  if (!value)
-    return request;
-  const url = new URL(request.url);
-  if (!url.searchParams.has("directory")) {
-    url.searchParams.set("directory", value);
-  }
-  const next = new Request(url, request);
-  next.headers.delete("x-opencode-directory");
-  return next;
-}
-function createOpencodeClient(config) {
-  if (!config?.fetch) {
-    const customFetch = (req) => {
-      req.timeout = false;
-      return fetch(req);
-    };
-    config = {
-      ...config,
-      fetch: customFetch
-    };
-  }
-  if (config?.directory) {
-    config.headers = {
-      ...config.headers,
-      "x-opencode-directory": encodeURIComponent(config.directory)
-    };
-  }
-  const client2 = createClient(config);
-  client2.interceptors.request.use((request) => rewrite(request, config?.directory));
-  client2.interceptors.error.use(wrapClientError);
-  return new OpencodeClient({ client: client2 });
-}
-var init_client2 = __esm(() => {
-  init_client_gen();
-  init_sdk_gen();
-  init_types_gen();
-});
-
-// node_modules/.bun/isexe@2.0.0/node_modules/isexe/windows.js
-var require_windows = __commonJS((exports, module) => {
-  module.exports = isexe;
-  isexe.sync = sync;
-  var fs2 = __require("fs");
-  function checkPathExt(path4, options) {
-    var pathext = options.pathExt !== undefined ? options.pathExt : process.env.PATHEXT;
-    if (!pathext) {
-      return true;
-    }
-    pathext = pathext.split(";");
-    if (pathext.indexOf("") !== -1) {
-      return true;
-    }
-    for (var i = 0;i < pathext.length; i++) {
-      var p = pathext[i].toLowerCase();
-      if (p && path4.substr(-p.length).toLowerCase() === p) {
-        return true;
-      }
-    }
-    return false;
-  }
-  function checkStat(stat, path4, options) {
-    if (!stat.isSymbolicLink() && !stat.isFile()) {
-      return false;
-    }
-    return checkPathExt(path4, options);
-  }
-  function isexe(path4, options, cb) {
-    fs2.stat(path4, function(er, stat) {
-      cb(er, er ? false : checkStat(stat, path4, options));
-    });
-  }
-  function sync(path4, options) {
-    return checkStat(fs2.statSync(path4), path4, options);
-  }
-});
-
-// node_modules/.bun/isexe@2.0.0/node_modules/isexe/mode.js
-var require_mode = __commonJS((exports, module) => {
-  module.exports = isexe;
-  isexe.sync = sync;
-  var fs2 = __require("fs");
-  function isexe(path4, options, cb) {
-    fs2.stat(path4, function(er, stat) {
-      cb(er, er ? false : checkStat(stat, options));
-    });
-  }
-  function sync(path4, options) {
-    return checkStat(fs2.statSync(path4), options);
-  }
-  function checkStat(stat, options) {
-    return stat.isFile() && checkMode(stat, options);
-  }
-  function checkMode(stat, options) {
-    var mod = stat.mode;
-    var uid = stat.uid;
-    var gid = stat.gid;
-    var myUid = options.uid !== undefined ? options.uid : process.getuid && process.getuid();
-    var myGid = options.gid !== undefined ? options.gid : process.getgid && process.getgid();
-    var u = parseInt("100", 8);
-    var g = parseInt("010", 8);
-    var o = parseInt("001", 8);
-    var ug = u | g;
-    var ret = mod & o || mod & g && gid === myGid || mod & u && uid === myUid || mod & ug && myUid === 0;
-    return ret;
-  }
-});
-
-// node_modules/.bun/isexe@2.0.0/node_modules/isexe/index.js
-var require_isexe = __commonJS((exports, module) => {
-  var fs2 = __require("fs");
-  var core;
-  if (process.platform === "win32" || global.TESTING_WINDOWS) {
-    core = require_windows();
-  } else {
-    core = require_mode();
-  }
-  module.exports = isexe;
-  isexe.sync = sync;
-  function isexe(path4, options, cb) {
-    if (typeof options === "function") {
-      cb = options;
-      options = {};
-    }
-    if (!cb) {
-      if (typeof Promise !== "function") {
-        throw new TypeError("callback not provided");
-      }
-      return new Promise(function(resolve3, reject) {
-        isexe(path4, options || {}, function(er, is) {
-          if (er) {
-            reject(er);
-          } else {
-            resolve3(is);
-          }
-        });
-      });
-    }
-    core(path4, options || {}, function(er, is) {
-      if (er) {
-        if (er.code === "EACCES" || options && options.ignoreErrors) {
-          er = null;
-          is = false;
-        }
-      }
-      cb(er, is);
-    });
-  }
-  function sync(path4, options) {
-    try {
-      return core.sync(path4, options || {});
-    } catch (er) {
-      if (options && options.ignoreErrors || er.code === "EACCES") {
-        return false;
-      } else {
-        throw er;
-      }
-    }
-  }
-});
-
-// node_modules/.bun/which@2.0.2/node_modules/which/which.js
-var require_which = __commonJS((exports, module) => {
-  var isWindows = process.platform === "win32" || process.env.OSTYPE === "cygwin" || process.env.OSTYPE === "msys";
-  var path4 = __require("path");
-  var COLON = isWindows ? ";" : ":";
-  var isexe = require_isexe();
-  var getNotFoundError = (cmd) => Object.assign(new Error(`not found: ${cmd}`), { code: "ENOENT" });
-  var getPathInfo = (cmd, opt) => {
-    const colon = opt.colon || COLON;
-    const pathEnv = cmd.match(/\//) || isWindows && cmd.match(/\\/) ? [""] : [
-      ...isWindows ? [process.cwd()] : [],
-      ...(opt.path || process.env.PATH || "").split(colon)
-    ];
-    const pathExtExe = isWindows ? opt.pathExt || process.env.PATHEXT || ".EXE;.CMD;.BAT;.COM" : "";
-    const pathExt = isWindows ? pathExtExe.split(colon) : [""];
-    if (isWindows) {
-      if (cmd.indexOf(".") !== -1 && pathExt[0] !== "")
-        pathExt.unshift("");
-    }
-    return {
-      pathEnv,
-      pathExt,
-      pathExtExe
-    };
-  };
-  var which2 = (cmd, opt, cb) => {
-    if (typeof opt === "function") {
-      cb = opt;
-      opt = {};
-    }
-    if (!opt)
-      opt = {};
-    const { pathEnv, pathExt, pathExtExe } = getPathInfo(cmd, opt);
-    const found = [];
-    const step = (i) => new Promise((resolve3, reject) => {
-      if (i === pathEnv.length)
-        return opt.all && found.length ? resolve3(found) : reject(getNotFoundError(cmd));
-      const ppRaw = pathEnv[i];
-      const pathPart = /^".*"$/.test(ppRaw) ? ppRaw.slice(1, -1) : ppRaw;
-      const pCmd = path4.join(pathPart, cmd);
-      const p = !pathPart && /^\.[\\\/]/.test(cmd) ? cmd.slice(0, 2) + pCmd : pCmd;
-      resolve3(subStep(p, i, 0));
-    });
-    const subStep = (p, i, ii) => new Promise((resolve3, reject) => {
-      if (ii === pathExt.length)
-        return resolve3(step(i + 1));
-      const ext = pathExt[ii];
-      isexe(p + ext, { pathExt: pathExtExe }, (er, is) => {
-        if (!er && is) {
-          if (opt.all)
-            found.push(p + ext);
-          else
-            return resolve3(p + ext);
-        }
-        return resolve3(subStep(p, i, ii + 1));
-      });
-    });
-    return cb ? step(0).then((res) => cb(null, res), cb) : step(0);
-  };
-  var whichSync = (cmd, opt) => {
-    opt = opt || {};
-    const { pathEnv, pathExt, pathExtExe } = getPathInfo(cmd, opt);
-    const found = [];
-    for (let i = 0;i < pathEnv.length; i++) {
-      const ppRaw = pathEnv[i];
-      const pathPart = /^".*"$/.test(ppRaw) ? ppRaw.slice(1, -1) : ppRaw;
-      const pCmd = path4.join(pathPart, cmd);
-      const p = !pathPart && /^\.[\\\/]/.test(cmd) ? cmd.slice(0, 2) + pCmd : pCmd;
-      for (let j = 0;j < pathExt.length; j++) {
-        const cur = p + pathExt[j];
-        try {
-          const is = isexe.sync(cur, { pathExt: pathExtExe });
-          if (is) {
-            if (opt.all)
-              found.push(cur);
-            else
-              return cur;
-          }
-        } catch (ex) {}
-      }
-    }
-    if (opt.all && found.length)
-      return found;
-    if (opt.nothrow)
-      return null;
-    throw getNotFoundError(cmd);
-  };
-  module.exports = which2;
-  which2.sync = whichSync;
-});
-
-// node_modules/.bun/path-key@3.1.1/node_modules/path-key/index.js
-var require_path_key = __commonJS((exports, module) => {
-  var pathKey = (options = {}) => {
-    const environment2 = options.env || process.env;
-    const platform = options.platform || process.platform;
-    if (platform !== "win32") {
-      return "PATH";
-    }
-    return Object.keys(environment2).reverse().find((key) => key.toUpperCase() === "PATH") || "Path";
-  };
-  module.exports = pathKey;
-  module.exports.default = pathKey;
-});
-
-// node_modules/.bun/cross-spawn@7.0.6/node_modules/cross-spawn/lib/util/resolveCommand.js
-var require_resolveCommand = __commonJS((exports, module) => {
-  var path4 = __require("path");
-  var which2 = require_which();
-  var getPathKey = require_path_key();
-  function resolveCommandAttempt(parsed, withoutPathExt) {
-    const env = parsed.options.env || process.env;
-    const cwd = process.cwd();
-    const hasCustomCwd = parsed.options.cwd != null;
-    const shouldSwitchCwd = hasCustomCwd && process.chdir !== undefined && !process.chdir.disabled;
-    if (shouldSwitchCwd) {
-      try {
-        process.chdir(parsed.options.cwd);
-      } catch (err) {}
-    }
-    let resolved;
-    try {
-      resolved = which2.sync(parsed.command, {
-        path: env[getPathKey({ env })],
-        pathExt: withoutPathExt ? path4.delimiter : undefined
-      });
-    } catch (e) {} finally {
-      if (shouldSwitchCwd) {
-        process.chdir(cwd);
-      }
-    }
-    if (resolved) {
-      resolved = path4.resolve(hasCustomCwd ? parsed.options.cwd : "", resolved);
-    }
-    return resolved;
-  }
-  function resolveCommand(parsed) {
-    return resolveCommandAttempt(parsed) || resolveCommandAttempt(parsed, true);
-  }
-  module.exports = resolveCommand;
-});
-
-// node_modules/.bun/cross-spawn@7.0.6/node_modules/cross-spawn/lib/util/escape.js
-var require_escape = __commonJS((exports, module) => {
-  var metaCharsRegExp = /([()\][%!^"`<>&|;, *?])/g;
-  function escapeCommand(arg) {
-    arg = arg.replace(metaCharsRegExp, "^$1");
-    return arg;
-  }
-  function escapeArgument(arg, doubleEscapeMetaChars) {
-    arg = `${arg}`;
-    arg = arg.replace(/(?=(\\+?)?)\1"/g, "$1$1\\\"");
-    arg = arg.replace(/(?=(\\+?)?)\1$/, "$1$1");
-    arg = `"${arg}"`;
-    arg = arg.replace(metaCharsRegExp, "^$1");
-    if (doubleEscapeMetaChars) {
-      arg = arg.replace(metaCharsRegExp, "^$1");
-    }
-    return arg;
-  }
-  exports.command = escapeCommand;
-  exports.argument = escapeArgument;
-});
-
-// node_modules/.bun/shebang-regex@3.0.0/node_modules/shebang-regex/index.js
-var require_shebang_regex = __commonJS((exports, module) => {
-  module.exports = /^#!(.*)/;
-});
-
-// node_modules/.bun/shebang-command@2.0.0/node_modules/shebang-command/index.js
-var require_shebang_command = __commonJS((exports, module) => {
-  var shebangRegex = require_shebang_regex();
-  module.exports = (string = "") => {
-    const match = string.match(shebangRegex);
-    if (!match) {
-      return null;
-    }
-    const [path4, argument] = match[0].replace(/#! ?/, "").split(" ");
-    const binary = path4.split("/").pop();
-    if (binary === "env") {
-      return argument;
-    }
-    return argument ? `${binary} ${argument}` : binary;
-  };
-});
-
-// node_modules/.bun/cross-spawn@7.0.6/node_modules/cross-spawn/lib/util/readShebang.js
-var require_readShebang = __commonJS((exports, module) => {
-  var fs2 = __require("fs");
-  var shebangCommand = require_shebang_command();
-  function readShebang(command) {
-    const size = 150;
-    const buffer = Buffer.alloc(size);
-    let fd;
-    try {
-      fd = fs2.openSync(command, "r");
-      fs2.readSync(fd, buffer, 0, size, 0);
-      fs2.closeSync(fd);
-    } catch (e) {}
-    return shebangCommand(buffer.toString());
-  }
-  module.exports = readShebang;
-});
-
-// node_modules/.bun/cross-spawn@7.0.6/node_modules/cross-spawn/lib/parse.js
-var require_parse = __commonJS((exports, module) => {
-  var path4 = __require("path");
-  var resolveCommand = require_resolveCommand();
-  var escape = require_escape();
-  var readShebang = require_readShebang();
-  var isWin = process.platform === "win32";
-  var isExecutableRegExp = /\.(?:com|exe)$/i;
-  var isCmdShimRegExp = /node_modules[\\/].bin[\\/][^\\/]+\.cmd$/i;
-  function detectShebang(parsed) {
-    parsed.file = resolveCommand(parsed);
-    const shebang = parsed.file && readShebang(parsed.file);
-    if (shebang) {
-      parsed.args.unshift(parsed.file);
-      parsed.command = shebang;
-      return resolveCommand(parsed);
-    }
-    return parsed.file;
-  }
-  function parseNonShell(parsed) {
-    if (!isWin) {
-      return parsed;
-    }
-    const commandFile = detectShebang(parsed);
-    const needsShell = !isExecutableRegExp.test(commandFile);
-    if (parsed.options.forceShell || needsShell) {
-      const needsDoubleEscapeMetaChars = isCmdShimRegExp.test(commandFile);
-      parsed.command = path4.normalize(parsed.command);
-      parsed.command = escape.command(parsed.command);
-      parsed.args = parsed.args.map((arg) => escape.argument(arg, needsDoubleEscapeMetaChars));
-      const shellCommand = [parsed.command].concat(parsed.args).join(" ");
-      parsed.args = ["/d", "/s", "/c", `"${shellCommand}"`];
-      parsed.command = process.env.comspec || "cmd.exe";
-      parsed.options.windowsVerbatimArguments = true;
-    }
-    return parsed;
-  }
-  function parse3(command, args, options) {
-    if (args && !Array.isArray(args)) {
-      options = args;
-      args = null;
-    }
-    args = args ? args.slice(0) : [];
-    options = Object.assign({}, options);
-    const parsed = {
-      command,
-      args,
-      options,
-      file: undefined,
-      original: {
-        command,
-        args
-      }
-    };
-    return options.shell ? parsed : parseNonShell(parsed);
-  }
-  module.exports = parse3;
-});
-
-// node_modules/.bun/cross-spawn@7.0.6/node_modules/cross-spawn/lib/enoent.js
-var require_enoent = __commonJS((exports, module) => {
-  var isWin = process.platform === "win32";
-  function notFoundError(original, syscall) {
-    return Object.assign(new Error(`${syscall} ${original.command} ENOENT`), {
-      code: "ENOENT",
-      errno: "ENOENT",
-      syscall: `${syscall} ${original.command}`,
-      path: original.command,
-      spawnargs: original.args
-    });
-  }
-  function hookChildProcess(cp, parsed) {
-    if (!isWin) {
-      return;
-    }
-    const originalEmit = cp.emit;
-    cp.emit = function(name, arg1) {
-      if (name === "exit") {
-        const err = verifyENOENT(arg1, parsed);
-        if (err) {
-          return originalEmit.call(cp, "error", err);
-        }
-      }
-      return originalEmit.apply(cp, arguments);
-    };
-  }
-  function verifyENOENT(status, parsed) {
-    if (isWin && status === 1 && !parsed.file) {
-      return notFoundError(parsed.original, "spawn");
-    }
-    return null;
-  }
-  function verifyENOENTSync(status, parsed) {
-    if (isWin && status === 1 && !parsed.file) {
-      return notFoundError(parsed.original, "spawnSync");
-    }
-    return null;
-  }
-  module.exports = {
-    hookChildProcess,
-    verifyENOENT,
-    verifyENOENTSync,
-    notFoundError
-  };
-});
-
-// node_modules/.bun/cross-spawn@7.0.6/node_modules/cross-spawn/index.js
-var require_cross_spawn = __commonJS((exports, module) => {
-  var cp = __require("child_process");
-  var parse3 = require_parse();
-  var enoent = require_enoent();
-  function spawn3(command, args, options) {
-    const parsed = parse3(command, args, options);
-    const spawned = cp.spawn(parsed.command, parsed.args, parsed.options);
-    enoent.hookChildProcess(spawned, parsed);
-    return spawned;
-  }
-  function spawnSync2(command, args, options) {
-    const parsed = parse3(command, args, options);
-    const result = cp.spawnSync(parsed.command, parsed.args, parsed.options);
-    result.error = result.error || enoent.verifyENOENTSync(result.status, parsed);
-    return result;
-  }
-  module.exports = spawn3;
-  module.exports.spawn = spawn3;
-  module.exports.sync = spawnSync2;
-  module.exports._parse = parse3;
-  module.exports._enoent = enoent;
-});
-
-// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/process.js
-var init_process = () => {};
-
-// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/server.js
-var import_cross_spawn;
-var init_server = __esm(() => {
-  init_process();
-  import_cross_spawn = __toESM(require_cross_spawn(), 1);
-});
-
-// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/index.js
-var init_dist = __esm(() => {
-  init_client2();
-  init_server();
-  init_client2();
-  init_server();
-});
-
-// packages/omo-opencode/src/features/claude-code-session-state/state.ts
-var subagentSessions, syncSubagentSessions, handedBackSyncSessions, registeredAgentNames, registeredAgentAliases, sessionAgentMap;
-var init_state = __esm(() => {
-  init_agent_display_names();
-  subagentSessions = new Set;
-  syncSubagentSessions = new Set;
-  handedBackSyncSessions = new Set;
-  registeredAgentNames = new Set;
-  registeredAgentAliases = new Map;
-  sessionAgentMap = new Map;
-});
-
-// packages/omo-opencode/src/shared/opencode-server-auth.ts
-function getServerBasicAuthHeader() {
-  const password = process.env.OPENCODE_SERVER_PASSWORD;
-  if (!password) {
-    return;
-  }
-  const username = process.env.OPENCODE_SERVER_USERNAME ?? "opencode";
-  const token = Buffer.from(`${username}:${password}`, "utf8").toString("base64");
-  return `Basic ${token}`;
-}
-function isRequestFetch(value) {
-  return typeof value === "function";
-}
-function wrapRequestFetch(baseFetch, auth) {
-  return async (request) => {
-    const headers = new Headers(request.headers);
-    headers.set("Authorization", auth);
-    return baseFetch(new Request(request, { headers }));
-  };
-}
-function getInternalClient(client3) {
-  if (!isRecord(client3)) {
-    return null;
-  }
-  const internal = client3["_client"];
-  return isRecord(internal) ? internal : null;
-}
-function tryInjectViaSetConfigHeaders(internal, auth) {
-  const setConfig = internal["setConfig"];
-  if (typeof setConfig !== "function") {
-    return false;
-  }
-  setConfig({
-    headers: {
-      Authorization: auth
-    }
-  });
-  return true;
-}
-function tryInjectViaInterceptors(internal, auth) {
-  const interceptors = internal["interceptors"];
-  if (!isRecord(interceptors)) {
-    return false;
-  }
-  const requestInterceptors = interceptors["request"];
-  if (!isRecord(requestInterceptors)) {
-    return false;
-  }
-  const use = requestInterceptors["use"];
-  if (typeof use !== "function") {
-    return false;
-  }
-  use.call(requestInterceptors, (request) => {
-    if (!request.headers.get("Authorization")) {
-      request.headers.set("Authorization", auth);
-    }
-    return request;
-  });
-  return true;
-}
-function tryInjectViaFetchWrapper(internal, auth) {
-  const getConfig = internal["getConfig"];
-  const setConfig = internal["setConfig"];
-  if (typeof getConfig !== "function" || typeof setConfig !== "function") {
-    return false;
-  }
-  const config = getConfig();
-  if (!isRecord(config)) {
-    return false;
-  }
-  const fetchValue = config["fetch"];
-  if (!isRequestFetch(fetchValue)) {
-    return false;
-  }
-  setConfig({
-    fetch: wrapRequestFetch(fetchValue, auth)
-  });
-  return true;
-}
-function tryInjectViaMutableInternalConfig(internal, auth) {
-  const configValue = internal["_config"];
-  if (!isRecord(configValue)) {
-    return false;
-  }
-  const fetchValue = configValue["fetch"];
-  if (!isRequestFetch(fetchValue)) {
-    return false;
-  }
-  configValue["fetch"] = wrapRequestFetch(fetchValue, auth);
-  return true;
-}
-function tryInjectViaTopLevelFetch(client3, auth) {
-  if (!isRecord(client3)) {
-    return false;
-  }
-  const fetchValue = client3["fetch"];
-  if (!isRequestFetch(fetchValue)) {
-    return false;
-  }
-  client3["fetch"] = wrapRequestFetch(fetchValue, auth);
-  return true;
-}
-function injectServerAuthIntoClient(client3) {
-  const auth = getServerBasicAuthHeader();
-  if (!auth) {
-    return;
-  }
-  try {
-    const internal = getInternalClient(client3);
-    if (internal) {
-      const injectedHeaders = tryInjectViaSetConfigHeaders(internal, auth);
-      const injectedInterceptors = tryInjectViaInterceptors(internal, auth);
-      const injectedFetch = tryInjectViaFetchWrapper(internal, auth);
-      const injectedMutable = tryInjectViaMutableInternalConfig(internal, auth);
-      const injected2 = injectedHeaders || injectedInterceptors || injectedFetch || injectedMutable;
-      if (!injected2) {
-        log2("[opencode-server-auth] OPENCODE_SERVER_PASSWORD is set but SDK client structure is incompatible", {
-          keys: Object.keys(internal)
-        });
-      }
-      return;
-    }
-    const injected = tryInjectViaTopLevelFetch(client3, auth);
-    if (!injected) {
-      log2("[opencode-server-auth] OPENCODE_SERVER_PASSWORD is set but no compatible SDK client found");
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    log2("[opencode-server-auth] Failed to inject server auth", { message });
-  }
-}
-var init_opencode_server_auth = __esm(() => {
-  init_src();
-  init_logger2();
-});
-
-// packages/omo-opencode/src/shared/live-server-route.ts
-function getFetch() {
-  return fetchImplementationForTesting ?? fetch;
-}
-async function probe(registration) {
-  if (!registration.serverUrl) {
-    registration.available = false;
-    return false;
-  }
-  const probeUrl = new URL("/global/health", registration.serverUrl);
-  const authHeader = getServerBasicAuthHeader();
-  const headers = authHeader ? { Authorization: authHeader } : {};
-  try {
-    const controller = new AbortController;
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("probe timeout")), PROBE_ABORT_MS));
-    const timeoutId = setTimeout(() => controller.abort(), PROBE_ABORT_MS);
-    let response;
-    try {
-      response = await Promise.race([
-        getFetch()(probeUrl, { headers, signal: controller.signal }),
-        timeoutPromise
-      ]);
-    } finally {
-      clearTimeout(timeoutId);
-    }
-    if (response.status === 401 || response.status === 403) {
-      if (!registration.warnedOnce) {
-        registration.warnedOnce = true;
-        log2("[live-server-route] listener requires auth we cannot satisfy; live wake routing disabled");
-      }
-      registration.available = false;
-      registration.probeTimestamp = Date.now();
-      return false;
-    }
-    registration.available = response.ok;
-    registration.probeTimestamp = Date.now();
-    return registration.available;
-  } catch {
-    registration.available = false;
-    registration.probeTimestamp = Date.now();
-    return false;
-  }
-}
-async function probeSessionAffinity(registration, sessionID) {
-  if (!registration.serverUrl) {
-    return;
-  }
-  const probeUrl = new URL(`/session/${sessionID}`, registration.serverUrl);
-  const authHeader = getServerBasicAuthHeader();
-  const headers = authHeader ? { Authorization: authHeader } : {};
-  try {
-    const controller = new AbortController;
-    const timeoutId = setTimeout(() => controller.abort(), PROBE_ABORT_MS);
-    let response;
-    try {
-      response = await getFetch()(probeUrl, { headers, signal: controller.signal });
-    } finally {
-      clearTimeout(timeoutId);
-    }
-    if (response.ok) {
-      setSessionAffinity(registration, sessionID, true);
-      return true;
-    }
-    if (response.status === 404) {
-      setSessionAffinity(registration, sessionID, false);
-      log2("[live-server-route] live listener does not own session; falling back to in-process client", { sessionID });
-      return false;
-    }
-    return;
-  } catch {
-    return;
-  }
-}
-function setSessionAffinity(registration, sessionID, owned) {
-  const now = Date.now();
-  for (const [key, entry] of registration.sessionAffinity) {
-    if (now - entry.timestamp >= AFFINITY_TTL_MS) {
-      registration.sessionAffinity.delete(key);
-    }
-  }
-  registration.sessionAffinity.set(sessionID, { owned, timestamp: now });
-}
-function getFreshSessionAffinity(registration, sessionID) {
-  const entry = registration.sessionAffinity.get(sessionID);
-  if (!entry || Date.now() - entry.timestamp >= AFFINITY_TTL_MS) {
-    return;
-  }
-  return entry.owned;
-}
-async function resolveSessionAffinity(registration, sessionID) {
-  const cached = getFreshSessionAffinity(registration, sessionID);
-  if (cached !== undefined) {
-    return cached;
-  }
-  let inFlight = registration.inFlightAffinity.get(sessionID);
-  if (!inFlight) {
-    inFlight = probeSessionAffinity(registration, sessionID).finally(() => {
-      registration.inFlightAffinity.delete(sessionID);
-    });
-    registration.inFlightAffinity.set(sessionID, inFlight);
-  }
-  return inFlight;
-}
-function getFreshProbeAvailability(registration) {
-  const available = registration.available;
-  if (available === undefined || Date.now() - registration.probeTimestamp >= PROBE_TTL_MS) {
-    return;
-  }
-  return available;
-}
-async function resolveAvailability(registration) {
-  const freshAvailability = getFreshProbeAvailability(registration);
-  if (freshAvailability !== undefined) {
-    return freshAvailability;
-  }
-  if (!registration.inFlightProbe) {
-    registration.inFlightProbe = probe(registration).finally(() => {
-      registration.inFlightProbe = undefined;
-    });
-  }
-  return registration.inFlightProbe;
-}
-function getOrBuildLiveClient(registration) {
-  if (registration.liveClient) {
-    return registration.liveClient;
-  }
-  if (!registration.serverUrl) {
-    return;
-  }
-  const client3 = createOpencodeClient({
-    baseUrl: registration.serverUrl.toString(),
-    directory: registration.directory
-  });
-  injectServerAuthIntoClient(client3);
-  registration.liveClient = client3;
-  return registration.liveClient;
-}
-function tryResolveDispatchClientSync(client3, sessionID) {
-  const registration = registrations.get(client3);
-  if (!registration) {
-    return { client: client3, route: "in-process", reason: "identity" };
-  }
-  if (liveParentWakeRoutingDisabled) {
-    return { client: client3, route: "in-process", reason: "flag" };
-  }
-  if (subagentSessions.has(sessionID)) {
-    return { client: client3, route: "in-process", reason: "child" };
-  }
-  if (!registration.serverUrl) {
-    return { client: client3, route: "in-process", reason: "unavailable" };
-  }
-  const freshAvailability = getFreshProbeAvailability(registration);
-  if (freshAvailability === undefined) {
-    return;
-  }
-  if (!freshAvailability) {
-    return { client: client3, route: "in-process", reason: "unavailable" };
-  }
-  const cachedAffinity = getFreshSessionAffinity(registration, sessionID);
-  if (cachedAffinity === undefined) {
-    return;
-  }
-  if (!cachedAffinity) {
-    return { client: client3, route: "in-process", reason: "affinity" };
-  }
-  const resolvedLiveClient = getOrBuildLiveClient(registration);
-  if (!resolvedLiveClient) {
-    return { client: client3, route: "in-process", reason: "unavailable" };
-  }
-  return { client: resolvedLiveClient, route: "live", reason: "live" };
-}
-async function resolveDispatchClient(client3, sessionID) {
-  const syncResult = tryResolveDispatchClientSync(client3, sessionID);
-  if (syncResult) {
-    return syncResult;
-  }
-  const registration = registrations.get(client3);
-  if (!registration) {
-    return { client: client3, route: "in-process", reason: "identity" };
-  }
-  const isAvailable = await resolveAvailability(registration);
-  if (!isAvailable) {
-    return { client: client3, route: "in-process", reason: "unavailable" };
-  }
-  const affinity = await resolveSessionAffinity(registration, sessionID);
-  if (affinity === false) {
-    return { client: client3, route: "in-process", reason: "affinity" };
-  }
-  const resolvedLiveClient = getOrBuildLiveClient(registration);
-  if (!resolvedLiveClient) {
-    return { client: client3, route: "in-process", reason: "unavailable" };
-  }
-  return { client: resolvedLiveClient, route: "live", reason: "live" };
-}
-function isPreSendConnectionFailure(error) {
-  if (!(error instanceof Error)) {
-    return false;
-  }
-  if (error.name === "AbortError") {
-    return false;
-  }
-  const CONNECTION_CODES = new Set([
-    "ECONNREFUSED",
-    "ENOTFOUND",
-    "EAI_AGAIN",
-    "ENETUNREACH",
-    "EHOSTUNREACH",
-    "ENETDOWN",
-    "EHOSTDOWN",
-    "EADDRNOTAVAIL",
-    "UND_ERR_CONNECT_TIMEOUT"
-  ]);
-  const self = error;
-  if (self.code && CONNECTION_CODES.has(self.code)) {
-    return true;
-  }
-  const cause = error.cause;
-  if (cause && typeof cause === "object" && cause !== null) {
-    const causeCode = cause.code;
-    if (causeCode && CONNECTION_CODES.has(causeCode)) {
-      return true;
-    }
-  }
-  return false;
-}
-function markLiveRouteUnavailable(reason) {
-  for (const registration of registrations.values()) {
-    registration.available = false;
-    registration.probeTimestamp = Date.now();
-    registration.sessionAffinity.clear();
-  }
-  log2(`[live-server-route] marked unavailable: ${reason}`);
-}
-var PROBE_TTL_MS = 60000, PROBE_ABORT_MS = 1500, AFFINITY_TTL_MS = 60000, registrations, liveParentWakeRoutingDisabled = false, fetchImplementationForTesting;
-var init_live_server_route = __esm(() => {
-  init_dist();
-  init_state();
-  init_opencode_server_auth();
-  init_logger2();
-  registrations = new Map;
-});
-
-// packages/omo-opencode/src/shared/prompt-async-gate.ts
-var init_prompt_async_gate2 = __esm(() => {
-  init_src();
-  init_route_resolver();
-  init_live_server_route();
-  init_logger2();
-  init_prompt_async_gate();
-  configureSharedSubunitLogger(log2);
-  configurePromptDispatchRouteResolver({
-    tryResolveDispatchClientSync,
-    resolveDispatchClient,
-    isPreSendConnectionFailure,
-    markLiveRouteUnavailable
-  });
-});
-
-// packages/omo-opencode/src/shared/prompt-failure-classifier.ts
-var init_prompt_failure_classifier = () => {};
-
-// packages/omo-opencode/src/shared/model-suggestion-retry.ts
-var init_model_suggestion_retry = __esm(() => {
-  init_logger2();
-  init_prompt_async_gate2();
-  init_prompt_failure_classifier();
-});
-
-// packages/omo-opencode/src/shared/opencode-provider-auth.ts
-var init_opencode_provider_auth = __esm(() => {
-  init_data_path();
-  init_logger2();
-});
-
-// packages/omo-opencode/src/shared/opencode-http-api.ts
-var init_opencode_http_api = __esm(() => {
-  init_opencode_server_auth();
-  init_logger2();
-  init_record_type_guard();
-});
-
-// packages/omo-opencode/src/shared/port-utils.ts
-var init_port_utils2 = () => {};
-
-// packages/omo-opencode/src/shared/git-worktree/index.ts
-var init_git_worktree2 = __esm(() => {
-  init_git_worktree();
-});
-
-// packages/omo-opencode/src/shared/safe-create-hook.ts
-var init_safe_create_hook = __esm(() => {
-  init_logger2();
-});
-
-// packages/omo-opencode/src/shared/opencode-command-dirs.ts
-var init_opencode_command_dirs = __esm(() => {
-  init_opencode_config_dir();
-});
-
-// packages/omo-opencode/src/shared/project-discovery-dirs.ts
-var worktreePathCache;
-var init_project_discovery_dirs = __esm(() => {
-  worktreePathCache = new Map;
-});
-
-// packages/omo-opencode/src/shared/session-directory-resolver.ts
-var init_session_directory_resolver = () => {};
-
-// packages/omo-opencode/src/shared/session-route.ts
-var init_session_route = __esm(() => {
-  init_model_suggestion_retry();
-  init_prompt_async_gate2();
-  init_prompt_failure_classifier();
-});
-
-// packages/omo-opencode/src/shared/session-tools-store.ts
-var store;
-var init_session_tools_store = __esm(() => {
-  store = new Map;
-});
-
-// packages/omo-opencode/src/shared/prompt-tools.ts
-var init_prompt_tools = __esm(() => {
-  init_session_tools_store();
-});
-
-// packages/omo-opencode/src/shared/runtime-fallback-retry-marker.ts
-var init_runtime_fallback_retry_marker = __esm(() => {
-  init_internal_initiator_marker2();
-});
-// packages/claude-code-compat-core/src/shared/plugin-identity.ts
-var LOG_FILENAME2 = "oh-my-opencode.log";
-
-// packages/claude-code-compat-core/src/shared/logger.ts
-var logger4, log3, getLogFilePath2;
-var init_logger3 = __esm(() => {
-  init_src();
-  logger4 = createLogger({ logFileName: LOG_FILENAME2 });
-  log3 = logger4.log;
-  getLogFilePath2 = logger4.getLogFilePath;
-});
-
-// packages/claude-code-compat-core/src/shared/contains-path.ts
-var init_contains_path3 = () => {};
-
-// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/scope-filter.ts
-var init_scope_filter = __esm(() => {
-  init_contains_path3();
-});
-
-// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/discovery-paths.ts
-var init_discovery_paths = () => {};
-
-// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/installed-plugin-database.ts
-var init_installed_plugin_database = __esm(() => {
-  init_logger3();
-  init_discovery_paths();
-});
-
-// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/plugin-key.ts
-var init_plugin_key = () => {};
-
-// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/plugin-manifest.ts
-var init_plugin_manifest = __esm(() => {
-  init_logger3();
-});
-
-// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/install-path-resolver.ts
-var init_install_path_resolver = __esm(() => {
-  init_logger3();
-  init_plugin_key();
-  init_plugin_manifest();
-});
-
-// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/loaded-plugin.ts
-var init_loaded_plugin = __esm(() => {
-  init_plugin_key();
-});
-
-// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/plugin-settings.ts
-var init_plugin_settings = __esm(() => {
-  init_logger3();
-  init_discovery_paths();
-});
-
-// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/discovery-core.ts
-var init_discovery_core = __esm(() => {
-  init_logger3();
-  init_scope_filter();
-  init_discovery_paths();
-  init_installed_plugin_database();
-  init_install_path_resolver();
-  init_loaded_plugin();
-  init_plugin_manifest();
-  init_plugin_settings();
-});
-
-// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/discovery.ts
-var init_discovery = __esm(() => {
-  init_discovery_core();
-  init_install_path_resolver();
-  init_plugin_manifest();
-});
-
-// packages/claude-code-compat-core/src/shared/frontmatter.ts
-var init_frontmatter3 = () => {};
-
-// packages/claude-code-compat-core/src/shared/file-utils.ts
-var init_file_utils3 = () => {};
-
-// packages/claude-code-compat-core/src/shared/model-sanitizer.ts
-var init_model_sanitizer2 = () => {};
-// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/command-loader.ts
-var init_command_loader = __esm(() => {
-  init_frontmatter3();
-  init_file_utils3();
-  init_model_sanitizer2();
-  init_logger3();
-});
-
-// packages/utils/src/skill-path-resolver.ts
-var init_skill_path_resolver = () => {};
-
-// packages/claude-code-compat-core/src/shared/skill-path-resolver.ts
-var init_skill_path_resolver2 = __esm(() => {
-  init_skill_path_resolver();
-});
-
-// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/skill-loader.ts
-var init_skill_loader = __esm(() => {
-  init_frontmatter3();
-  init_file_utils3();
-  init_model_sanitizer2();
-  init_skill_path_resolver2();
-  init_logger3();
-});
-// packages/claude-code-compat-core/src/shared/model-format-normalizer.ts
-var init_model_format_normalizer = () => {};
-
-// packages/claude-code-compat-core/src/shared/model-normalization.ts
-var init_model_normalization2 = () => {};
-
-// packages/claude-code-compat-core/src/features/claude-code-agent-loader/claude-model-mapper.ts
-var ANTHROPIC_PREFIX = "anthropic/", CLAUDE_CODE_ALIAS_MAP;
-var init_claude_model_mapper = __esm(() => {
-  init_model_format_normalizer();
-  init_model_normalization2();
-  CLAUDE_CODE_ALIAS_MAP = new Map([
-    ["sonnet", `${ANTHROPIC_PREFIX}claude-sonnet-4-6`],
-    ["opus", `${ANTHROPIC_PREFIX}claude-opus-4-8`],
-    ["haiku", `${ANTHROPIC_PREFIX}claude-haiku-4-5`]
-  ]);
-});
-
-// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/agent-loader.ts
-var init_agent_loader = __esm(() => {
-  init_frontmatter3();
-  init_file_utils3();
-  init_logger3();
-  init_claude_model_mapper();
-});
-
-// packages/claude-code-compat-core/src/features/claude-code-mcp-loader/configure-allowed-env-vars.ts
-var additionalAllowedMcpEnvVars;
-var init_configure_allowed_env_vars = __esm(() => {
-  additionalAllowedMcpEnvVars = new Set;
-});
-
-// packages/claude-code-compat-core/src/features/claude-code-mcp-loader/env-expander.ts
-var init_env_expander = __esm(() => {
-  init_logger3();
-  init_configure_allowed_env_vars();
-});
-
-// packages/claude-code-compat-core/src/features/claude-code-mcp-loader/scope-filter.ts
-var init_scope_filter2 = __esm(() => {
-  init_contains_path3();
-});
-
-// packages/claude-code-compat-core/src/features/claude-code-mcp-loader/transformer.ts
-var init_transformer = __esm(() => {
-  init_env_expander();
-});
-
-// packages/claude-code-compat-core/src/shared/bun-file-shim.ts
-var init_bun_file_shim2 = () => {};
-
-// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/mcp-server-loader.ts
-var init_mcp_server_loader = __esm(() => {
-  init_env_expander();
-  init_scope_filter2();
-  init_transformer();
-  init_logger3();
-  init_bun_file_shim2();
-});
-
-// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/hook-loader.ts
-var init_hook_loader = __esm(() => {
-  init_logger3();
-});
-
-// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/loader.ts
-var cachedPluginComponentsByKey;
-var init_loader = __esm(() => {
-  init_logger3();
-  init_discovery();
-  init_command_loader();
-  init_skill_loader();
-  init_agent_loader();
-  init_mcp_server_loader();
-  init_hook_loader();
-  init_discovery();
-  init_command_loader();
-  init_skill_loader();
-  init_agent_loader();
-  init_mcp_server_loader();
-  init_hook_loader();
-  cachedPluginComponentsByKey = new Map;
-});
-
-// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/index.ts
-var init_claude_code_plugin_loader = __esm(() => {
-  init_loader();
-  init_discovery();
-  init_command_loader();
-  init_skill_loader();
-  init_agent_loader();
-  init_mcp_server_loader();
-  init_hook_loader();
-});
-
-// packages/omo-opencode/src/shared/plugin-command-discovery.ts
-var init_plugin_command_discovery = __esm(() => {
-  init_claude_code_plugin_loader();
-});
-
-// packages/omo-opencode/src/shared/session-category-registry.ts
-var sessionCategoryMap;
-var init_session_category_registry = __esm(() => {
-  sessionCategoryMap = new Map;
-});
-// packages/omo-opencode/src/shared/legacy-plugin-warning.ts
-var init_legacy_plugin_warning = __esm(() => {
-  init_jsonc_parser2();
-  init_opencode_config_dir();
-  init_plugin_identity();
-});
-
-// packages/omo-opencode/src/shared/plugin-entry-migrator.ts
-var init_plugin_entry_migrator = __esm(() => {
-  init_plugin_identity();
-});
-
-// packages/omo-opencode/src/shared/migrate-legacy-plugin-entry.ts
-var init_migrate_legacy_plugin_entry = __esm(() => {
-  init_main();
-  init_jsonc_parser2();
-  init_logger2();
-  init_plugin_identity();
-  init_plugin_entry_migrator();
-});
-
-// packages/omo-opencode/src/shared/log-legacy-plugin-startup-warning.ts
-var init_log_legacy_plugin_startup_warning = __esm(() => {
-  init_legacy_plugin_warning();
-  init_logger2();
-  init_migrate_legacy_plugin_entry();
-  init_plugin_entry_migrator();
-  init_plugin_identity();
-});
-
-// packages/omo-opencode/src/shared/legacy-workspace-migration.ts
-var init_legacy_workspace_migration = __esm(() => {
-  init_logger2();
-});
-// packages/omo-opencode/src/shared/model-string-parser.ts
-var init_model_string_parser2 = () => {};
-
-// packages/omo-opencode/src/shared/excluded-dirs.ts
-var EXCLUDED_DIR_NAMES, EXCLUDED_DIRS;
-var init_excluded_dirs = __esm(() => {
-  EXCLUDED_DIR_NAMES = [
-    "node_modules",
-    ".git",
-    "dist",
-    "build",
-    ".next",
-    ".omo",
-    ".sisyphus",
-    ".turbo",
-    "coverage",
-    "out",
-    ".cache",
-    ".vscode-test",
-    "target",
-    ".local-ignore"
-  ];
-  EXCLUDED_DIRS = Object.freeze(new Set(EXCLUDED_DIR_NAMES));
-});
-
-// packages/omo-opencode/src/shared/replace-tool-args.ts
-var init_replace_tool_args = () => {};
-
-// packages/omo-opencode/src/shared/index.ts
-var init_shared = __esm(() => {
-  init_model_normalization();
-  init_model_resolver2();
-  init_model_resolution_pipeline();
-  init_session_category_registry();
-  init_model_string_parser2();
-  init_excluded_dirs();
-  init_frontmatter2();
-  init_command_executor2();
-  init_contains_path2();
-  init_file_reference_resolver();
-  init_model_sanitizer();
-  init_logger2();
-  init_snake_case2();
-  init_tool_name2();
-  init_pattern_matcher();
-  init_deep_merge2();
-  init_file_utils2();
-  init_dynamic_truncator();
-  init_data_path();
-  init_config_errors();
-  init_claude_config_dir();
-  init_jsonc_parser2();
-  init_migration2();
-  init_opencode_config_dir();
-  init_opencode_plugin_sandbox();
-  init_resolve_agent_definition_paths();
-  init_opencode_version();
-  init_opencode_storage_detection();
-  init_external_plugin_detector();
-  init_zip_extractor();
-  init_binary_downloader();
-  init_write_file_atomically();
-  init_agent_variant();
-  init_session_cursor();
-  init_shell_env();
-  init_system_directive();
-  init_agent_tool_restrictions();
-  init_model_requirements2();
-  init_model_resolver2();
-  init_model_availability();
-  init_model_capabilities2();
-  init_model_capabilities_cache();
-  init_model_settings_compatibility2();
-  init_fallback_model_availability();
-  init_connected_providers_cache();
-  init_context_limit_resolver2();
-  init_session_utils();
-  init_event_session_id();
-  init_tmux();
-  init_model_suggestion_retry();
-  init_opencode_server_auth();
-  init_opencode_provider_auth();
-  init_opencode_http_api();
-  init_port_utils2();
-  init_git_worktree2();
-  init_safe_create_hook();
-  init_opencode_storage_paths();
-  init_opencode_message_dir();
-  init_opencode_command_dirs();
-  init_project_discovery_dirs();
-  init_record_type_guard();
-  init_session_directory_resolver();
-  init_session_route();
-  init_prompt_tools();
-  init_prompt_failure_classifier();
-  init_compaction_marker();
-  init_internal_initiator_marker2();
-  init_runtime_fallback_retry_marker();
-  init_plugin_command_discovery();
-  init_plugin_identity();
-  init_log_legacy_plugin_startup_warning();
-  init_legacy_workspace_migration();
-  init_replace_tool_args();
-});
-
 // node_modules/.bun/zod@4.6.5/node_modules/zod/v4/core/util.js
 var exports_util = {};
 __export(exports_util, {
@@ -63458,7 +60739,7 @@ __export(exports_util, {
   promiseAllObject: () => promiseAllObject,
   primitiveTypes: () => primitiveTypes,
   prefixIssues: () => prefixIssues,
-  pick: () => pick2,
+  pick: () => pick,
   partial: () => partial,
   parsedType: () => parsedType,
   own: () => own,
@@ -63507,7 +60788,7 @@ __export(exports_util, {
   attachSchema: () => attachSchema,
   assignProp: () => assignProp,
   assertNotEqual: () => assertNotEqual,
-  assertNever: () => assertNever2,
+  assertNever: () => assertNever,
   assertIs: () => assertIs,
   assertEqual: () => assertEqual,
   assert: () => assert,
@@ -63528,7 +60809,7 @@ function toZod() {
   return (schema) => schema;
 }
 function assertIs(_arg) {}
-function assertNever2(_x) {
+function assertNever(_x) {
   throw new Error("Unexpected value in exhaustive check");
 }
 function assert(_) {}
@@ -63672,10 +60953,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path5) {
-  if (!path5)
+function getElementAtPath(obj, path4) {
+  if (!path4)
     return obj;
-  return path5.reduce((acc, key) => acc?.[key], obj);
+  return path4.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -63811,7 +61092,7 @@ function optionalKeys(shape) {
     return shape[k]._zod.optin !== undefined && shape[k]._zod.optout === "optional";
   });
 }
-function pick2(schema, mask) {
+function pick(schema, mask) {
   const currDef = schema._zod.def;
   const checks = currDef.checks;
   const hasChecks = checks && checks.length > 0;
@@ -63931,11 +61212,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path5, issues) {
+function prefixIssues(path4, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path5);
+    iss.path.unshift(path4);
     return iss;
   });
 }
@@ -64433,16 +61714,16 @@ function flattenError(error, mapper = (issue2) => issue2.message) {
 }
 function formatError(error, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error2, path5 = []) => {
+  const processError = (error2, path4 = []) => {
     for (const issue2 of error2.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path5, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path4, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path5, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path4, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path5, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path4, ...issue2.path]);
       } else {
-        const fullpath = [...path5, ...issue2.path];
+        const fullpath = [...path4, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -64481,17 +61762,17 @@ function formatError(error, mapper = (issue2) => issue2.message) {
 }
 function treeifyError(error, mapper = (issue2) => issue2.message) {
   const result = { errors: [] };
-  const processError = (error2, path5 = []) => {
+  const processError = (error2, path4 = []) => {
     var _a2;
     for (const issue2 of error2.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path5, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path4, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path5, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path4, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path5, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path4, ...issue2.path]);
       } else {
-        const fullpath = [...path5, ...issue2.path];
+        const fullpath = [...path4, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -64530,8 +61811,8 @@ function treeifyError(error, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path5 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path5) {
+  const path4 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path4) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -67866,7 +65147,7 @@ function isRef(value) {
 function cloneIssues(issues) {
   return issues.map((iss) => iss.path ? { ...iss, path: iss.path.slice() } : { ...iss });
 }
-function isRecursive(inst, stack, resolve4) {
+function isRecursive(inst, stack, resolve3) {
   const cached2 = recursive.get(inst);
   if (cached2 !== undefined)
     return cached2 ? PROVEN : NONE;
@@ -67876,7 +65157,7 @@ function isRecursive(inst, stack, resolve4) {
   let result = NONE;
   const check = (child) => {
     if (result !== PROVEN && child?._zod) {
-      const answer = isRecursive(child, stack, resolve4);
+      const answer = isRecursive(child, stack, resolve3);
       if (answer > result)
         result = answer;
     }
@@ -67887,7 +65168,7 @@ function isRecursive(inst, stack, resolve4) {
       const desc = Object.getOwnPropertyDescriptor(sh, key);
       if (spread && !desc.enumerable)
         continue;
-      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve4) : NONE;
+      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve3) : NONE;
       if (child > answer)
         answer = child;
     }
@@ -67950,7 +65231,7 @@ function isRecursive(inst, stack, resolve4) {
       check(def.output);
       break;
     case "lazy": {
-      const inner = def._cachedInner ?? (resolve4 ? inst._zod.innerType : undefined);
+      const inner = def._cachedInner ?? (resolve3 ? inst._zod.innerType : undefined);
       merge2(inner ? isRecursive(inner, stack, false) : ASSUMED);
       break;
     }
@@ -78185,10 +75466,10 @@ function _properties(shape, params) {
     ...normalizeParams(params)
   });
 }
-function _mime(types5, params) {
+function _mime(types4, params) {
   return new $ZodCheckMimeType({
     check: "mime_type",
-    mime: types5,
+    mime: types4,
     ...normalizeParams(params)
   });
 }
@@ -78440,7 +75721,7 @@ function _check(fn, params) {
   ch._zod.check = fn;
   return ch;
 }
-function describe2(description) {
+function describe(description) {
   const ch = new $ZodCheck({ check: "describe" });
   ch._zod.onattach = [
     (inst) => {
@@ -78743,7 +76024,7 @@ function compactTypeUnion(schema) {
   const options = schema.anyOf;
   if (!Array.isArray(options) || options.length === 0 || schema.type !== undefined)
     return;
-  const types5 = [];
+  const types4 = [];
   for (const option of options) {
     if (!option || typeof option !== "object")
       return;
@@ -78755,12 +76036,12 @@ function compactTypeUnion(schema) {
     for (const member of Array.isArray(type) ? type : [type]) {
       if (typeof member !== "string")
         return;
-      if (!types5.includes(member))
-        types5.push(member);
+      if (!types4.includes(member))
+        types4.push(member);
     }
   }
   delete schema.anyOf;
-  schema.type = types5.length === 1 ? types5[0] : types5;
+  schema.type = types4.length === 1 ? types4[0] : types4;
 }
 function undeclaredConstraint(member) {
   const extra = member.additionalProperties;
@@ -78920,8 +76201,8 @@ function finalize(ctx, schema) {
         compactTypeUnion(entry[1].def ?? entry[1].schema);
       }
     }
-    for (const rewrite2 of ctx.deferred)
-      rewrite2();
+    for (const rewrite of ctx.deferred)
+      rewrite();
     if (ctx.intersections.length) {
       const carriers = new Map;
       for (const seen of ctx.seen.values()) {
@@ -79130,8 +76411,8 @@ function stringifyKeyNames(bySchema, json, visited) {
     if (mapped.some((branch, i) => branch !== branches[i]))
       json = { ...json, [keyword]: mapped };
   }
-  const types5 = Array.isArray(json.type) ? json.type : [json.type];
-  const numericType = !types5.includes("string") && types5.some((t) => t === "number" || t === "integer");
+  const types4 = Array.isArray(json.type) ? json.type : [json.type];
+  const numericType = !types4.includes("string") && types4.some((t) => t === "number" || t === "integer");
   const values = json.enum ?? (json.const !== undefined ? [json.const] : undefined);
   if (!numericType && !values?.some((v) => typeof v === "number"))
     return json;
@@ -79144,7 +76425,7 @@ function stringifyKeyNames(bySchema, json, visited) {
     return rest;
   rest.type = "string";
   if (!values)
-    rest.pattern = (types5.includes("number") ? number : integer).source;
+    rest.pattern = (types4.includes("number") ? number : integer).source;
   return rest;
 }
 function rewriteKeyNames(ctx) {
@@ -79898,7 +77179,7 @@ __export(exports_core2, {
   extractDefs: () => extractDefs,
   encodeAsync: () => encodeAsync,
   encode: () => encode,
-  describe: () => describe2,
+  describe: () => describe,
   decodeAsync: () => decodeAsync,
   decode: () => decode,
   createToJSONSchemaMethod: () => createToJSONSchemaMethod,
@@ -80371,7 +77652,7 @@ __export(exports_schemas2, {
   email: () => email2,
   e164: () => e1642,
   discriminatedUnion: () => discriminatedUnion,
-  describe: () => describe3,
+  describe: () => describe2,
   date: () => date2,
   custom: () => custom,
   currencyCode: () => currencyCode2,
@@ -80959,7 +78240,7 @@ function preprocess(fn, schema) {
     out: schema
   });
 }
-var ZodType, _ZodString, ZodString, ZodStringFormat, ZodISODateTime, ZodISODate, ZodISOTime, ZodISODuration, ZodEmail, ZodGUID, ZodUUID, ZodURL, ZodEmoji, ZodNanoID, ZodCUID, ZodCUID2, ZodULID, ZodXID, ZodKSUID, ZodIPv4, ZodMAC, ZodIPv6, ZodCIDRv4, ZodCIDRv6, ZodBase64, ZodBase64URL, ZodE164, ZodCreditCard, ZodIBAN, ZodJWT, ZodCustomStringFormat, ZodNumber, ZodNumberFormat, ZodBoolean, ZodBigInt, ZodBigIntFormat, ZodSymbol, ZodUndefined, ZodNull, ZodAny, ZodUnknown, ZodNever, ZodVoid, ZodDate, ZodArray, ZodObject, ZodUnion, ZodXor, ZodDiscriminatedUnion, ZodIntersection, ZodTuple, ZodRecord, ZodMap, ZodSet, ZodEnum, ZodLiteral, ZodFile, ZodTransform, ZodOptional, ZodExactOptional, ZodNullable, ZodDefault, ZodPrefault, ZodNonOptional, ZodSuccess, ZodCatch, ZodNaN, ZodPipe, ZodCodec, ZodPreprocess, ZodReadonly, ZodTemplateLiteral, ZodLazy, ZodPromise, ZodFunction, ZodCustom, describe3, meta2, ZodInstanceOf, stringbool = (...args) => _stringbool({
+var ZodType, _ZodString, ZodString, ZodStringFormat, ZodISODateTime, ZodISODate, ZodISOTime, ZodISODuration, ZodEmail, ZodGUID, ZodUUID, ZodURL, ZodEmoji, ZodNanoID, ZodCUID, ZodCUID2, ZodULID, ZodXID, ZodKSUID, ZodIPv4, ZodMAC, ZodIPv6, ZodCIDRv4, ZodCIDRv6, ZodBase64, ZodBase64URL, ZodE164, ZodCreditCard, ZodIBAN, ZodJWT, ZodCustomStringFormat, ZodNumber, ZodNumberFormat, ZodBoolean, ZodBigInt, ZodBigIntFormat, ZodSymbol, ZodUndefined, ZodNull, ZodAny, ZodUnknown, ZodNever, ZodVoid, ZodDate, ZodArray, ZodObject, ZodUnion, ZodXor, ZodDiscriminatedUnion, ZodIntersection, ZodTuple, ZodRecord, ZodMap, ZodSet, ZodEnum, ZodLiteral, ZodFile, ZodTransform, ZodOptional, ZodExactOptional, ZodNullable, ZodDefault, ZodPrefault, ZodNonOptional, ZodSuccess, ZodCatch, ZodNaN, ZodPipe, ZodCodec, ZodPreprocess, ZodReadonly, ZodTemplateLiteral, ZodLazy, ZodPromise, ZodFunction, ZodCustom, describe2, meta2, ZodInstanceOf, stringbool = (...args) => _stringbool({
   Codec: ZodCodec,
   Boolean: ZodBoolean,
   String: ZodString
@@ -81771,7 +79052,7 @@ var init_schemas2 = __esm(() => {
     inst._zod.processJSONSchema = (ctx, json, params) => fileProcessor(inst, ctx, json, params);
     inst.min = (size, params) => inst.check(_minSize(size, params));
     inst.max = (size, params) => inst.check(_maxSize(size, params));
-    inst.mime = (types5, params) => inst.check(_mime(Array.isArray(types5) ? types5 : [types5], params));
+    inst.mime = (types4, params) => inst.check(_mime(Array.isArray(types4) ? types4 : [types4], params));
   });
   ZodTransform = /* @__PURE__ */ $constructor("ZodTransform", (inst, def) => {
     _ensureDefaultMemoizer();
@@ -81910,7 +79191,7 @@ var init_schemas2 = __esm(() => {
     ZodType.init(inst, def);
     inst._zod.processJSONSchema = (ctx, json, params) => customProcessor(inst, ctx, json, params);
   });
-  describe3 = describe2;
+  describe2 = describe;
   meta2 = meta;
   ZodInstanceOf = /* @__PURE__ */ $constructor("ZodInstanceOf", (inst, def) => {
     ZodCustom.init(inst, def);
@@ -82003,13 +79284,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path5 = ref.slice(1).split("/").filter(Boolean);
-  if (path5.length === 0) {
+  const path4 = ref.slice(1).split("/").filter(Boolean);
+  if (path4.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path5[0] === defsKey) {
-    const key = path5[1] === undefined ? undefined : decodeJSONPointerSegment(path5[1]);
+  if (path4[0] === defsKey) {
+    const key = path4[1] === undefined ? undefined : decodeJSONPointerSegment(path4[1]);
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -83085,7 +80366,7 @@ __export(exports_external, {
   email: () => email2,
   e164: () => e1642,
   discriminatedUnion: () => discriminatedUnion,
-  describe: () => describe3,
+  describe: () => describe2,
   deepPartial: () => deepPartial,
   decodeAsync: () => decodeAsync2,
   decode: () => decode2,
@@ -83225,6 +80506,2784 @@ var init_external = __esm(() => {
 var init_zod = __esm(() => {
   init_external();
   init_external();
+});
+
+// packages/omo-opencode/src/hooks/goal/types.ts
+var GOAL_STATUS_VALUES, GoalStatusSchema, GoalSchema, GoalFileSchema, GoalToolSnapshotSchema, GoalToolResponseSchema;
+var init_types3 = __esm(() => {
+  init_zod();
+  GOAL_STATUS_VALUES = ["active", "paused", "complete", "blocked", "budgetLimited"];
+  GoalStatusSchema = exports_external.enum(GOAL_STATUS_VALUES);
+  GoalSchema = exports_external.object({
+    id: exports_external.string(),
+    sessionID: exports_external.string(),
+    objective: exports_external.string(),
+    status: GoalStatusSchema,
+    tokensUsed: exports_external.number().int().nonnegative(),
+    timeUsedSeconds: exports_external.number().int().nonnegative(),
+    createdAt: exports_external.number().int().nonnegative(),
+    updatedAt: exports_external.number().int().nonnegative(),
+    lastStartedAt: exports_external.number().int().nonnegative().optional(),
+    completedAt: exports_external.number().int().nonnegative().optional(),
+    tokenBudget: exports_external.number().int().positive().optional(),
+    turnsUsed: exports_external.number().int().nonnegative().default(0)
+  });
+  GoalFileSchema = exports_external.object({
+    version: exports_external.literal(1),
+    goal: GoalSchema.nullable()
+  });
+  GoalToolSnapshotSchema = exports_external.object({
+    sessionID: exports_external.string(),
+    objective: exports_external.string(),
+    status: GoalStatusSchema,
+    tokensUsed: exports_external.number().int().nonnegative(),
+    timeUsedSeconds: exports_external.number().int().nonnegative(),
+    createdAt: exports_external.number().int().nonnegative(),
+    updatedAt: exports_external.number().int().nonnegative()
+  });
+  GoalToolResponseSchema = exports_external.object({
+    goal: GoalToolSnapshotSchema.nullable()
+  });
+});
+
+// packages/omo-opencode/src/hooks/goal/store.ts
+var init_store = __esm(() => {
+  init_types3();
+});
+
+// packages/omo-opencode/src/hooks/goal/continuation-policy.ts
+var init_continuation_policy = __esm(() => {
+  init_store();
+});
+
+// packages/omo-opencode/src/hooks/goal/sync-bridge.ts
+var bridges;
+var init_sync_bridge = __esm(() => {
+  bridges = new Map;
+});
+
+// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/types.gen.js
+var init_types_gen = () => {};
+
+// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/core/serverSentEvents.gen.js
+var createSseClient = ({ onSseError, onSseEvent, responseTransformer, responseValidator, sseDefaultRetryDelay, sseMaxRetryAttempts, sseMaxRetryDelay, sseSleepFn, url: url2, ...options }) => {
+  let lastEventId;
+  const sleep = sseSleepFn ?? ((ms) => new Promise((resolve3) => setTimeout(resolve3, ms)));
+  const createStream = async function* () {
+    let retryDelay = sseDefaultRetryDelay ?? 3000;
+    let attempt = 0;
+    const signal = options.signal ?? new AbortController().signal;
+    while (true) {
+      if (signal.aborted)
+        break;
+      attempt++;
+      const headers = options.headers instanceof Headers ? options.headers : new Headers(options.headers);
+      if (lastEventId !== undefined) {
+        headers.set("Last-Event-ID", lastEventId);
+      }
+      try {
+        const response = await fetch(url2, { ...options, headers, signal });
+        if (!response.ok)
+          throw new Error(`SSE failed: ${response.status} ${response.statusText}`);
+        if (!response.body)
+          throw new Error("No body in SSE response");
+        const reader = response.body.pipeThrough(new TextDecoderStream).getReader();
+        let buffer = "";
+        const abortHandler = () => {
+          try {
+            reader.cancel();
+          } catch {}
+        };
+        signal.addEventListener("abort", abortHandler);
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done)
+              break;
+            buffer += value;
+            const chunks = buffer.split(`
+
+`);
+            buffer = chunks.pop() ?? "";
+            for (const chunk of chunks) {
+              const lines = chunk.split(`
+`);
+              const dataLines = [];
+              let eventName;
+              for (const line of lines) {
+                if (line.startsWith("data:")) {
+                  dataLines.push(line.replace(/^data:\s*/, ""));
+                } else if (line.startsWith("event:")) {
+                  eventName = line.replace(/^event:\s*/, "");
+                } else if (line.startsWith("id:")) {
+                  lastEventId = line.replace(/^id:\s*/, "");
+                } else if (line.startsWith("retry:")) {
+                  const parsed = Number.parseInt(line.replace(/^retry:\s*/, ""), 10);
+                  if (!Number.isNaN(parsed)) {
+                    retryDelay = parsed;
+                  }
+                }
+              }
+              let data;
+              let parsedJson = false;
+              if (dataLines.length) {
+                const rawData = dataLines.join(`
+`);
+                try {
+                  data = JSON.parse(rawData);
+                  parsedJson = true;
+                } catch {
+                  data = rawData;
+                }
+              }
+              if (parsedJson) {
+                if (responseValidator) {
+                  await responseValidator(data);
+                }
+                if (responseTransformer) {
+                  data = await responseTransformer(data);
+                }
+              }
+              onSseEvent?.({
+                data,
+                event: eventName,
+                id: lastEventId,
+                retry: retryDelay
+              });
+              if (dataLines.length) {
+                yield data;
+              }
+            }
+          }
+        } finally {
+          signal.removeEventListener("abort", abortHandler);
+          reader.releaseLock();
+        }
+        break;
+      } catch (error62) {
+        onSseError?.(error62);
+        if (sseMaxRetryAttempts !== undefined && attempt >= sseMaxRetryAttempts) {
+          break;
+        }
+        const backoff = Math.min(retryDelay * 2 ** (attempt - 1), sseMaxRetryDelay ?? 30000);
+        await sleep(backoff);
+      }
+    }
+  };
+  const stream = createStream();
+  return { stream };
+};
+
+// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/core/auth.gen.js
+var getAuthToken = async (auth, callback) => {
+  const token = typeof callback === "function" ? await callback(auth) : callback;
+  if (!token) {
+    return;
+  }
+  if (auth.scheme === "bearer") {
+    return `Bearer ${token}`;
+  }
+  if (auth.scheme === "basic") {
+    return `Basic ${btoa(token)}`;
+  }
+  return token;
+};
+
+// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/core/bodySerializer.gen.js
+var jsonBodySerializer;
+var init_bodySerializer_gen = __esm(() => {
+  jsonBodySerializer = {
+    bodySerializer: (body) => JSON.stringify(body, (_key, value) => typeof value === "bigint" ? value.toString() : value)
+  };
+});
+
+// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/core/pathSerializer.gen.js
+var separatorArrayExplode = (style) => {
+  switch (style) {
+    case "label":
+      return ".";
+    case "matrix":
+      return ";";
+    case "simple":
+      return ",";
+    default:
+      return "&";
+  }
+}, separatorArrayNoExplode = (style) => {
+  switch (style) {
+    case "form":
+      return ",";
+    case "pipeDelimited":
+      return "|";
+    case "spaceDelimited":
+      return "%20";
+    default:
+      return ",";
+  }
+}, separatorObjectExplode = (style) => {
+  switch (style) {
+    case "label":
+      return ".";
+    case "matrix":
+      return ";";
+    case "simple":
+      return ",";
+    default:
+      return "&";
+  }
+}, serializeArrayParam = ({ allowReserved, explode, name, style, value }) => {
+  if (!explode) {
+    const joinedValues2 = (allowReserved ? value : value.map((v) => encodeURIComponent(v))).join(separatorArrayNoExplode(style));
+    switch (style) {
+      case "label":
+        return `.${joinedValues2}`;
+      case "matrix":
+        return `;${name}=${joinedValues2}`;
+      case "simple":
+        return joinedValues2;
+      default:
+        return `${name}=${joinedValues2}`;
+    }
+  }
+  const separator = separatorArrayExplode(style);
+  const joinedValues = value.map((v) => {
+    if (style === "label" || style === "simple") {
+      return allowReserved ? v : encodeURIComponent(v);
+    }
+    return serializePrimitiveParam({
+      allowReserved,
+      name,
+      value: v
+    });
+  }).join(separator);
+  return style === "label" || style === "matrix" ? separator + joinedValues : joinedValues;
+}, serializePrimitiveParam = ({ allowReserved, name, value }) => {
+  if (value === undefined || value === null) {
+    return "";
+  }
+  if (typeof value === "object") {
+    throw new Error("Deeply-nested arrays/objects aren\u2019t supported. Provide your own `querySerializer()` to handle these.");
+  }
+  return `${name}=${allowReserved ? value : encodeURIComponent(value)}`;
+}, serializeObjectParam = ({ allowReserved, explode, name, style, value, valueOnly }) => {
+  if (value instanceof Date) {
+    return valueOnly ? value.toISOString() : `${name}=${value.toISOString()}`;
+  }
+  if (style !== "deepObject" && !explode) {
+    let values = [];
+    Object.entries(value).forEach(([key, v]) => {
+      values = [...values, key, allowReserved ? v : encodeURIComponent(v)];
+    });
+    const joinedValues2 = values.join(",");
+    switch (style) {
+      case "form":
+        return `${name}=${joinedValues2}`;
+      case "label":
+        return `.${joinedValues2}`;
+      case "matrix":
+        return `;${name}=${joinedValues2}`;
+      default:
+        return joinedValues2;
+    }
+  }
+  const separator = separatorObjectExplode(style);
+  const joinedValues = Object.entries(value).map(([key, v]) => serializePrimitiveParam({
+    allowReserved,
+    name: style === "deepObject" ? `${name}[${key}]` : key,
+    value: v
+  })).join(separator);
+  return style === "label" || style === "matrix" ? separator + joinedValues : joinedValues;
+};
+
+// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/core/utils.gen.js
+var PATH_PARAM_RE, defaultPathSerializer = ({ path: path4, url: _url2 }) => {
+  let url2 = _url2;
+  const matches = _url2.match(PATH_PARAM_RE);
+  if (matches) {
+    for (const match of matches) {
+      let explode = false;
+      let name = match.substring(1, match.length - 1);
+      let style = "simple";
+      if (name.endsWith("*")) {
+        explode = true;
+        name = name.substring(0, name.length - 1);
+      }
+      if (name.startsWith(".")) {
+        name = name.substring(1);
+        style = "label";
+      } else if (name.startsWith(";")) {
+        name = name.substring(1);
+        style = "matrix";
+      }
+      const value = path4[name];
+      if (value === undefined || value === null) {
+        continue;
+      }
+      if (Array.isArray(value)) {
+        url2 = url2.replace(match, serializeArrayParam({ explode, name, style, value }));
+        continue;
+      }
+      if (typeof value === "object") {
+        url2 = url2.replace(match, serializeObjectParam({
+          explode,
+          name,
+          style,
+          value,
+          valueOnly: true
+        }));
+        continue;
+      }
+      if (style === "matrix") {
+        url2 = url2.replace(match, `;${serializePrimitiveParam({
+          name,
+          value
+        })}`);
+        continue;
+      }
+      const replaceValue = encodeURIComponent(style === "label" ? `.${value}` : value);
+      url2 = url2.replace(match, replaceValue);
+    }
+  }
+  return url2;
+}, getUrl = ({ baseUrl, path: path4, query, querySerializer, url: _url2 }) => {
+  const pathUrl = _url2.startsWith("/") ? _url2 : `/${_url2}`;
+  let url2 = (baseUrl ?? "") + pathUrl;
+  if (path4) {
+    url2 = defaultPathSerializer({ path: path4, url: url2 });
+  }
+  let search = query ? querySerializer(query) : "";
+  if (search.startsWith("?")) {
+    search = search.substring(1);
+  }
+  if (search) {
+    url2 += `?${search}`;
+  }
+  return url2;
+};
+var init_utils_gen = __esm(() => {
+  PATH_PARAM_RE = /\{[^{}]+\}/g;
+});
+
+// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/client/utils.gen.js
+class Interceptors {
+  _fns;
+  constructor() {
+    this._fns = [];
+  }
+  clear() {
+    this._fns = [];
+  }
+  getInterceptorIndex(id) {
+    if (typeof id === "number") {
+      return this._fns[id] ? id : -1;
+    } else {
+      return this._fns.indexOf(id);
+    }
+  }
+  exists(id) {
+    const index = this.getInterceptorIndex(id);
+    return !!this._fns[index];
+  }
+  eject(id) {
+    const index = this.getInterceptorIndex(id);
+    if (this._fns[index]) {
+      this._fns[index] = null;
+    }
+  }
+  update(id, fn) {
+    const index = this.getInterceptorIndex(id);
+    if (this._fns[index]) {
+      this._fns[index] = fn;
+      return id;
+    } else {
+      return false;
+    }
+  }
+  use(fn) {
+    this._fns = [...this._fns, fn];
+    return this._fns.length - 1;
+  }
+}
+var createQuerySerializer = ({ allowReserved, array: array2, object: object2 } = {}) => {
+  const querySerializer = (queryParams) => {
+    const search = [];
+    if (queryParams && typeof queryParams === "object") {
+      for (const name in queryParams) {
+        const value = queryParams[name];
+        if (value === undefined || value === null) {
+          continue;
+        }
+        if (Array.isArray(value)) {
+          const serializedArray = serializeArrayParam({
+            allowReserved,
+            explode: true,
+            name,
+            style: "form",
+            value,
+            ...array2
+          });
+          if (serializedArray)
+            search.push(serializedArray);
+        } else if (typeof value === "object") {
+          const serializedObject = serializeObjectParam({
+            allowReserved,
+            explode: true,
+            name,
+            style: "deepObject",
+            value,
+            ...object2
+          });
+          if (serializedObject)
+            search.push(serializedObject);
+        } else {
+          const serializedPrimitive = serializePrimitiveParam({
+            allowReserved,
+            name,
+            value
+          });
+          if (serializedPrimitive)
+            search.push(serializedPrimitive);
+        }
+      }
+    }
+    return search.join("&");
+  };
+  return querySerializer;
+}, getParseAs = (contentType) => {
+  if (!contentType) {
+    return "stream";
+  }
+  const cleanContent = contentType.split(";")[0]?.trim();
+  if (!cleanContent) {
+    return;
+  }
+  if (cleanContent.startsWith("application/json") || cleanContent.endsWith("+json")) {
+    return "json";
+  }
+  if (cleanContent === "multipart/form-data") {
+    return "formData";
+  }
+  if (["application/", "audio/", "image/", "video/"].some((type) => cleanContent.startsWith(type))) {
+    return "blob";
+  }
+  if (cleanContent.startsWith("text/")) {
+    return "text";
+  }
+  return;
+}, checkForExistence = (options, name) => {
+  if (!name) {
+    return false;
+  }
+  if (options.headers.has(name) || options.query?.[name] || options.headers.get("Cookie")?.includes(`${name}=`)) {
+    return true;
+  }
+  return false;
+}, setAuthParams = async ({ security, ...options }) => {
+  for (const auth of security) {
+    if (checkForExistence(options, auth.name)) {
+      continue;
+    }
+    const token = await getAuthToken(auth, options.auth);
+    if (!token) {
+      continue;
+    }
+    const name = auth.name ?? "Authorization";
+    switch (auth.in) {
+      case "query":
+        if (!options.query) {
+          options.query = {};
+        }
+        options.query[name] = token;
+        break;
+      case "cookie":
+        options.headers.append("Cookie", `${name}=${token}`);
+        break;
+      case "header":
+      default:
+        options.headers.set(name, token);
+        break;
+    }
+  }
+}, buildUrl = (options) => getUrl({
+  baseUrl: options.baseUrl,
+  path: options.path,
+  query: options.query,
+  querySerializer: typeof options.querySerializer === "function" ? options.querySerializer : createQuerySerializer(options.querySerializer),
+  url: options.url
+}), mergeConfigs = (a, b) => {
+  const config2 = { ...a, ...b };
+  if (config2.baseUrl?.endsWith("/")) {
+    config2.baseUrl = config2.baseUrl.substring(0, config2.baseUrl.length - 1);
+  }
+  config2.headers = mergeHeaders(a.headers, b.headers);
+  return config2;
+}, mergeHeaders = (...headers) => {
+  const mergedHeaders = new Headers;
+  for (const header of headers) {
+    if (!header || typeof header !== "object") {
+      continue;
+    }
+    const iterator = header instanceof Headers ? header.entries() : Object.entries(header);
+    for (const [key, value] of iterator) {
+      if (value === null) {
+        mergedHeaders.delete(key);
+      } else if (Array.isArray(value)) {
+        for (const v of value) {
+          mergedHeaders.append(key, v);
+        }
+      } else if (value !== undefined) {
+        mergedHeaders.set(key, typeof value === "object" ? JSON.stringify(value) : value);
+      }
+    }
+  }
+  return mergedHeaders;
+}, createInterceptors = () => ({
+  error: new Interceptors,
+  request: new Interceptors,
+  response: new Interceptors
+}), defaultQuerySerializer, defaultHeaders, createConfig = (override = {}) => ({
+  ...jsonBodySerializer,
+  headers: defaultHeaders,
+  parseAs: "auto",
+  querySerializer: defaultQuerySerializer,
+  ...override
+});
+var init_utils_gen2 = __esm(() => {
+  init_bodySerializer_gen();
+  init_utils_gen();
+  defaultQuerySerializer = createQuerySerializer({
+    allowReserved: false,
+    array: {
+      explode: true,
+      style: "form"
+    },
+    object: {
+      explode: true,
+      style: "deepObject"
+    }
+  });
+  defaultHeaders = {
+    "Content-Type": "application/json"
+  };
+});
+
+// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/client/client.gen.js
+var createClient = (config2 = {}) => {
+  let _config = mergeConfigs(createConfig(), config2);
+  const getConfig = () => ({ ..._config });
+  const setConfig = (config3) => {
+    _config = mergeConfigs(_config, config3);
+    return getConfig();
+  };
+  const interceptors = createInterceptors();
+  const beforeRequest = async (options) => {
+    const opts = {
+      ..._config,
+      ...options,
+      fetch: options.fetch ?? _config.fetch ?? globalThis.fetch,
+      headers: mergeHeaders(_config.headers, options.headers),
+      serializedBody: undefined
+    };
+    if (opts.security) {
+      await setAuthParams({
+        ...opts,
+        security: opts.security
+      });
+    }
+    if (opts.requestValidator) {
+      await opts.requestValidator(opts);
+    }
+    if (opts.body && opts.bodySerializer) {
+      opts.serializedBody = opts.bodySerializer(opts.body);
+    }
+    if (opts.serializedBody === undefined || opts.serializedBody === "") {
+      opts.headers.delete("Content-Type");
+    }
+    const url2 = buildUrl(opts);
+    return { opts, url: url2 };
+  };
+  const request = async (options) => {
+    const { opts, url: url2 } = await beforeRequest(options);
+    const requestInit = {
+      redirect: "follow",
+      ...opts,
+      body: opts.serializedBody
+    };
+    let request2 = new Request(url2, requestInit);
+    for (const fn of interceptors.request._fns) {
+      if (fn) {
+        request2 = await fn(request2, opts);
+      }
+    }
+    const _fetch = opts.fetch;
+    let response = await _fetch(request2);
+    for (const fn of interceptors.response._fns) {
+      if (fn) {
+        response = await fn(response, request2, opts);
+      }
+    }
+    const result = {
+      request: request2,
+      response
+    };
+    if (response.ok) {
+      if (response.status === 204 || response.headers.get("Content-Length") === "0") {
+        return opts.responseStyle === "data" ? {} : {
+          data: {},
+          ...result
+        };
+      }
+      const parseAs = (opts.parseAs === "auto" ? getParseAs(response.headers.get("Content-Type")) : opts.parseAs) ?? "json";
+      let data;
+      switch (parseAs) {
+        case "arrayBuffer":
+        case "blob":
+        case "formData":
+        case "json":
+        case "text":
+          data = await response[parseAs]();
+          break;
+        case "stream":
+          return opts.responseStyle === "data" ? response.body : {
+            data: response.body,
+            ...result
+          };
+      }
+      if (parseAs === "json") {
+        if (opts.responseValidator) {
+          await opts.responseValidator(data);
+        }
+        if (opts.responseTransformer) {
+          data = await opts.responseTransformer(data);
+        }
+      }
+      return opts.responseStyle === "data" ? data : {
+        data,
+        ...result
+      };
+    }
+    const textError = await response.text();
+    let jsonError;
+    try {
+      jsonError = JSON.parse(textError);
+    } catch {}
+    const error62 = jsonError ?? textError;
+    let finalError = error62;
+    for (const fn of interceptors.error._fns) {
+      if (fn) {
+        finalError = await fn(error62, response, request2, opts);
+      }
+    }
+    finalError = finalError || {};
+    if (opts.throwOnError) {
+      throw finalError;
+    }
+    return opts.responseStyle === "data" ? undefined : {
+      error: finalError,
+      ...result
+    };
+  };
+  const makeMethod = (method) => {
+    const fn = (options) => request({ ...options, method });
+    fn.sse = async (options) => {
+      const { opts, url: url2 } = await beforeRequest(options);
+      return createSseClient({
+        ...opts,
+        body: opts.body,
+        headers: opts.headers,
+        method,
+        url: url2
+      });
+    };
+    return fn;
+  };
+  return {
+    buildUrl,
+    connect: makeMethod("CONNECT"),
+    delete: makeMethod("DELETE"),
+    get: makeMethod("GET"),
+    getConfig,
+    head: makeMethod("HEAD"),
+    interceptors,
+    options: makeMethod("OPTIONS"),
+    patch: makeMethod("PATCH"),
+    post: makeMethod("POST"),
+    put: makeMethod("PUT"),
+    request,
+    setConfig,
+    trace: makeMethod("TRACE")
+  };
+};
+var init_client_gen = __esm(() => {
+  init_utils_gen2();
+});
+
+// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/core/params.gen.js
+var extraPrefixesMap, extraPrefixes;
+var init_params_gen = __esm(() => {
+  extraPrefixesMap = {
+    $body_: "body",
+    $headers_: "headers",
+    $path_: "path",
+    $query_: "query"
+  };
+  extraPrefixes = Object.entries(extraPrefixesMap);
+});
+
+// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/client/index.js
+var init_client = __esm(() => {
+  init_bodySerializer_gen();
+  init_params_gen();
+  init_client_gen();
+  init_utils_gen2();
+});
+
+// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/client.gen.js
+var client;
+var init_client_gen2 = __esm(() => {
+  init_client();
+  client = createClient(createConfig({
+    baseUrl: "http://localhost:4096"
+  }));
+});
+
+// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/gen/sdk.gen.js
+class _HeyApiClient {
+  _client = client;
+  constructor(args) {
+    if (args?.client) {
+      this._client = args.client;
+    }
+  }
+}
+var Global, Project, Pty, Config, Tool, Instance, Path, Vcs, Session, Command, Oauth, Provider, Find, File2, App, Auth, Mcp, Lsp, Formatter, Control, Tui, Event, OpencodeClient;
+var init_sdk_gen = __esm(() => {
+  init_client_gen2();
+  Global = class Global extends _HeyApiClient {
+    event(options) {
+      return (options?.client ?? this._client).get.sse({
+        url: "/global/event",
+        ...options
+      });
+    }
+  };
+  Project = class Project extends _HeyApiClient {
+    list(options) {
+      return (options?.client ?? this._client).get({
+        url: "/project",
+        ...options
+      });
+    }
+    current(options) {
+      return (options?.client ?? this._client).get({
+        url: "/project/current",
+        ...options
+      });
+    }
+  };
+  Pty = class Pty extends _HeyApiClient {
+    list(options) {
+      return (options?.client ?? this._client).get({
+        url: "/pty",
+        ...options
+      });
+    }
+    create(options) {
+      return (options?.client ?? this._client).post({
+        url: "/pty",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers
+        }
+      });
+    }
+    remove(options) {
+      return (options.client ?? this._client).delete({
+        url: "/pty/{id}",
+        ...options
+      });
+    }
+    get(options) {
+      return (options.client ?? this._client).get({
+        url: "/pty/{id}",
+        ...options
+      });
+    }
+    update(options) {
+      return (options.client ?? this._client).put({
+        url: "/pty/{id}",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers
+        }
+      });
+    }
+    connect(options) {
+      return (options.client ?? this._client).get({
+        url: "/pty/{id}/connect",
+        ...options
+      });
+    }
+  };
+  Config = class Config extends _HeyApiClient {
+    get(options) {
+      return (options?.client ?? this._client).get({
+        url: "/config",
+        ...options
+      });
+    }
+    update(options) {
+      return (options?.client ?? this._client).patch({
+        url: "/config",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers
+        }
+      });
+    }
+    providers(options) {
+      return (options?.client ?? this._client).get({
+        url: "/config/providers",
+        ...options
+      });
+    }
+  };
+  Tool = class Tool extends _HeyApiClient {
+    ids(options) {
+      return (options?.client ?? this._client).get({
+        url: "/experimental/tool/ids",
+        ...options
+      });
+    }
+    list(options) {
+      return (options.client ?? this._client).get({
+        url: "/experimental/tool",
+        ...options
+      });
+    }
+  };
+  Instance = class Instance extends _HeyApiClient {
+    dispose(options) {
+      return (options?.client ?? this._client).post({
+        url: "/instance/dispose",
+        ...options
+      });
+    }
+  };
+  Path = class Path extends _HeyApiClient {
+    get(options) {
+      return (options?.client ?? this._client).get({
+        url: "/path",
+        ...options
+      });
+    }
+  };
+  Vcs = class Vcs extends _HeyApiClient {
+    get(options) {
+      return (options?.client ?? this._client).get({
+        url: "/vcs",
+        ...options
+      });
+    }
+  };
+  Session = class Session extends _HeyApiClient {
+    list(options) {
+      return (options?.client ?? this._client).get({
+        url: "/session",
+        ...options
+      });
+    }
+    create(options) {
+      return (options?.client ?? this._client).post({
+        url: "/session",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers
+        }
+      });
+    }
+    status(options) {
+      return (options?.client ?? this._client).get({
+        url: "/session/status",
+        ...options
+      });
+    }
+    delete(options) {
+      return (options.client ?? this._client).delete({
+        url: "/session/{id}",
+        ...options
+      });
+    }
+    get(options) {
+      return (options.client ?? this._client).get({
+        url: "/session/{id}",
+        ...options
+      });
+    }
+    update(options) {
+      return (options.client ?? this._client).patch({
+        url: "/session/{id}",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers
+        }
+      });
+    }
+    children(options) {
+      return (options.client ?? this._client).get({
+        url: "/session/{id}/children",
+        ...options
+      });
+    }
+    todo(options) {
+      return (options.client ?? this._client).get({
+        url: "/session/{id}/todo",
+        ...options
+      });
+    }
+    init(options) {
+      return (options.client ?? this._client).post({
+        url: "/session/{id}/init",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers
+        }
+      });
+    }
+    fork(options) {
+      return (options.client ?? this._client).post({
+        url: "/session/{id}/fork",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers
+        }
+      });
+    }
+    abort(options) {
+      return (options.client ?? this._client).post({
+        url: "/session/{id}/abort",
+        ...options
+      });
+    }
+    unshare(options) {
+      return (options.client ?? this._client).delete({
+        url: "/session/{id}/share",
+        ...options
+      });
+    }
+    share(options) {
+      return (options.client ?? this._client).post({
+        url: "/session/{id}/share",
+        ...options
+      });
+    }
+    diff(options) {
+      return (options.client ?? this._client).get({
+        url: "/session/{id}/diff",
+        ...options
+      });
+    }
+    summarize(options) {
+      return (options.client ?? this._client).post({
+        url: "/session/{id}/summarize",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers
+        }
+      });
+    }
+    messages(options) {
+      return (options.client ?? this._client).get({
+        url: "/session/{id}/message",
+        ...options
+      });
+    }
+    prompt(options) {
+      return (options.client ?? this._client).post({
+        url: "/session/{id}/message",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers
+        }
+      });
+    }
+    message(options) {
+      return (options.client ?? this._client).get({
+        url: "/session/{id}/message/{messageID}",
+        ...options
+      });
+    }
+    promptAsync(options) {
+      return (options.client ?? this._client).post({
+        url: "/session/{id}/prompt_async",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers
+        }
+      });
+    }
+    command(options) {
+      return (options.client ?? this._client).post({
+        url: "/session/{id}/command",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers
+        }
+      });
+    }
+    shell(options) {
+      return (options.client ?? this._client).post({
+        url: "/session/{id}/shell",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers
+        }
+      });
+    }
+    revert(options) {
+      return (options.client ?? this._client).post({
+        url: "/session/{id}/revert",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers
+        }
+      });
+    }
+    unrevert(options) {
+      return (options.client ?? this._client).post({
+        url: "/session/{id}/unrevert",
+        ...options
+      });
+    }
+  };
+  Command = class Command extends _HeyApiClient {
+    list(options) {
+      return (options?.client ?? this._client).get({
+        url: "/command",
+        ...options
+      });
+    }
+  };
+  Oauth = class Oauth extends _HeyApiClient {
+    authorize(options) {
+      return (options.client ?? this._client).post({
+        url: "/provider/{id}/oauth/authorize",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers
+        }
+      });
+    }
+    callback(options) {
+      return (options.client ?? this._client).post({
+        url: "/provider/{id}/oauth/callback",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers
+        }
+      });
+    }
+  };
+  Provider = class Provider extends _HeyApiClient {
+    list(options) {
+      return (options?.client ?? this._client).get({
+        url: "/provider",
+        ...options
+      });
+    }
+    auth(options) {
+      return (options?.client ?? this._client).get({
+        url: "/provider/auth",
+        ...options
+      });
+    }
+    oauth = new Oauth({ client: this._client });
+  };
+  Find = class Find extends _HeyApiClient {
+    text(options) {
+      return (options.client ?? this._client).get({
+        url: "/find",
+        ...options
+      });
+    }
+    files(options) {
+      return (options.client ?? this._client).get({
+        url: "/find/file",
+        ...options
+      });
+    }
+    symbols(options) {
+      return (options.client ?? this._client).get({
+        url: "/find/symbol",
+        ...options
+      });
+    }
+  };
+  File2 = class File2 extends _HeyApiClient {
+    list(options) {
+      return (options.client ?? this._client).get({
+        url: "/file",
+        ...options
+      });
+    }
+    read(options) {
+      return (options.client ?? this._client).get({
+        url: "/file/content",
+        ...options
+      });
+    }
+    status(options) {
+      return (options?.client ?? this._client).get({
+        url: "/file/status",
+        ...options
+      });
+    }
+  };
+  App = class App extends _HeyApiClient {
+    log(options) {
+      return (options?.client ?? this._client).post({
+        url: "/log",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers
+        }
+      });
+    }
+    agents(options) {
+      return (options?.client ?? this._client).get({
+        url: "/agent",
+        ...options
+      });
+    }
+  };
+  Auth = class Auth extends _HeyApiClient {
+    remove(options) {
+      return (options.client ?? this._client).delete({
+        url: "/mcp/{name}/auth",
+        ...options
+      });
+    }
+    start(options) {
+      return (options.client ?? this._client).post({
+        url: "/mcp/{name}/auth",
+        ...options
+      });
+    }
+    callback(options) {
+      return (options.client ?? this._client).post({
+        url: "/mcp/{name}/auth/callback",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers
+        }
+      });
+    }
+    authenticate(options) {
+      return (options.client ?? this._client).post({
+        url: "/mcp/{name}/auth/authenticate",
+        ...options
+      });
+    }
+    set(options) {
+      return (options.client ?? this._client).put({
+        url: "/auth/{id}",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers
+        }
+      });
+    }
+  };
+  Mcp = class Mcp extends _HeyApiClient {
+    status(options) {
+      return (options?.client ?? this._client).get({
+        url: "/mcp",
+        ...options
+      });
+    }
+    add(options) {
+      return (options?.client ?? this._client).post({
+        url: "/mcp",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers
+        }
+      });
+    }
+    connect(options) {
+      return (options.client ?? this._client).post({
+        url: "/mcp/{name}/connect",
+        ...options
+      });
+    }
+    disconnect(options) {
+      return (options.client ?? this._client).post({
+        url: "/mcp/{name}/disconnect",
+        ...options
+      });
+    }
+    auth = new Auth({ client: this._client });
+  };
+  Lsp = class Lsp extends _HeyApiClient {
+    status(options) {
+      return (options?.client ?? this._client).get({
+        url: "/lsp",
+        ...options
+      });
+    }
+  };
+  Formatter = class Formatter extends _HeyApiClient {
+    status(options) {
+      return (options?.client ?? this._client).get({
+        url: "/formatter",
+        ...options
+      });
+    }
+  };
+  Control = class Control extends _HeyApiClient {
+    next(options) {
+      return (options?.client ?? this._client).get({
+        url: "/tui/control/next",
+        ...options
+      });
+    }
+    response(options) {
+      return (options?.client ?? this._client).post({
+        url: "/tui/control/response",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers
+        }
+      });
+    }
+  };
+  Tui = class Tui extends _HeyApiClient {
+    appendPrompt(options) {
+      return (options?.client ?? this._client).post({
+        url: "/tui/append-prompt",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers
+        }
+      });
+    }
+    openHelp(options) {
+      return (options?.client ?? this._client).post({
+        url: "/tui/open-help",
+        ...options
+      });
+    }
+    openSessions(options) {
+      return (options?.client ?? this._client).post({
+        url: "/tui/open-sessions",
+        ...options
+      });
+    }
+    openThemes(options) {
+      return (options?.client ?? this._client).post({
+        url: "/tui/open-themes",
+        ...options
+      });
+    }
+    openModels(options) {
+      return (options?.client ?? this._client).post({
+        url: "/tui/open-models",
+        ...options
+      });
+    }
+    submitPrompt(options) {
+      return (options?.client ?? this._client).post({
+        url: "/tui/submit-prompt",
+        ...options
+      });
+    }
+    clearPrompt(options) {
+      return (options?.client ?? this._client).post({
+        url: "/tui/clear-prompt",
+        ...options
+      });
+    }
+    executeCommand(options) {
+      return (options?.client ?? this._client).post({
+        url: "/tui/execute-command",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers
+        }
+      });
+    }
+    showToast(options) {
+      return (options?.client ?? this._client).post({
+        url: "/tui/show-toast",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers
+        }
+      });
+    }
+    publish(options) {
+      return (options?.client ?? this._client).post({
+        url: "/tui/publish",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers
+        }
+      });
+    }
+    control = new Control({ client: this._client });
+  };
+  Event = class Event extends _HeyApiClient {
+    subscribe(options) {
+      return (options?.client ?? this._client).get.sse({
+        url: "/event",
+        ...options
+      });
+    }
+  };
+  OpencodeClient = class OpencodeClient extends _HeyApiClient {
+    postSessionIdPermissionsPermissionId(options) {
+      return (options.client ?? this._client).post({
+        url: "/session/{id}/permissions/{permissionID}",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers
+        }
+      });
+    }
+    global = new Global({ client: this._client });
+    project = new Project({ client: this._client });
+    pty = new Pty({ client: this._client });
+    config = new Config({ client: this._client });
+    tool = new Tool({ client: this._client });
+    instance = new Instance({ client: this._client });
+    path = new Path({ client: this._client });
+    vcs = new Vcs({ client: this._client });
+    session = new Session({ client: this._client });
+    command = new Command({ client: this._client });
+    provider = new Provider({ client: this._client });
+    find = new Find({ client: this._client });
+    file = new File2({ client: this._client });
+    app = new App({ client: this._client });
+    mcp = new Mcp({ client: this._client });
+    lsp = new Lsp({ client: this._client });
+    formatter = new Formatter({ client: this._client });
+    tui = new Tui({ client: this._client });
+    auth = new Auth({ client: this._client });
+    event = new Event({ client: this._client });
+  };
+});
+
+// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/error-interceptor.js
+function wrapClientError(error62, response, request, opts) {
+  if (!opts?.throwOnError)
+    return error62;
+  if (error62 instanceof Error)
+    return error62;
+  if (typeof error62 === "object" && error62 !== null && Object.keys(error62).length > 0) {
+    const obj = error62;
+    const message = typeof obj.data?.message === "string" && obj.data.message || typeof obj.message === "string" && obj.message || typeof obj.name === "string" && obj.name || describe3(request, response);
+    return new Error(message, { cause: { body: error62, status: response?.status } });
+  }
+  if (typeof error62 === "string" && error62.length > 0) {
+    return new Error(error62, { cause: { body: error62, status: response?.status } });
+  }
+  const reason = response ? "(empty response body)" : "network error (no response)";
+  return new Error(`opencode server ${describe3(request, response)}: ${reason}`, {
+    cause: { body: error62, status: response?.status }
+  });
+}
+function describe3(request, response) {
+  const method = request?.method ?? "?";
+  const url2 = request?.url ?? "?";
+  const status = response?.status;
+  const statusText = response?.statusText;
+  return `${method} ${url2}${status ? " \u2192 " + status : ""}${statusText ? " " + statusText : ""}`;
+}
+
+// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/client.js
+function pick2(value, fallback) {
+  if (!value)
+    return;
+  if (!fallback)
+    return value;
+  if (value === fallback)
+    return fallback;
+  if (value === encodeURIComponent(fallback))
+    return fallback;
+  return value;
+}
+function rewrite(request, directory) {
+  if (request.method !== "GET" && request.method !== "HEAD")
+    return request;
+  const value = pick2(request.headers.get("x-opencode-directory"), directory);
+  if (!value)
+    return request;
+  const url2 = new URL(request.url);
+  if (!url2.searchParams.has("directory")) {
+    url2.searchParams.set("directory", value);
+  }
+  const next = new Request(url2, request);
+  next.headers.delete("x-opencode-directory");
+  return next;
+}
+function createOpencodeClient(config2) {
+  if (!config2?.fetch) {
+    const customFetch = (req) => {
+      req.timeout = false;
+      return fetch(req);
+    };
+    config2 = {
+      ...config2,
+      fetch: customFetch
+    };
+  }
+  if (config2?.directory) {
+    config2.headers = {
+      ...config2.headers,
+      "x-opencode-directory": encodeURIComponent(config2.directory)
+    };
+  }
+  const client2 = createClient(config2);
+  client2.interceptors.request.use((request) => rewrite(request, config2?.directory));
+  client2.interceptors.error.use(wrapClientError);
+  return new OpencodeClient({ client: client2 });
+}
+var init_client2 = __esm(() => {
+  init_client_gen();
+  init_sdk_gen();
+  init_types_gen();
+});
+
+// node_modules/.bun/isexe@2.0.0/node_modules/isexe/windows.js
+var require_windows = __commonJS((exports, module) => {
+  module.exports = isexe;
+  isexe.sync = sync;
+  var fs2 = __require("fs");
+  function checkPathExt(path4, options) {
+    var pathext = options.pathExt !== undefined ? options.pathExt : process.env.PATHEXT;
+    if (!pathext) {
+      return true;
+    }
+    pathext = pathext.split(";");
+    if (pathext.indexOf("") !== -1) {
+      return true;
+    }
+    for (var i = 0;i < pathext.length; i++) {
+      var p = pathext[i].toLowerCase();
+      if (p && path4.substr(-p.length).toLowerCase() === p) {
+        return true;
+      }
+    }
+    return false;
+  }
+  function checkStat(stat, path4, options) {
+    if (!stat.isSymbolicLink() && !stat.isFile()) {
+      return false;
+    }
+    return checkPathExt(path4, options);
+  }
+  function isexe(path4, options, cb) {
+    fs2.stat(path4, function(er, stat) {
+      cb(er, er ? false : checkStat(stat, path4, options));
+    });
+  }
+  function sync(path4, options) {
+    return checkStat(fs2.statSync(path4), path4, options);
+  }
+});
+
+// node_modules/.bun/isexe@2.0.0/node_modules/isexe/mode.js
+var require_mode = __commonJS((exports, module) => {
+  module.exports = isexe;
+  isexe.sync = sync;
+  var fs2 = __require("fs");
+  function isexe(path4, options, cb) {
+    fs2.stat(path4, function(er, stat) {
+      cb(er, er ? false : checkStat(stat, options));
+    });
+  }
+  function sync(path4, options) {
+    return checkStat(fs2.statSync(path4), options);
+  }
+  function checkStat(stat, options) {
+    return stat.isFile() && checkMode(stat, options);
+  }
+  function checkMode(stat, options) {
+    var mod = stat.mode;
+    var uid = stat.uid;
+    var gid = stat.gid;
+    var myUid = options.uid !== undefined ? options.uid : process.getuid && process.getuid();
+    var myGid = options.gid !== undefined ? options.gid : process.getgid && process.getgid();
+    var u = parseInt("100", 8);
+    var g = parseInt("010", 8);
+    var o = parseInt("001", 8);
+    var ug = u | g;
+    var ret = mod & o || mod & g && gid === myGid || mod & u && uid === myUid || mod & ug && myUid === 0;
+    return ret;
+  }
+});
+
+// node_modules/.bun/isexe@2.0.0/node_modules/isexe/index.js
+var require_isexe = __commonJS((exports, module) => {
+  var fs2 = __require("fs");
+  var core2;
+  if (process.platform === "win32" || global.TESTING_WINDOWS) {
+    core2 = require_windows();
+  } else {
+    core2 = require_mode();
+  }
+  module.exports = isexe;
+  isexe.sync = sync;
+  function isexe(path4, options, cb) {
+    if (typeof options === "function") {
+      cb = options;
+      options = {};
+    }
+    if (!cb) {
+      if (typeof Promise !== "function") {
+        throw new TypeError("callback not provided");
+      }
+      return new Promise(function(resolve3, reject) {
+        isexe(path4, options || {}, function(er, is) {
+          if (er) {
+            reject(er);
+          } else {
+            resolve3(is);
+          }
+        });
+      });
+    }
+    core2(path4, options || {}, function(er, is) {
+      if (er) {
+        if (er.code === "EACCES" || options && options.ignoreErrors) {
+          er = null;
+          is = false;
+        }
+      }
+      cb(er, is);
+    });
+  }
+  function sync(path4, options) {
+    try {
+      return core2.sync(path4, options || {});
+    } catch (er) {
+      if (options && options.ignoreErrors || er.code === "EACCES") {
+        return false;
+      } else {
+        throw er;
+      }
+    }
+  }
+});
+
+// node_modules/.bun/which@2.0.2/node_modules/which/which.js
+var require_which = __commonJS((exports, module) => {
+  var isWindows = process.platform === "win32" || process.env.OSTYPE === "cygwin" || process.env.OSTYPE === "msys";
+  var path4 = __require("path");
+  var COLON = isWindows ? ";" : ":";
+  var isexe = require_isexe();
+  var getNotFoundError = (cmd) => Object.assign(new Error(`not found: ${cmd}`), { code: "ENOENT" });
+  var getPathInfo = (cmd, opt) => {
+    const colon = opt.colon || COLON;
+    const pathEnv = cmd.match(/\//) || isWindows && cmd.match(/\\/) ? [""] : [
+      ...isWindows ? [process.cwd()] : [],
+      ...(opt.path || process.env.PATH || "").split(colon)
+    ];
+    const pathExtExe = isWindows ? opt.pathExt || process.env.PATHEXT || ".EXE;.CMD;.BAT;.COM" : "";
+    const pathExt = isWindows ? pathExtExe.split(colon) : [""];
+    if (isWindows) {
+      if (cmd.indexOf(".") !== -1 && pathExt[0] !== "")
+        pathExt.unshift("");
+    }
+    return {
+      pathEnv,
+      pathExt,
+      pathExtExe
+    };
+  };
+  var which2 = (cmd, opt, cb) => {
+    if (typeof opt === "function") {
+      cb = opt;
+      opt = {};
+    }
+    if (!opt)
+      opt = {};
+    const { pathEnv, pathExt, pathExtExe } = getPathInfo(cmd, opt);
+    const found = [];
+    const step = (i) => new Promise((resolve3, reject) => {
+      if (i === pathEnv.length)
+        return opt.all && found.length ? resolve3(found) : reject(getNotFoundError(cmd));
+      const ppRaw = pathEnv[i];
+      const pathPart = /^".*"$/.test(ppRaw) ? ppRaw.slice(1, -1) : ppRaw;
+      const pCmd = path4.join(pathPart, cmd);
+      const p = !pathPart && /^\.[\\\/]/.test(cmd) ? cmd.slice(0, 2) + pCmd : pCmd;
+      resolve3(subStep(p, i, 0));
+    });
+    const subStep = (p, i, ii) => new Promise((resolve3, reject) => {
+      if (ii === pathExt.length)
+        return resolve3(step(i + 1));
+      const ext = pathExt[ii];
+      isexe(p + ext, { pathExt: pathExtExe }, (er, is) => {
+        if (!er && is) {
+          if (opt.all)
+            found.push(p + ext);
+          else
+            return resolve3(p + ext);
+        }
+        return resolve3(subStep(p, i, ii + 1));
+      });
+    });
+    return cb ? step(0).then((res) => cb(null, res), cb) : step(0);
+  };
+  var whichSync = (cmd, opt) => {
+    opt = opt || {};
+    const { pathEnv, pathExt, pathExtExe } = getPathInfo(cmd, opt);
+    const found = [];
+    for (let i = 0;i < pathEnv.length; i++) {
+      const ppRaw = pathEnv[i];
+      const pathPart = /^".*"$/.test(ppRaw) ? ppRaw.slice(1, -1) : ppRaw;
+      const pCmd = path4.join(pathPart, cmd);
+      const p = !pathPart && /^\.[\\\/]/.test(cmd) ? cmd.slice(0, 2) + pCmd : pCmd;
+      for (let j = 0;j < pathExt.length; j++) {
+        const cur = p + pathExt[j];
+        try {
+          const is = isexe.sync(cur, { pathExt: pathExtExe });
+          if (is) {
+            if (opt.all)
+              found.push(cur);
+            else
+              return cur;
+          }
+        } catch (ex) {}
+      }
+    }
+    if (opt.all && found.length)
+      return found;
+    if (opt.nothrow)
+      return null;
+    throw getNotFoundError(cmd);
+  };
+  module.exports = which2;
+  which2.sync = whichSync;
+});
+
+// node_modules/.bun/path-key@3.1.1/node_modules/path-key/index.js
+var require_path_key = __commonJS((exports, module) => {
+  var pathKey = (options = {}) => {
+    const environment2 = options.env || process.env;
+    const platform = options.platform || process.platform;
+    if (platform !== "win32") {
+      return "PATH";
+    }
+    return Object.keys(environment2).reverse().find((key) => key.toUpperCase() === "PATH") || "Path";
+  };
+  module.exports = pathKey;
+  module.exports.default = pathKey;
+});
+
+// node_modules/.bun/cross-spawn@7.0.6/node_modules/cross-spawn/lib/util/resolveCommand.js
+var require_resolveCommand = __commonJS((exports, module) => {
+  var path4 = __require("path");
+  var which2 = require_which();
+  var getPathKey = require_path_key();
+  function resolveCommandAttempt(parsed, withoutPathExt) {
+    const env = parsed.options.env || process.env;
+    const cwd = process.cwd();
+    const hasCustomCwd = parsed.options.cwd != null;
+    const shouldSwitchCwd = hasCustomCwd && process.chdir !== undefined && !process.chdir.disabled;
+    if (shouldSwitchCwd) {
+      try {
+        process.chdir(parsed.options.cwd);
+      } catch (err) {}
+    }
+    let resolved;
+    try {
+      resolved = which2.sync(parsed.command, {
+        path: env[getPathKey({ env })],
+        pathExt: withoutPathExt ? path4.delimiter : undefined
+      });
+    } catch (e) {} finally {
+      if (shouldSwitchCwd) {
+        process.chdir(cwd);
+      }
+    }
+    if (resolved) {
+      resolved = path4.resolve(hasCustomCwd ? parsed.options.cwd : "", resolved);
+    }
+    return resolved;
+  }
+  function resolveCommand(parsed) {
+    return resolveCommandAttempt(parsed) || resolveCommandAttempt(parsed, true);
+  }
+  module.exports = resolveCommand;
+});
+
+// node_modules/.bun/cross-spawn@7.0.6/node_modules/cross-spawn/lib/util/escape.js
+var require_escape = __commonJS((exports, module) => {
+  var metaCharsRegExp = /([()\][%!^"`<>&|;, *?])/g;
+  function escapeCommand(arg) {
+    arg = arg.replace(metaCharsRegExp, "^$1");
+    return arg;
+  }
+  function escapeArgument(arg, doubleEscapeMetaChars) {
+    arg = `${arg}`;
+    arg = arg.replace(/(?=(\\+?)?)\1"/g, "$1$1\\\"");
+    arg = arg.replace(/(?=(\\+?)?)\1$/, "$1$1");
+    arg = `"${arg}"`;
+    arg = arg.replace(metaCharsRegExp, "^$1");
+    if (doubleEscapeMetaChars) {
+      arg = arg.replace(metaCharsRegExp, "^$1");
+    }
+    return arg;
+  }
+  exports.command = escapeCommand;
+  exports.argument = escapeArgument;
+});
+
+// node_modules/.bun/shebang-regex@3.0.0/node_modules/shebang-regex/index.js
+var require_shebang_regex = __commonJS((exports, module) => {
+  module.exports = /^#!(.*)/;
+});
+
+// node_modules/.bun/shebang-command@2.0.0/node_modules/shebang-command/index.js
+var require_shebang_command = __commonJS((exports, module) => {
+  var shebangRegex = require_shebang_regex();
+  module.exports = (string4 = "") => {
+    const match = string4.match(shebangRegex);
+    if (!match) {
+      return null;
+    }
+    const [path4, argument] = match[0].replace(/#! ?/, "").split(" ");
+    const binary = path4.split("/").pop();
+    if (binary === "env") {
+      return argument;
+    }
+    return argument ? `${binary} ${argument}` : binary;
+  };
+});
+
+// node_modules/.bun/cross-spawn@7.0.6/node_modules/cross-spawn/lib/util/readShebang.js
+var require_readShebang = __commonJS((exports, module) => {
+  var fs2 = __require("fs");
+  var shebangCommand = require_shebang_command();
+  function readShebang(command) {
+    const size = 150;
+    const buffer = Buffer.alloc(size);
+    let fd;
+    try {
+      fd = fs2.openSync(command, "r");
+      fs2.readSync(fd, buffer, 0, size, 0);
+      fs2.closeSync(fd);
+    } catch (e) {}
+    return shebangCommand(buffer.toString());
+  }
+  module.exports = readShebang;
+});
+
+// node_modules/.bun/cross-spawn@7.0.6/node_modules/cross-spawn/lib/parse.js
+var require_parse = __commonJS((exports, module) => {
+  var path4 = __require("path");
+  var resolveCommand = require_resolveCommand();
+  var escape = require_escape();
+  var readShebang = require_readShebang();
+  var isWin = process.platform === "win32";
+  var isExecutableRegExp = /\.(?:com|exe)$/i;
+  var isCmdShimRegExp = /node_modules[\\/].bin[\\/][^\\/]+\.cmd$/i;
+  function detectShebang(parsed) {
+    parsed.file = resolveCommand(parsed);
+    const shebang = parsed.file && readShebang(parsed.file);
+    if (shebang) {
+      parsed.args.unshift(parsed.file);
+      parsed.command = shebang;
+      return resolveCommand(parsed);
+    }
+    return parsed.file;
+  }
+  function parseNonShell(parsed) {
+    if (!isWin) {
+      return parsed;
+    }
+    const commandFile = detectShebang(parsed);
+    const needsShell = !isExecutableRegExp.test(commandFile);
+    if (parsed.options.forceShell || needsShell) {
+      const needsDoubleEscapeMetaChars = isCmdShimRegExp.test(commandFile);
+      parsed.command = path4.normalize(parsed.command);
+      parsed.command = escape.command(parsed.command);
+      parsed.args = parsed.args.map((arg) => escape.argument(arg, needsDoubleEscapeMetaChars));
+      const shellCommand = [parsed.command].concat(parsed.args).join(" ");
+      parsed.args = ["/d", "/s", "/c", `"${shellCommand}"`];
+      parsed.command = process.env.comspec || "cmd.exe";
+      parsed.options.windowsVerbatimArguments = true;
+    }
+    return parsed;
+  }
+  function parse7(command, args, options) {
+    if (args && !Array.isArray(args)) {
+      options = args;
+      args = null;
+    }
+    args = args ? args.slice(0) : [];
+    options = Object.assign({}, options);
+    const parsed = {
+      command,
+      args,
+      options,
+      file: undefined,
+      original: {
+        command,
+        args
+      }
+    };
+    return options.shell ? parsed : parseNonShell(parsed);
+  }
+  module.exports = parse7;
+});
+
+// node_modules/.bun/cross-spawn@7.0.6/node_modules/cross-spawn/lib/enoent.js
+var require_enoent = __commonJS((exports, module) => {
+  var isWin = process.platform === "win32";
+  function notFoundError(original, syscall) {
+    return Object.assign(new Error(`${syscall} ${original.command} ENOENT`), {
+      code: "ENOENT",
+      errno: "ENOENT",
+      syscall: `${syscall} ${original.command}`,
+      path: original.command,
+      spawnargs: original.args
+    });
+  }
+  function hookChildProcess(cp, parsed) {
+    if (!isWin) {
+      return;
+    }
+    const originalEmit = cp.emit;
+    cp.emit = function(name, arg1) {
+      if (name === "exit") {
+        const err = verifyENOENT(arg1, parsed);
+        if (err) {
+          return originalEmit.call(cp, "error", err);
+        }
+      }
+      return originalEmit.apply(cp, arguments);
+    };
+  }
+  function verifyENOENT(status, parsed) {
+    if (isWin && status === 1 && !parsed.file) {
+      return notFoundError(parsed.original, "spawn");
+    }
+    return null;
+  }
+  function verifyENOENTSync(status, parsed) {
+    if (isWin && status === 1 && !parsed.file) {
+      return notFoundError(parsed.original, "spawnSync");
+    }
+    return null;
+  }
+  module.exports = {
+    hookChildProcess,
+    verifyENOENT,
+    verifyENOENTSync,
+    notFoundError
+  };
+});
+
+// node_modules/.bun/cross-spawn@7.0.6/node_modules/cross-spawn/index.js
+var require_cross_spawn = __commonJS((exports, module) => {
+  var cp = __require("child_process");
+  var parse7 = require_parse();
+  var enoent = require_enoent();
+  function spawn3(command, args, options) {
+    const parsed = parse7(command, args, options);
+    const spawned = cp.spawn(parsed.command, parsed.args, parsed.options);
+    enoent.hookChildProcess(spawned, parsed);
+    return spawned;
+  }
+  function spawnSync2(command, args, options) {
+    const parsed = parse7(command, args, options);
+    const result = cp.spawnSync(parsed.command, parsed.args, parsed.options);
+    result.error = result.error || enoent.verifyENOENTSync(result.status, parsed);
+    return result;
+  }
+  module.exports = spawn3;
+  module.exports.spawn = spawn3;
+  module.exports.sync = spawnSync2;
+  module.exports._parse = parse7;
+  module.exports._enoent = enoent;
+});
+
+// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/process.js
+var init_process = () => {};
+
+// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/server.js
+var import_cross_spawn;
+var init_server = __esm(() => {
+  init_process();
+  import_cross_spawn = __toESM(require_cross_spawn(), 1);
+});
+
+// node_modules/.bun/@opencode-ai+sdk@1.18.31/node_modules/@opencode-ai/sdk/dist/index.js
+var init_dist = __esm(() => {
+  init_client2();
+  init_server();
+  init_client2();
+  init_server();
+});
+
+// packages/omo-opencode/src/features/claude-code-session-state/state.ts
+var subagentSessions, syncSubagentSessions, handedBackSyncSessions, registeredAgentNames, registeredAgentAliases, sessionAgentMap;
+var init_state = __esm(() => {
+  init_agent_display_names();
+  subagentSessions = new Set;
+  syncSubagentSessions = new Set;
+  handedBackSyncSessions = new Set;
+  registeredAgentNames = new Set;
+  registeredAgentAliases = new Map;
+  sessionAgentMap = new Map;
+});
+
+// packages/omo-opencode/src/shared/opencode-server-auth.ts
+function getServerBasicAuthHeader() {
+  const password = process.env.OPENCODE_SERVER_PASSWORD;
+  if (!password) {
+    return;
+  }
+  const username = process.env.OPENCODE_SERVER_USERNAME ?? "opencode";
+  const token = Buffer.from(`${username}:${password}`, "utf8").toString("base64");
+  return `Basic ${token}`;
+}
+function isRequestFetch(value) {
+  return typeof value === "function";
+}
+function wrapRequestFetch(baseFetch, auth) {
+  return async (request) => {
+    const headers = new Headers(request.headers);
+    headers.set("Authorization", auth);
+    return baseFetch(new Request(request, { headers }));
+  };
+}
+function getInternalClient(client3) {
+  if (!isRecord(client3)) {
+    return null;
+  }
+  const internal = client3["_client"];
+  return isRecord(internal) ? internal : null;
+}
+function tryInjectViaSetConfigHeaders(internal, auth) {
+  const setConfig = internal["setConfig"];
+  if (typeof setConfig !== "function") {
+    return false;
+  }
+  setConfig({
+    headers: {
+      Authorization: auth
+    }
+  });
+  return true;
+}
+function tryInjectViaInterceptors(internal, auth) {
+  const interceptors = internal["interceptors"];
+  if (!isRecord(interceptors)) {
+    return false;
+  }
+  const requestInterceptors = interceptors["request"];
+  if (!isRecord(requestInterceptors)) {
+    return false;
+  }
+  const use = requestInterceptors["use"];
+  if (typeof use !== "function") {
+    return false;
+  }
+  use.call(requestInterceptors, (request) => {
+    if (!request.headers.get("Authorization")) {
+      request.headers.set("Authorization", auth);
+    }
+    return request;
+  });
+  return true;
+}
+function tryInjectViaFetchWrapper(internal, auth) {
+  const getConfig = internal["getConfig"];
+  const setConfig = internal["setConfig"];
+  if (typeof getConfig !== "function" || typeof setConfig !== "function") {
+    return false;
+  }
+  const config2 = getConfig();
+  if (!isRecord(config2)) {
+    return false;
+  }
+  const fetchValue = config2["fetch"];
+  if (!isRequestFetch(fetchValue)) {
+    return false;
+  }
+  setConfig({
+    fetch: wrapRequestFetch(fetchValue, auth)
+  });
+  return true;
+}
+function tryInjectViaMutableInternalConfig(internal, auth) {
+  const configValue = internal["_config"];
+  if (!isRecord(configValue)) {
+    return false;
+  }
+  const fetchValue = configValue["fetch"];
+  if (!isRequestFetch(fetchValue)) {
+    return false;
+  }
+  configValue["fetch"] = wrapRequestFetch(fetchValue, auth);
+  return true;
+}
+function tryInjectViaTopLevelFetch(client3, auth) {
+  if (!isRecord(client3)) {
+    return false;
+  }
+  const fetchValue = client3["fetch"];
+  if (!isRequestFetch(fetchValue)) {
+    return false;
+  }
+  client3["fetch"] = wrapRequestFetch(fetchValue, auth);
+  return true;
+}
+function injectServerAuthIntoClient(client3) {
+  const auth = getServerBasicAuthHeader();
+  if (!auth) {
+    return;
+  }
+  try {
+    const internal = getInternalClient(client3);
+    if (internal) {
+      const injectedHeaders = tryInjectViaSetConfigHeaders(internal, auth);
+      const injectedInterceptors = tryInjectViaInterceptors(internal, auth);
+      const injectedFetch = tryInjectViaFetchWrapper(internal, auth);
+      const injectedMutable = tryInjectViaMutableInternalConfig(internal, auth);
+      const injected2 = injectedHeaders || injectedInterceptors || injectedFetch || injectedMutable;
+      if (!injected2) {
+        log2("[opencode-server-auth] OPENCODE_SERVER_PASSWORD is set but SDK client structure is incompatible", {
+          keys: Object.keys(internal)
+        });
+      }
+      return;
+    }
+    const injected = tryInjectViaTopLevelFetch(client3, auth);
+    if (!injected) {
+      log2("[opencode-server-auth] OPENCODE_SERVER_PASSWORD is set but no compatible SDK client found");
+    }
+  } catch (error62) {
+    const message = error62 instanceof Error ? error62.message : String(error62);
+    log2("[opencode-server-auth] Failed to inject server auth", { message });
+  }
+}
+var init_opencode_server_auth = __esm(() => {
+  init_src();
+  init_logger2();
+});
+
+// packages/omo-opencode/src/shared/live-server-route.ts
+function getFetch() {
+  return fetchImplementationForTesting ?? fetch;
+}
+async function probe(registration) {
+  if (!registration.serverUrl) {
+    registration.available = false;
+    return false;
+  }
+  const probeUrl = new URL("/global/health", registration.serverUrl);
+  const authHeader = getServerBasicAuthHeader();
+  const headers = authHeader ? { Authorization: authHeader } : {};
+  try {
+    const controller = new AbortController;
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("probe timeout")), PROBE_ABORT_MS));
+    const timeoutId = setTimeout(() => controller.abort(), PROBE_ABORT_MS);
+    let response;
+    try {
+      response = await Promise.race([
+        getFetch()(probeUrl, { headers, signal: controller.signal }),
+        timeoutPromise
+      ]);
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    if (response.status === 401 || response.status === 403) {
+      if (!registration.warnedOnce) {
+        registration.warnedOnce = true;
+        log2("[live-server-route] listener requires auth we cannot satisfy; live wake routing disabled");
+      }
+      registration.available = false;
+      registration.probeTimestamp = Date.now();
+      return false;
+    }
+    registration.available = response.ok;
+    registration.probeTimestamp = Date.now();
+    return registration.available;
+  } catch {
+    registration.available = false;
+    registration.probeTimestamp = Date.now();
+    return false;
+  }
+}
+async function probeSessionAffinity(registration, sessionID) {
+  if (!registration.serverUrl) {
+    return;
+  }
+  const probeUrl = new URL(`/session/${sessionID}`, registration.serverUrl);
+  const authHeader = getServerBasicAuthHeader();
+  const headers = authHeader ? { Authorization: authHeader } : {};
+  try {
+    const controller = new AbortController;
+    const timeoutId = setTimeout(() => controller.abort(), PROBE_ABORT_MS);
+    let response;
+    try {
+      response = await getFetch()(probeUrl, { headers, signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    if (response.ok) {
+      setSessionAffinity(registration, sessionID, true);
+      return true;
+    }
+    if (response.status === 404) {
+      setSessionAffinity(registration, sessionID, false);
+      log2("[live-server-route] live listener does not own session; falling back to in-process client", { sessionID });
+      return false;
+    }
+    return;
+  } catch {
+    return;
+  }
+}
+function setSessionAffinity(registration, sessionID, owned) {
+  const now = Date.now();
+  for (const [key, entry] of registration.sessionAffinity) {
+    if (now - entry.timestamp >= AFFINITY_TTL_MS) {
+      registration.sessionAffinity.delete(key);
+    }
+  }
+  registration.sessionAffinity.set(sessionID, { owned, timestamp: now });
+}
+function getFreshSessionAffinity(registration, sessionID) {
+  const entry = registration.sessionAffinity.get(sessionID);
+  if (!entry || Date.now() - entry.timestamp >= AFFINITY_TTL_MS) {
+    return;
+  }
+  return entry.owned;
+}
+async function resolveSessionAffinity(registration, sessionID) {
+  const cached2 = getFreshSessionAffinity(registration, sessionID);
+  if (cached2 !== undefined) {
+    return cached2;
+  }
+  let inFlight = registration.inFlightAffinity.get(sessionID);
+  if (!inFlight) {
+    inFlight = probeSessionAffinity(registration, sessionID).finally(() => {
+      registration.inFlightAffinity.delete(sessionID);
+    });
+    registration.inFlightAffinity.set(sessionID, inFlight);
+  }
+  return inFlight;
+}
+function getFreshProbeAvailability(registration) {
+  const available = registration.available;
+  if (available === undefined || Date.now() - registration.probeTimestamp >= PROBE_TTL_MS) {
+    return;
+  }
+  return available;
+}
+async function resolveAvailability(registration) {
+  const freshAvailability = getFreshProbeAvailability(registration);
+  if (freshAvailability !== undefined) {
+    return freshAvailability;
+  }
+  if (!registration.inFlightProbe) {
+    registration.inFlightProbe = probe(registration).finally(() => {
+      registration.inFlightProbe = undefined;
+    });
+  }
+  return registration.inFlightProbe;
+}
+function getOrBuildLiveClient(registration) {
+  if (registration.liveClient) {
+    return registration.liveClient;
+  }
+  if (!registration.serverUrl) {
+    return;
+  }
+  const client3 = createOpencodeClient({
+    baseUrl: registration.serverUrl.toString(),
+    directory: registration.directory
+  });
+  injectServerAuthIntoClient(client3);
+  registration.liveClient = client3;
+  return registration.liveClient;
+}
+function tryResolveDispatchClientSync(client3, sessionID) {
+  const registration = registrations.get(client3);
+  if (!registration) {
+    return { client: client3, route: "in-process", reason: "identity" };
+  }
+  if (liveParentWakeRoutingDisabled) {
+    return { client: client3, route: "in-process", reason: "flag" };
+  }
+  if (subagentSessions.has(sessionID)) {
+    return { client: client3, route: "in-process", reason: "child" };
+  }
+  if (!registration.serverUrl) {
+    return { client: client3, route: "in-process", reason: "unavailable" };
+  }
+  const freshAvailability = getFreshProbeAvailability(registration);
+  if (freshAvailability === undefined) {
+    return;
+  }
+  if (!freshAvailability) {
+    return { client: client3, route: "in-process", reason: "unavailable" };
+  }
+  const cachedAffinity = getFreshSessionAffinity(registration, sessionID);
+  if (cachedAffinity === undefined) {
+    return;
+  }
+  if (!cachedAffinity) {
+    return { client: client3, route: "in-process", reason: "affinity" };
+  }
+  const resolvedLiveClient = getOrBuildLiveClient(registration);
+  if (!resolvedLiveClient) {
+    return { client: client3, route: "in-process", reason: "unavailable" };
+  }
+  return { client: resolvedLiveClient, route: "live", reason: "live" };
+}
+async function resolveDispatchClient(client3, sessionID) {
+  const syncResult = tryResolveDispatchClientSync(client3, sessionID);
+  if (syncResult) {
+    return syncResult;
+  }
+  const registration = registrations.get(client3);
+  if (!registration) {
+    return { client: client3, route: "in-process", reason: "identity" };
+  }
+  const isAvailable = await resolveAvailability(registration);
+  if (!isAvailable) {
+    return { client: client3, route: "in-process", reason: "unavailable" };
+  }
+  const affinity = await resolveSessionAffinity(registration, sessionID);
+  if (affinity === false) {
+    return { client: client3, route: "in-process", reason: "affinity" };
+  }
+  const resolvedLiveClient = getOrBuildLiveClient(registration);
+  if (!resolvedLiveClient) {
+    return { client: client3, route: "in-process", reason: "unavailable" };
+  }
+  return { client: resolvedLiveClient, route: "live", reason: "live" };
+}
+function isPreSendConnectionFailure(error62) {
+  if (!(error62 instanceof Error)) {
+    return false;
+  }
+  if (error62.name === "AbortError") {
+    return false;
+  }
+  const CONNECTION_CODES = new Set([
+    "ECONNREFUSED",
+    "ENOTFOUND",
+    "EAI_AGAIN",
+    "ENETUNREACH",
+    "EHOSTUNREACH",
+    "ENETDOWN",
+    "EHOSTDOWN",
+    "EADDRNOTAVAIL",
+    "UND_ERR_CONNECT_TIMEOUT"
+  ]);
+  const self = error62;
+  if (self.code && CONNECTION_CODES.has(self.code)) {
+    return true;
+  }
+  const cause = error62.cause;
+  if (cause && typeof cause === "object" && cause !== null) {
+    const causeCode = cause.code;
+    if (causeCode && CONNECTION_CODES.has(causeCode)) {
+      return true;
+    }
+  }
+  return false;
+}
+function markLiveRouteUnavailable(reason) {
+  for (const registration of registrations.values()) {
+    registration.available = false;
+    registration.probeTimestamp = Date.now();
+    registration.sessionAffinity.clear();
+  }
+  log2(`[live-server-route] marked unavailable: ${reason}`);
+}
+var PROBE_TTL_MS = 60000, PROBE_ABORT_MS = 1500, AFFINITY_TTL_MS = 60000, registrations, liveParentWakeRoutingDisabled = false, fetchImplementationForTesting;
+var init_live_server_route = __esm(() => {
+  init_dist();
+  init_state();
+  init_opencode_server_auth();
+  init_logger2();
+  registrations = new Map;
+});
+
+// packages/omo-opencode/src/shared/prompt-async-gate.ts
+var GOAL_CONTINUATION_SOURCES;
+var init_prompt_async_gate2 = __esm(() => {
+  init_src();
+  init_continuation_policy();
+  init_sync_bridge();
+  init_record_type_guard();
+  init_route_resolver();
+  init_live_server_route();
+  init_logger2();
+  init_prompt_async_gate();
+  configureSharedSubunitLogger(log2);
+  configurePromptDispatchRouteResolver({
+    tryResolveDispatchClientSync,
+    resolveDispatchClient,
+    isPreSendConnectionFailure,
+    markLiveRouteUnavailable
+  });
+  GOAL_CONTINUATION_SOURCES = new Set(["todo-continuation-enforcer", "atlas", "goal:idle-continuation"]);
+});
+
+// packages/omo-opencode/src/shared/prompt-failure-classifier.ts
+var init_prompt_failure_classifier = () => {};
+
+// packages/omo-opencode/src/shared/model-suggestion-retry.ts
+var init_model_suggestion_retry = __esm(() => {
+  init_logger2();
+  init_prompt_async_gate2();
+  init_prompt_failure_classifier();
+});
+
+// packages/omo-opencode/src/shared/opencode-provider-auth.ts
+var init_opencode_provider_auth = __esm(() => {
+  init_data_path();
+  init_logger2();
+});
+
+// packages/omo-opencode/src/shared/opencode-http-api.ts
+var init_opencode_http_api = __esm(() => {
+  init_opencode_server_auth();
+  init_logger2();
+  init_record_type_guard();
+});
+
+// packages/omo-opencode/src/shared/port-utils.ts
+var init_port_utils2 = () => {};
+
+// packages/omo-opencode/src/shared/git-worktree/index.ts
+var init_git_worktree2 = __esm(() => {
+  init_git_worktree();
+});
+
+// packages/omo-opencode/src/shared/safe-create-hook.ts
+var init_safe_create_hook = __esm(() => {
+  init_logger2();
+});
+
+// packages/omo-opencode/src/shared/opencode-command-dirs.ts
+var init_opencode_command_dirs = __esm(() => {
+  init_opencode_config_dir();
+});
+
+// packages/omo-opencode/src/shared/project-discovery-dirs.ts
+var worktreePathCache;
+var init_project_discovery_dirs = __esm(() => {
+  worktreePathCache = new Map;
+});
+
+// packages/omo-opencode/src/shared/session-directory-resolver.ts
+var init_session_directory_resolver = () => {};
+
+// packages/omo-opencode/src/shared/session-route.ts
+var init_session_route = __esm(() => {
+  init_model_suggestion_retry();
+  init_prompt_async_gate2();
+  init_prompt_failure_classifier();
+});
+
+// packages/omo-opencode/src/shared/session-tools-store.ts
+var store;
+var init_session_tools_store = __esm(() => {
+  store = new Map;
+});
+
+// packages/omo-opencode/src/shared/prompt-tools.ts
+var init_prompt_tools = __esm(() => {
+  init_session_tools_store();
+});
+
+// packages/omo-opencode/src/shared/runtime-fallback-retry-marker.ts
+var init_runtime_fallback_retry_marker = __esm(() => {
+  init_internal_initiator_marker2();
+});
+// packages/claude-code-compat-core/src/shared/plugin-identity.ts
+var LOG_FILENAME2 = "oh-my-opencode.log";
+
+// packages/claude-code-compat-core/src/shared/logger.ts
+var logger4, log3, getLogFilePath2;
+var init_logger3 = __esm(() => {
+  init_src();
+  logger4 = createLogger({ logFileName: LOG_FILENAME2 });
+  log3 = logger4.log;
+  getLogFilePath2 = logger4.getLogFilePath;
+});
+
+// packages/claude-code-compat-core/src/shared/contains-path.ts
+var init_contains_path3 = () => {};
+
+// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/scope-filter.ts
+var init_scope_filter = __esm(() => {
+  init_contains_path3();
+});
+
+// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/discovery-paths.ts
+var init_discovery_paths = () => {};
+
+// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/installed-plugin-database.ts
+var init_installed_plugin_database = __esm(() => {
+  init_logger3();
+  init_discovery_paths();
+});
+
+// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/plugin-key.ts
+var init_plugin_key = () => {};
+
+// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/plugin-manifest.ts
+var init_plugin_manifest = __esm(() => {
+  init_logger3();
+});
+
+// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/install-path-resolver.ts
+var init_install_path_resolver = __esm(() => {
+  init_logger3();
+  init_plugin_key();
+  init_plugin_manifest();
+});
+
+// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/loaded-plugin.ts
+var init_loaded_plugin = __esm(() => {
+  init_plugin_key();
+});
+
+// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/plugin-settings.ts
+var init_plugin_settings = __esm(() => {
+  init_logger3();
+  init_discovery_paths();
+});
+
+// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/discovery-core.ts
+var init_discovery_core = __esm(() => {
+  init_logger3();
+  init_scope_filter();
+  init_discovery_paths();
+  init_installed_plugin_database();
+  init_install_path_resolver();
+  init_loaded_plugin();
+  init_plugin_manifest();
+  init_plugin_settings();
+});
+
+// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/discovery.ts
+var init_discovery = __esm(() => {
+  init_discovery_core();
+  init_install_path_resolver();
+  init_plugin_manifest();
+});
+
+// packages/claude-code-compat-core/src/shared/frontmatter.ts
+var init_frontmatter3 = () => {};
+
+// packages/claude-code-compat-core/src/shared/file-utils.ts
+var init_file_utils3 = () => {};
+
+// packages/claude-code-compat-core/src/shared/model-sanitizer.ts
+var init_model_sanitizer2 = () => {};
+// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/command-loader.ts
+var init_command_loader = __esm(() => {
+  init_frontmatter3();
+  init_file_utils3();
+  init_model_sanitizer2();
+  init_logger3();
+});
+
+// packages/utils/src/skill-path-resolver.ts
+var init_skill_path_resolver = () => {};
+
+// packages/claude-code-compat-core/src/shared/skill-path-resolver.ts
+var init_skill_path_resolver2 = __esm(() => {
+  init_skill_path_resolver();
+});
+
+// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/skill-loader.ts
+var init_skill_loader = __esm(() => {
+  init_frontmatter3();
+  init_file_utils3();
+  init_model_sanitizer2();
+  init_skill_path_resolver2();
+  init_logger3();
+});
+// packages/claude-code-compat-core/src/shared/model-format-normalizer.ts
+var init_model_format_normalizer = () => {};
+
+// packages/claude-code-compat-core/src/shared/model-normalization.ts
+var init_model_normalization2 = () => {};
+
+// packages/claude-code-compat-core/src/features/claude-code-agent-loader/claude-model-mapper.ts
+var ANTHROPIC_PREFIX = "anthropic/", CLAUDE_CODE_ALIAS_MAP;
+var init_claude_model_mapper = __esm(() => {
+  init_model_format_normalizer();
+  init_model_normalization2();
+  CLAUDE_CODE_ALIAS_MAP = new Map([
+    ["sonnet", `${ANTHROPIC_PREFIX}claude-sonnet-4-6`],
+    ["opus", `${ANTHROPIC_PREFIX}claude-opus-4-8`],
+    ["haiku", `${ANTHROPIC_PREFIX}claude-haiku-4-5`]
+  ]);
+});
+
+// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/agent-loader.ts
+var init_agent_loader = __esm(() => {
+  init_frontmatter3();
+  init_file_utils3();
+  init_logger3();
+  init_claude_model_mapper();
+});
+
+// packages/claude-code-compat-core/src/features/claude-code-mcp-loader/configure-allowed-env-vars.ts
+var additionalAllowedMcpEnvVars;
+var init_configure_allowed_env_vars = __esm(() => {
+  additionalAllowedMcpEnvVars = new Set;
+});
+
+// packages/claude-code-compat-core/src/features/claude-code-mcp-loader/env-expander.ts
+var init_env_expander = __esm(() => {
+  init_logger3();
+  init_configure_allowed_env_vars();
+});
+
+// packages/claude-code-compat-core/src/features/claude-code-mcp-loader/scope-filter.ts
+var init_scope_filter2 = __esm(() => {
+  init_contains_path3();
+});
+
+// packages/claude-code-compat-core/src/features/claude-code-mcp-loader/transformer.ts
+var init_transformer = __esm(() => {
+  init_env_expander();
+});
+
+// packages/claude-code-compat-core/src/shared/bun-file-shim.ts
+var init_bun_file_shim2 = () => {};
+
+// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/mcp-server-loader.ts
+var init_mcp_server_loader = __esm(() => {
+  init_env_expander();
+  init_scope_filter2();
+  init_transformer();
+  init_logger3();
+  init_bun_file_shim2();
+});
+
+// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/hook-loader.ts
+var init_hook_loader = __esm(() => {
+  init_logger3();
+});
+
+// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/loader.ts
+var cachedPluginComponentsByKey;
+var init_loader = __esm(() => {
+  init_logger3();
+  init_discovery();
+  init_command_loader();
+  init_skill_loader();
+  init_agent_loader();
+  init_mcp_server_loader();
+  init_hook_loader();
+  init_discovery();
+  init_command_loader();
+  init_skill_loader();
+  init_agent_loader();
+  init_mcp_server_loader();
+  init_hook_loader();
+  cachedPluginComponentsByKey = new Map;
+});
+
+// packages/claude-code-compat-core/src/features/claude-code-plugin-loader/index.ts
+var init_claude_code_plugin_loader = __esm(() => {
+  init_loader();
+  init_discovery();
+  init_command_loader();
+  init_skill_loader();
+  init_agent_loader();
+  init_mcp_server_loader();
+  init_hook_loader();
+});
+
+// packages/omo-opencode/src/shared/plugin-command-discovery.ts
+var init_plugin_command_discovery = __esm(() => {
+  init_claude_code_plugin_loader();
+});
+
+// packages/omo-opencode/src/shared/session-category-registry.ts
+var sessionCategoryMap;
+var init_session_category_registry = __esm(() => {
+  sessionCategoryMap = new Map;
+});
+// packages/omo-opencode/src/shared/legacy-plugin-warning.ts
+var init_legacy_plugin_warning = __esm(() => {
+  init_jsonc_parser2();
+  init_opencode_config_dir();
+  init_plugin_identity();
+});
+
+// packages/omo-opencode/src/shared/plugin-entry-migrator.ts
+var init_plugin_entry_migrator = __esm(() => {
+  init_plugin_identity();
+});
+
+// packages/omo-opencode/src/shared/migrate-legacy-plugin-entry.ts
+var init_migrate_legacy_plugin_entry = __esm(() => {
+  init_main();
+  init_jsonc_parser2();
+  init_logger2();
+  init_plugin_identity();
+  init_plugin_entry_migrator();
+});
+
+// packages/omo-opencode/src/shared/log-legacy-plugin-startup-warning.ts
+var init_log_legacy_plugin_startup_warning = __esm(() => {
+  init_legacy_plugin_warning();
+  init_logger2();
+  init_migrate_legacy_plugin_entry();
+  init_plugin_entry_migrator();
+  init_plugin_identity();
+});
+
+// packages/omo-opencode/src/shared/legacy-workspace-migration.ts
+var init_legacy_workspace_migration = __esm(() => {
+  init_logger2();
+});
+// packages/omo-opencode/src/shared/model-string-parser.ts
+var init_model_string_parser2 = () => {};
+
+// packages/omo-opencode/src/shared/excluded-dirs.ts
+var EXCLUDED_DIR_NAMES, EXCLUDED_DIRS;
+var init_excluded_dirs = __esm(() => {
+  EXCLUDED_DIR_NAMES = [
+    "node_modules",
+    ".git",
+    "dist",
+    "build",
+    ".next",
+    ".omo",
+    ".sisyphus",
+    ".turbo",
+    "coverage",
+    "out",
+    ".cache",
+    ".vscode-test",
+    "target",
+    ".local-ignore"
+  ];
+  EXCLUDED_DIRS = Object.freeze(new Set(EXCLUDED_DIR_NAMES));
+});
+
+// packages/omo-opencode/src/shared/replace-tool-args.ts
+var init_replace_tool_args = () => {};
+
+// packages/omo-opencode/src/shared/index.ts
+var init_shared = __esm(() => {
+  init_model_normalization();
+  init_model_resolver2();
+  init_model_resolution_pipeline();
+  init_session_category_registry();
+  init_model_string_parser2();
+  init_excluded_dirs();
+  init_frontmatter2();
+  init_command_executor2();
+  init_contains_path2();
+  init_file_reference_resolver();
+  init_model_sanitizer();
+  init_logger2();
+  init_snake_case2();
+  init_tool_name2();
+  init_pattern_matcher();
+  init_deep_merge2();
+  init_file_utils2();
+  init_dynamic_truncator();
+  init_data_path();
+  init_config_errors();
+  init_claude_config_dir();
+  init_jsonc_parser2();
+  init_migration2();
+  init_opencode_config_dir();
+  init_opencode_plugin_sandbox();
+  init_resolve_agent_definition_paths();
+  init_opencode_version();
+  init_opencode_storage_detection();
+  init_external_plugin_detector();
+  init_zip_extractor();
+  init_binary_downloader();
+  init_write_file_atomically();
+  init_agent_variant();
+  init_session_cursor();
+  init_shell_env();
+  init_system_directive();
+  init_agent_tool_restrictions();
+  init_model_requirements2();
+  init_model_resolver2();
+  init_model_availability();
+  init_model_capabilities2();
+  init_model_capabilities_cache();
+  init_model_settings_compatibility2();
+  init_fallback_model_availability();
+  init_connected_providers_cache();
+  init_context_limit_resolver2();
+  init_session_utils();
+  init_event_session_id();
+  init_tmux();
+  init_model_suggestion_retry();
+  init_opencode_server_auth();
+  init_opencode_provider_auth();
+  init_opencode_http_api();
+  init_port_utils2();
+  init_git_worktree2();
+  init_safe_create_hook();
+  init_opencode_storage_paths();
+  init_opencode_message_dir();
+  init_opencode_command_dirs();
+  init_project_discovery_dirs();
+  init_record_type_guard();
+  init_session_directory_resolver();
+  init_session_route();
+  init_prompt_tools();
+  init_prompt_failure_classifier();
+  init_compaction_marker();
+  init_internal_initiator_marker2();
+  init_runtime_fallback_retry_marker();
+  init_plugin_command_discovery();
+  init_plugin_identity();
+  init_log_legacy_plugin_startup_warning();
+  init_legacy_workspace_migration();
+  init_replace_tool_args();
 });
 
 // packages/omo-opencode/src/shared/disabled-providers.ts
@@ -84318,7 +84377,7 @@ var init_posix_path = () => {};
 // packages/omo-config-core/src/loader/types.ts
 import { existsSync as existsSync6, lstatSync, readFileSync as readFileSync6, realpathSync as realpathSync4 } from "fs";
 var DEFAULT_READ_FILE_SYSTEM;
-var init_types3 = __esm(() => {
+var init_types4 = __esm(() => {
   DEFAULT_READ_FILE_SYSTEM = {
     existsSync: existsSync6,
     lstatSync,
@@ -84414,7 +84473,7 @@ function resolveOmoConfigPaths(options) {
 var MAX_PROJECT_CONFIG_DIRECTORY_DEPTH = 256, ACCOUNT_HOME_DIR;
 var init_paths = __esm(() => {
   init_posix_path();
-  init_types3();
+  init_types4();
   ACCOUNT_HOME_DIR = userInfo().homedir;
 });
 
@@ -84728,7 +84787,7 @@ var init_loader2 = __esm(() => {
   init_merge();
   init_paths();
   init_resolution();
-  init_types3();
+  init_types4();
   DEFAULT_RAW_CONFIG = {
     agents: {},
     categories: {},
@@ -84744,7 +84803,7 @@ var init_loader3 = __esm(() => {
   init_merge();
   init_paths();
   init_resolution();
-  init_types3();
+  init_types4();
 });
 
 // packages/omo-config-core/src/models/model-catalog-cycles.ts
@@ -84925,7 +84984,7 @@ import {
   writeFileSync as writeFileSync4
 } from "fs";
 var DEFAULT_WRITE_FILE_SYSTEM;
-var init_types4 = __esm(() => {
+var init_types5 = __esm(() => {
   DEFAULT_WRITE_FILE_SYSTEM = {
     copyFileSync,
     existsSync: existsSync7,
@@ -84949,7 +85008,7 @@ var init_writer = __esm(() => {
 
 // packages/omo-config-core/src/writer/index.ts
 var init_writer2 = __esm(() => {
-  init_types4();
+  init_types5();
   init_writer();
 });
 
@@ -84958,7 +85017,7 @@ var init_merge2 = () => {};
 
 // packages/omo-config-core/src/migration/types.ts
 var DEFAULT_MIGRATION_PROCESS, DEFAULT_MIGRATION_FILE_SYSTEM;
-var init_types5 = __esm(() => {
+var init_types6 = __esm(() => {
   init_writer2();
   DEFAULT_MIGRATION_PROCESS = {
     isAlive: (pid) => {
@@ -85020,7 +85079,7 @@ var init_migration3 = __esm(() => {
   init_lock();
   init_merge2();
   init_recovery();
-  init_types5();
+  init_types6();
 });
 
 // packages/omo-config-core/src/index.ts
@@ -85766,7 +85825,7 @@ var init_notification = __esm(() => {
 
 // packages/omo-opencode/src/mcp/types.ts
 var McpNameSchema, AnyMcpNameSchema;
-var init_types6 = __esm(() => {
+var init_types7 = __esm(() => {
   init_zod();
   McpNameSchema = exports_external.enum(["websearch", "context7", "grep_app", "lsp"]);
   AnyMcpNameSchema = exports_external.string().min(1);
@@ -85991,7 +86050,7 @@ var init_websearch = __esm(() => {
 var OhMyOpenCodeConfigSchema;
 var init_oh_my_opencode_config = __esm(() => {
   init_zod();
-  init_types6();
+  init_types7();
   init_agent_definitions();
   init_agent_overrides();
   init_babysitting();
@@ -86076,7 +86135,7 @@ var init_oh_my_opencode_config = __esm(() => {
 
 // packages/omo-opencode/src/config/schema.ts
 var init_schema2 = __esm(() => {
-  init_types6();
+  init_types7();
   init_agent_names();
   init_agent_overrides();
   init_babysitting();
@@ -86655,17 +86714,17 @@ function createBtwPromptQueue() {
 
 // packages/omo-opencode/src/features/btw-side/btw-command-draft.ts
 var BTW_COMMAND_PATTERN = /^\/(?:btw|side)(?:\s+([\s\S]*))?$/;
-function isBtwCommandDraft(input) {
-  return /^\/(?:btw|side)(?:\s|$)/.test(input.trimStart());
+function isBtwCommandDraft(input2) {
+  return /^\/(?:btw|side)(?:\s|$)/.test(input2.trimStart());
 }
-function parseBtwQuestion(input) {
-  if (input.length === 0) {
+function parseBtwQuestion(input2) {
+  if (input2.length === 0) {
     return {
       consumeDraft: false,
       question: ""
     };
   }
-  const match = BTW_COMMAND_PATTERN.exec(input.trim());
+  const match = BTW_COMMAND_PATTERN.exec(input2.trim());
   if (!match) {
     return {
       consumeDraft: false,
@@ -87223,9 +87282,9 @@ function registerBtwSideKeymap(args) {
     });
     escapeReturn.reset();
     args.api.keymap.clearPendingSequence?.();
-    args.openPicker().catch((error) => {
+    args.openPicker().catch((error62) => {
       log2("[btw-side] Failed to open picker from keyboard shortcut", {
-        error
+        error: error62
       });
       args.api.ui.toast({
         variant: "error",
@@ -87476,12 +87535,12 @@ function classifyBtwSessionCatalog(sessions, currentSessionID) {
     sides
   };
 }
-async function loadBtwSessionCatalog(input) {
-  const maximumLimit = input.maximumLimit ?? DEFAULT_MAXIMUM_LIMIT;
-  let limit = Math.min(input.initialLimit ?? DEFAULT_INITIAL_LIMIT, maximumLimit);
+async function loadBtwSessionCatalog(input2) {
+  const maximumLimit = input2.maximumLimit ?? DEFAULT_MAXIMUM_LIMIT;
+  let limit = Math.min(input2.initialLimit ?? DEFAULT_INITIAL_LIMIT, maximumLimit);
   while (true) {
-    const response = await input.listSessions({
-      directory: input.directory,
+    const response = await input2.listSessions({
+      directory: input2.directory,
       roots: false,
       limit
     });
@@ -87493,7 +87552,7 @@ async function loadBtwSessionCatalog(input) {
     const atMaximum = limit >= maximumLimit;
     if (!fullResponse || atMaximum) {
       return {
-        catalog: classifyBtwSessionCatalog(sessions, input.currentSessionID),
+        catalog: classifyBtwSessionCatalog(sessions, input2.currentSessionID),
         truncated: fullResponse && atMaximum
       };
     }
@@ -87510,15 +87569,15 @@ function unwrapTuiData(response, message) {
   }
   return response.data;
 }
-function currentTuiSessionID(api) {
-  const route = api.route.current;
+function currentTuiSessionID(api2) {
+  const route = api2.route.current;
   if (route.name !== "session" || !route.params)
     return;
   const sessionID = route.params["sessionID"];
   return typeof sessionID === "string" ? sessionID : undefined;
 }
-function isCurrentTuiSession(api, sessionID) {
-  return currentTuiSessionID(api) === sessionID;
+function isCurrentTuiSession(api2, sessionID) {
+  return currentTuiSessionID(api2) === sessionID;
 }
 function adaptTuiPromptRef(promptRef) {
   return {
@@ -87528,10 +87587,10 @@ function adaptTuiPromptRef(promptRef) {
     get input() {
       return promptRef.current.input;
     },
-    set(input) {
+    set(input2) {
       promptRef.set({
         ...promptRef.current,
-        input
+        input: input2
       });
     },
     submit() {
@@ -87539,20 +87598,20 @@ function adaptTuiPromptRef(promptRef) {
     }
   };
 }
-function parentTuiStatusLabel(api, parentSessionID) {
-  if (api.state.session.permission(parentSessionID).length > 0) {
+function parentTuiStatusLabel(api2, parentSessionID) {
+  if (api2.state.session.permission(parentSessionID).length > 0) {
     return "main needs permission";
   }
-  if (api.state.session.question(parentSessionID).length > 0) {
+  if (api2.state.session.question(parentSessionID).length > 0) {
     return "main needs input";
   }
-  return api.state.session.status(parentSessionID)?.type === "busy" ? "main working" : "main ready";
+  return api2.state.session.status(parentSessionID)?.type === "busy" ? "main working" : "main ready";
 }
-function createBtwControllerDependencies(api) {
+function createBtwControllerDependencies(api2) {
   return {
-    getCurrentSessionID: () => currentTuiSessionID(api),
+    getCurrentSessionID: () => currentTuiSessionID(api2),
     getSession: (sessionID) => {
-      const session = api.state.session.get(sessionID);
+      const session = api2.state.session.get(sessionID);
       if (!session)
         return;
       return {
@@ -87567,7 +87626,7 @@ function createBtwControllerDependencies(api) {
         } : {}
       };
     },
-    getMessages: (sessionID) => api.state.session.messages(sessionID).map((message) => ({
+    getMessages: (sessionID) => api2.state.session.messages(sessionID).map((message) => ({
       info: {
         id: message.id,
         role: message.role,
@@ -87578,10 +87637,10 @@ function createBtwControllerDependencies(api) {
         } : {}
       }
     })),
-    createSession: async (input) => {
-      const session = unwrapTuiData(await api.client.session.create({
-        ...input,
-        directory: api.state.path.directory
+    createSession: async (input2) => {
+      const session = unwrapTuiData(await api2.client.session.create({
+        ...input2,
+        directory: api2.state.path.directory
       }), "Unable to create BTW session");
       return {
         id: session.id,
@@ -87589,27 +87648,27 @@ function createBtwControllerDependencies(api) {
       };
     },
     navigateSession: (sessionID) => {
-      api.route.navigate("session", { sessionID });
+      api2.route.navigate("session", { sessionID });
     },
     abortSession: async (sessionID) => {
-      unwrapTuiData(await api.client.session.abort({
+      unwrapTuiData(await api2.client.session.abort({
         sessionID,
-        directory: api.state.path.directory
+        directory: api2.state.path.directory
       }), "Unable to abort BTW session");
     },
     deleteSession: async (sessionID) => {
-      unwrapTuiData(await api.client.session.delete({
+      unwrapTuiData(await api2.client.session.delete({
         sessionID,
-        directory: api.state.path.directory
+        directory: api2.state.path.directory
       }), "Unable to delete BTW session");
     },
     showToast: (message) => {
-      api.ui.toast({
+      api2.ui.toast({
         variant: "warning",
         message
       });
     },
-    requestRender: () => api.renderer.requestRender()
+    requestRender: () => api2.renderer.requestRender()
   };
 }
 
@@ -87628,12 +87687,12 @@ async function openBtwPicker(args) {
     loaded = await loadBtwSessionCatalog({
       currentSessionID,
       directory: args.api.state.path.directory,
-      listSessions: (input) => args.api.client.session.list(input)
+      listSessions: (input2) => args.api.client.session.list(input2)
     });
-  } catch (error) {
+  } catch (error62) {
     log2("[btw-side] Failed to list BTW sessions", {
       currentSessionID,
-      error
+      error: error62
     });
     args.api.ui.toast({
       variant: "error",
@@ -87700,10 +87759,10 @@ async function openBtwPicker(args) {
         await refreshStaleSelection(selection.sessionID);
         return;
       }
-    } catch (error) {
+    } catch (error62) {
       log2("[btw-side] Failed to validate picker selection", {
         sessionID: selection.sessionID,
-        error
+        error: error62
       });
       await refreshStaleSelection(selection.sessionID);
       return;
@@ -87724,29 +87783,29 @@ async function openBtwPicker(args) {
 }
 
 // packages/omo-opencode/src/features/btw-side/tui-wiring.ts
-async function registerBtwSideTui(api, solid) {
+async function registerBtwSideTui(api2, solid) {
   log2("[btw-side] TUI registration started");
   const promptRefs = new Map;
   const adoptionCache = createBtwAdoptionCache();
   const adoptionRequests = new Map;
   const reattachingSessions = new Set;
   const adoptionFailures = new Set;
-  const controller = createBtwSideController(createBtwControllerDependencies(api));
-  const adoptionGuard = createBtwAdoptionGuard(() => currentTuiSessionID(api));
+  const controller = createBtwSideController(createBtwControllerDependencies(api2));
+  const adoptionGuard = createBtwAdoptionGuard(() => currentTuiSessionID(api2));
   const parentValidator = createBtwParentValidator({
     fetchStatus: async (sessionID) => {
       try {
-        const response = await api.client.session.get({
+        const response = await api2.client.session.get({
           sessionID,
-          directory: api.state.path.directory
+          directory: api2.state.path.directory
         });
         if (response.error !== undefined)
           return "retry";
         return response.data !== undefined ? "exists" : "missing";
-      } catch (error) {
+      } catch (error62) {
         log2("[btw-side] Failed to validate parent session", {
           sessionID,
-          error
+          error: error62
         });
         return "retry";
       }
@@ -87760,7 +87819,7 @@ async function registerBtwSideTui(api, solid) {
     if (!adoptionGuard.canApply(sessionID, parentSessionID))
       return;
     controller.adopt(parentSessionID, sessionID);
-    api.renderer.requestRender();
+    api2.renderer.requestRender();
     log2("[btw-side] TUI adopted side session", {
       sessionID,
       parentSessionID
@@ -87770,11 +87829,11 @@ async function registerBtwSideTui(api, solid) {
     const pending = adoptionRequests.get(sessionID);
     if (pending)
       return pending;
-    const cached = adoptionCache.read(sessionID);
-    if (cached.hydrated) {
-      if (!cached.metadata)
+    const cached2 = adoptionCache.read(sessionID);
+    if (cached2.hydrated) {
+      if (!cached2.metadata)
         return;
-      const request2 = adoptValidatedMetadata(sessionID, cached.metadata.parent_session_id).finally(() => {
+      const request2 = adoptValidatedMetadata(sessionID, cached2.metadata.parent_session_id).finally(() => {
         adoptionRequests.delete(sessionID);
       });
       adoptionRequests.set(sessionID, request2);
@@ -87782,13 +87841,13 @@ async function registerBtwSideTui(api, solid) {
     }
     reattachingSessions.add(sessionID);
     adoptionFailures.delete(sessionID);
-    api.renderer.requestRender();
+    api2.renderer.requestRender();
     const request = (async () => {
       try {
-        const localSession = api.state.session.get(sessionID);
-        const session = getBtwSideMetadata(localSession) ? localSession : unwrapTuiData(await api.client.session.get({
+        const localSession = api2.state.session.get(sessionID);
+        const session = getBtwSideMetadata(localSession) ? localSession : unwrapTuiData(await api2.client.session.get({
           sessionID,
-          directory: api.state.path.directory
+          directory: api2.state.path.directory
         }), "Unable to read BTW session metadata");
         const metadata = getBtwSideMetadata(session);
         if (!adoptionGuard.canApply(sessionID))
@@ -87797,36 +87856,36 @@ async function registerBtwSideTui(api, solid) {
         if (!metadata)
           return;
         await adoptValidatedMetadata(sessionID, metadata.parent_session_id);
-      } catch (error) {
+      } catch (error62) {
         if (adoptionGuard.canApply(sessionID)) {
           adoptionFailures.add(sessionID);
         }
         log2("[btw-side] Failed to adopt side session", {
           sessionID,
-          error
+          error: error62
         });
       } finally {
         reattachingSessions.delete(sessionID);
         adoptionRequests.delete(sessionID);
-        api.renderer.requestRender();
+        api2.renderer.requestRender();
       }
     })();
     adoptionRequests.set(sessionID, request);
     return request;
   }
   function activePromptRef() {
-    const sessionID = currentTuiSessionID(api);
+    const sessionID = currentTuiSessionID(api2);
     return sessionID ? promptRefs.get(sessionID) : undefined;
   }
   async function openBtw() {
     log2("[btw-side] TUI open command invoked");
-    const sessionID = currentTuiSessionID(api);
+    const sessionID = currentTuiSessionID(api2);
     if (sessionID)
       await adoptSideSession(sessionID);
-    if (!isCurrentTuiSession(api, sessionID))
+    if (!isCurrentTuiSession(api2, sessionID))
       return;
     if (sessionID && adoptionFailures.has(sessionID)) {
-      api.ui.toast({
+      api2.ui.toast({
         variant: "warning",
         message: "Unable to verify whether this is a BTW conversation."
       });
@@ -87834,7 +87893,7 @@ async function registerBtwSideTui(api, solid) {
     }
     const promptRef = activePromptRef();
     if (!promptRef) {
-      api.ui.toast({
+      api2.ui.toast({
         variant: "warning",
         message: "BTW is unavailable before the session starts."
       });
@@ -87847,7 +87906,7 @@ async function registerBtwSideTui(api, solid) {
       return;
     }
     const opened = await openBtwPicker({
-      api,
+      api: api2,
       controller,
       activePromptRef
     });
@@ -87860,12 +87919,12 @@ async function registerBtwSideTui(api, solid) {
   }
   const showBtwPicker = async () => {
     await openBtwPicker({
-      api,
+      api: api2,
       controller,
       activePromptRef
     });
   };
-  const unregisterSlashCommand = api.command?.register(() => [
+  const unregisterSlashCommand = api2.command?.register(() => [
     {
       title: "BTW side conversation",
       value: "omo.btw.slash",
@@ -87882,21 +87941,21 @@ async function registerBtwSideTui(api, solid) {
     return;
   });
   const keymapRegistration = registerBtwSideKeymap({
-    api,
+    api: api2,
     controller,
     activePromptRef,
     openBtw,
     openPicker: showBtwPicker,
     isCurrentSideIdle: () => {
-      const sessionID = currentTuiSessionID(api);
-      return sessionID !== undefined && controller.side(sessionID) !== undefined && api.state.session.status(sessionID)?.type !== "busy" && api.state.session.permission(sessionID).length === 0 && api.state.session.question(sessionID).length === 0;
+      const sessionID = currentTuiSessionID(api2);
+      return sessionID !== undefined && controller.side(sessionID) !== undefined && api2.state.session.status(sessionID)?.type !== "busy" && api2.state.session.permission(sessionID).length === 0 && api2.state.session.question(sessionID).length === 0;
     },
     returnToParent: controller.returnToParent
   });
-  api.slots.register({
+  api2.slots.register({
     order: 950,
     slots: {
-      session_prompt: (_context, value) => api.ui.Prompt({
+      session_prompt: (_context, value) => api2.ui.Prompt({
         sessionID: value.session_id,
         visible: value.visible,
         disabled: value.disabled,
@@ -87919,7 +87978,7 @@ async function registerBtwSideTui(api, solid) {
               if (state.phase === "closing") {
                 await controller.waitUntilClosed();
               }
-              if (currentTuiSessionID(api) === value.session_id) {
+              if (currentTuiSessionID(api2) === value.session_id) {
                 await adoptSideSession(value.session_id);
               }
             })();
@@ -87928,9 +87987,9 @@ async function registerBtwSideTui(api, solid) {
           keymapRegistration.resetEscapeSequence();
           promptRefs.delete(value.session_id);
           controller.attachPromptRef(value.session_id, undefined);
-          controller.handleNavigation(currentTuiSessionID(api) ?? "");
+          controller.handleNavigation(currentTuiSessionID(api2) ?? "");
         },
-        right: api.ui.Slot({
+        right: api2.ui.Slot({
           name: "session_prompt_right",
           session_id: value.session_id
         })
@@ -87945,7 +88004,7 @@ async function registerBtwSideTui(api, solid) {
         } else if (state.phase === "open" && value.session_id === state.sideSessionID) {
           const sideNumber = controller.sideNumber(state.sideSessionID);
           const sideLabel = sideNumber === undefined ? "BTW side" : `BTW #${sideNumber}`;
-          label = `${sideLabel} \xB7 ${parentTuiStatusLabel(api, state.parentSessionID)} \xB7 esc esc return \xB7 ctrl+/ picker \xB7 ctrl+c delete`;
+          label = `${sideLabel} \xB7 ${parentTuiStatusLabel(api2, state.parentSessionID)} \xB7 esc esc return \xB7 ctrl+/ picker \xB7 ctrl+c delete`;
         } else if (state.phase === "closing" && value.session_id === state.sideSessionID) {
           label = "BTW closing...";
         } else if (state.phase === "closed" && reattachingSessions.has(value.session_id)) {
@@ -87954,19 +88013,19 @@ async function registerBtwSideTui(api, solid) {
         if (!label)
           return null;
         const text = solid.createElement("text");
-        solid.setProp(text, "fg", api.theme.current.textMuted);
+        solid.setProp(text, "fg", api2.theme.current.textMuted);
         solid.insert(text, label);
         return text;
       }
     }
   });
-  const unsubscribeDeleted = api.event.on("session.deleted", (event) => {
+  const unsubscribeDeleted = api2.event.on("session.deleted", (event) => {
     adoptionGuard.markDeleted(event.properties.info.id);
     adoptionCache.removeForDeletion(event.properties.info.id);
     parentValidator.markDeleted(event.properties.info.id);
     controller.handleSessionDeleted(event.properties.info.id);
   });
-  api.lifecycle.onDispose(async () => {
+  api2.lifecycle.onDispose(async () => {
     adoptionGuard.dispose();
     unregisterSlashCommand();
     for (const unregister of keymapRegistration.unregister)
@@ -87981,7 +88040,7 @@ init_shared();
 // package.json
 var package_default = {
   name: "oh-my-opencode",
-  version: "5.0.1-fork.12",
+  version: "5.0.1-fork.13",
   description: "The Best AI Agent Harness - Batteries-Included OpenCode Plugin with Multi-Model Orchestration, Parallel Background Agents, and Crafted LSP/AST Tools",
   main: "./dist/index.js",
   types: "dist/index.d.ts",
@@ -88255,8 +88314,8 @@ function getBundledVersion() {
 }
 
 // packages/omo-opencode/src/hooks/auto-update-checker/version-channel.ts
-function isPrereleaseVersion(version) {
-  return version.includes("-");
+function isPrereleaseVersion(version2) {
+  return version2.includes("-");
 }
 
 // packages/omo-opencode/src/cli/install-native/plan.ts
@@ -88331,20 +88390,20 @@ function parseNudgeState(raw) {
   }
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed))
     return "corrupt";
-  const record = parsed;
-  if (!isDecision(record["decision"]))
+  const record2 = parsed;
+  if (!isDecision(record2["decision"]))
     return "corrupt";
-  if (!isEpoch(record["nextEligibleAt"]))
+  if (!isEpoch(record2["nextEligibleAt"]))
     return "corrupt";
-  const autoShows = record["autoShows"];
+  const autoShows = record2["autoShows"];
   return {
-    schemaVersion: typeof record["schemaVersion"] === "number" ? record["schemaVersion"] : NUDGE_STATE_VERSION,
+    schemaVersion: typeof record2["schemaVersion"] === "number" ? record2["schemaVersion"] : NUDGE_STATE_VERSION,
     autoShows: typeof autoShows === "number" && Number.isSafeInteger(autoShows) && autoShows >= 0 ? autoShows : 0,
-    lastShownAt: isEpoch(record["lastShownAt"]) ? record["lastShownAt"] : null,
-    nextEligibleAt: record["nextEligibleAt"],
-    decision: record["decision"],
-    decidedAt: isEpoch(record["decidedAt"]) ? record["decidedAt"] : null,
-    writtenBy: typeof record["writtenBy"] === "string" ? record["writtenBy"] : "unknown"
+    lastShownAt: isEpoch(record2["lastShownAt"]) ? record2["lastShownAt"] : null,
+    nextEligibleAt: record2["nextEligibleAt"],
+    decision: record2["decision"],
+    decidedAt: isEpoch(record2["decidedAt"]) ? record2["decidedAt"] : null,
+    writtenBy: typeof record2["writtenBy"] === "string" ? record2["writtenBy"] : "unknown"
   };
 }
 function createNudgeStateStore(stateDir) {
@@ -88438,10 +88497,10 @@ Then: ${NATIVE_SETUP_COMMAND}` };
   options.store.write({ ...state, decision: "never", decidedAt: options.now, writtenBy: "tui" });
   return { toast: "I won't bring up OmO Native again. The command palette entry stays available." };
 }
-function registerNativeEditionNudgeTui(api, deps = {}) {
+function registerNativeEditionNudgeTui(api2, deps = {}) {
   const store2 = deps.store ?? createNudgeStateStore(nativeEditionStateDir());
-  const open = () => {
-    api.ui.dialog.replace(() => api.ui.DialogSelect({
+  const open2 = () => {
+    api2.ui.dialog.replace(() => api2.ui.DialogSelect({
       title: NATIVE_NUDGE_DIALOG_TITLE,
       placeholder: "The same omo as one command, with no host app",
       options: NATIVE_NUDGE_OPTIONS.map((option) => ({ title: option.title, value: option.value })),
@@ -88451,12 +88510,12 @@ function registerNativeEditionNudgeTui(api, deps = {}) {
           now: Date.now(),
           bunAvailable: true
         });
-        api.ui.dialog.clear();
-        api.ui.toast?.({ message: result.toast });
+        api2.ui.dialog.clear();
+        api2.ui.toast?.({ message: result.toast });
       }
     }));
   };
-  return api.command?.register(() => [
+  return api2.command?.register(() => [
     {
       title: "OmO Native",
       value: "omo.native.nudge",
@@ -88464,14 +88523,14 @@ function registerNativeEditionNudgeTui(api, deps = {}) {
       category: "Session",
       enabled: true,
       slash: { name: "native", aliases: ["omo-native"] },
-      onSelect: open
+      onSelect: open2
     }
   ]) ?? (() => {
     return;
   });
 }
 // packages/omo-opencode/src/features/tui-sidebar/state-types.ts
-function assertNever(value) {
+function assertNever2(value) {
   throw new Error(`Unexpected variant: ${JSON.stringify(value)}`);
 }
 
@@ -88506,7 +88565,7 @@ function viewKey(view) {
     case "idle":
       return stableKey(["idle", rosterKeyParts(view.roster)]);
     default:
-      return assertNever(view);
+      return assertNever2(view);
   }
 }
 function isActive(sections) {
@@ -88522,7 +88581,7 @@ function rosterKeyParts(roster) {
     case "rows":
       return ["roster", "rows", roster.rows.map((row) => [row.label, row.model])];
     default:
-      return assertNever(roster);
+      return assertNever2(roster);
   }
 }
 function agentsKeyParts(agents) {
@@ -88532,7 +88591,7 @@ function agentsKeyParts(agents) {
     case "list":
       return ["agents", "list", agents.agents.map((agent) => [agent.name, agent.status])];
     default:
-      return assertNever(agents);
+      return assertNever2(agents);
   }
 }
 function jobsKeyParts(jobs) {
@@ -88546,7 +88605,7 @@ function jobsKeyParts(jobs) {
         jobs.jobs.map((job) => [job.title, job.status, job.toolCalls, job.lastTool])
       ];
     default:
-      return assertNever(jobs);
+      return assertNever2(jobs);
   }
 }
 function loopKeyParts(loop) {
@@ -88556,7 +88615,7 @@ function loopKeyParts(loop) {
     case "live":
       return ["loop", "live", liveLoopKeyParts(loop)];
     default:
-      return assertNever(loop);
+      return assertNever2(loop);
   }
 }
 function liveLoopKeyParts(loop) {
@@ -88651,11 +88710,11 @@ function mirrorStorageDir() {
 function canonicalProjectDir(projectDir) {
   try {
     return realpathSync3.native(projectDir);
-  } catch (error) {
-    if (error instanceof Error) {
+  } catch (error62) {
+    if (error62 instanceof Error) {
       return resolve3(projectDir);
     }
-    throw error;
+    throw error62;
   }
 }
 function mirrorFilePath(projectDir) {
@@ -88765,7 +88824,7 @@ function buildViewNodes(view, theme) {
     case "idle":
       return idleNodes(view.roster, theme);
     default:
-      return assertNever(view);
+      return assertNever2(view);
   }
 }
 function configBannerNodes(banner, theme) {
@@ -88775,7 +88834,7 @@ function configBannerNodes(banner, theme) {
     case "invalid":
       return [text({ fg: theme.warning }, "config invalid - run doctor")];
     default:
-      return assertNever(banner);
+      return assertNever2(banner);
   }
 }
 function loopNodes(loop, theme) {
@@ -88793,7 +88852,7 @@ function loopNodes(loop, theme) {
         ])
       ];
     default:
-      return assertNever(loop);
+      return assertNever2(loop);
   }
 }
 function agentNodes(agents, theme) {
@@ -88805,7 +88864,7 @@ function agentNodes(agents, theme) {
         section("Agents", theme, agents.agents.map((agent) => text({ fg: theme.text }, `${truncate(agent.name)} ${agent.status}`)))
       ];
     default:
-      return assertNever(agents);
+      return assertNever2(agents);
   }
 }
 function jobNodes(jobs, theme) {
@@ -88817,7 +88876,7 @@ function jobNodes(jobs, theme) {
         section("Jobs", theme, jobs.jobs.map((job) => text({ fg: theme.text }, `${truncate(job.title)} ${job.status} ${job.toolCalls ?? 0} ${job.lastTool ?? "none"}`)))
       ];
     default:
-      return assertNever(jobs);
+      return assertNever2(jobs);
   }
 }
 function brokenNodes(messages, theme) {
@@ -88838,7 +88897,7 @@ function rosterLines(roster) {
     case "rows":
       return roster.rows.map((row) => `${row.label} ${row.model}`);
     default:
-      return assertNever(roster);
+      return assertNever2(roster);
   }
 }
 function section(title, theme, children) {
