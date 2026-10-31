@@ -12,6 +12,7 @@ import {
 } from "../../hooks"
 import { safeCreateHook } from "../../shared/safe-create-hook"
 import { createUnstableAgentBabysitter } from "../unstable-agent-babysitter"
+import { isGoalPaused } from "../../hooks/goal/continuation-policy"
 
 export type ContinuationHooks = {
   stopContinuationGuard: ReturnType<typeof createStopContinuationGuardHook> | null
@@ -48,6 +49,9 @@ export function createContinuationHooks(args: {
         }))
     : null
 
+  const isContinuationStopped = (sessionID: string): boolean =>
+    (stopContinuationGuard?.isStopped(sessionID) ?? false) || isGoalPaused(ctx.directory, sessionID)
+
   const compactionContextInjector = isHookEnabled("compaction-context-injector")
     ? safeHook("compaction-context-injector", () =>
         createCompactionContextInjector({ ctx, backgroundManager }))
@@ -61,7 +65,7 @@ export function createContinuationHooks(args: {
     ? safeHook("todo-continuation-enforcer", () =>
       createTodoContinuationEnforcer(ctx, {
           backgroundManager,
-          isContinuationStopped: stopContinuationGuard?.isStopped,
+          isContinuationStopped,
         }))
     : null
 
@@ -79,8 +83,7 @@ export function createContinuationHooks(args: {
         createAtlasHook(ctx, {
           directory: ctx.directory,
           backgroundManager,
-          isContinuationStopped: (sessionID: string) =>
-            stopContinuationGuard?.isStopped(sessionID) ?? false,
+          isContinuationStopped,
           agentOverrides: pluginConfig.agents,
           autoCommit: pluginConfig.ulw_execute?.auto_commit,
         }))
