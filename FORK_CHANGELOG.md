@@ -10,6 +10,22 @@ Releases of [rubimpassos/oh-my-openagent](https://github.com/rubimpassos/oh-my-o
 
 To release: add a `## [<version>] - YYYY-MM-DD` section here on `main` (with the `Fork-Patch: v2-support` trailer), then run the **Fork release** workflow with that version.
 
+## [5.1.69-fork.14] - 2026-11-13
+
+### Updates
+
+- Integrates upstream `dev` through `2353fa52bddbba8cfa50f51f5b9d8271b1e476fc`, including the 5.1.69 release and subsequent merged updates. The fork keeps its functional OpenCode V2 runtime instead of upstream's load-only entry and migration notice.
+- Retains the fork's session-scoped goals, pause and resume controls, todos and plans that follow moved sessions, exact plan selection, external browser provider and domain-language planning.
+- Uses the current upstream build graph and plugin SDK while retaining the built Git release installation path. The release workflow uses Bun 1.4.4.
+- Scheduled synchronization now merges both upstream and open V2 PR updates onto the validated fork history and proposes a reviewable PR instead of rebuilding and force-pushing `main` from the old PR base.
+
+### Fixes
+
+- Configuration migration with `OMO_CONFIG_DIR` now returns the complete current migration result, including its empty target-backup list.
+- Internal session HTTP requests honor OpenCode V2's `OPENCODE_PASSWORD`, with the V2 username and precedence, while retaining legacy authentication. This fixes unauthorized session listing and metadata requests when the V2 password variable is used.
+- Codex cleanup does not attempt to prune `/runtime` when its configured home resolves to a filesystem root.
+- Goal continuation tests clean up their temporary project directories, as required by the current upstream isolation checks.
+
 ## [5.0.1-fork.13] - 2026-10-31
 
 ### Fixes
