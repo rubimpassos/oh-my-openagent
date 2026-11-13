@@ -1,4 +1,4 @@
-import { afterEach } from "bun:test"
+import { onTestFinished } from "bun:test"
 import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -22,20 +22,9 @@ type BoundSessionManager = {
   getSessionFile(this: BoundSessionManager): string
 }
 
-const tempRoots: string[] = []
-
-afterEach(() => {
-  while (tempRoots.length > 0) {
-    const root = tempRoots.pop()
-    if (root !== undefined) {
-      rmSync(root, { recursive: true, force: true })
-    }
-  }
-})
-
 export function createTempCwd(): string {
   const root = mkdtempSync(join(tmpdir(), "omo-senpi-cc-test-"))
-  tempRoots.push(root)
+  onTestFinished(() => rmSync(root, { recursive: true, force: true }))
   return root
 }
 
@@ -101,12 +90,14 @@ export function isToolResultPatch(value: unknown): value is ToolResultPatch {
   return typeof value === "object" && value !== null
 }
 
-export async function registerWithFakeRunner(options: {
-  resolveBinary?: () => string | null
-  downloadBinary?: () => Promise<string | null>
-  result?: CheckResult
-  logger?: ComponentLogger
-} = {}): Promise<{
+export async function registerWithFakeRunner(
+  options: {
+    resolveBinary?: () => string | null
+    downloadBinary?: () => Promise<string | null>
+    result?: CheckResult
+    logger?: ComponentLogger
+  } = {},
+): Promise<{
   pi: FakeExtensionAPI
   calls: RunCommentCheckerInput[]
   logger: ComponentLogger

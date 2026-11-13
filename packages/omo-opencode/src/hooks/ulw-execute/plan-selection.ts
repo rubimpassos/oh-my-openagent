@@ -29,9 +29,7 @@ export function findPlanByName(plans: readonly string[], requestedName: string):
   if (partialMatch) return partialMatch
 
   return (
-    plans.find((planPath) =>
-      normalizePlanLookupValue(getPlanName(planPath)).includes(normalizedRequestedName),
-    ) ?? null
+    plans.find((planPath) => normalizePlanLookupValue(getPlanName(planPath)).includes(normalizedRequestedName)) ?? null
   )
 }
 
@@ -73,16 +71,11 @@ export function pickPreferredIncompletePlan(
   return incompletePlans.find((planPath) => planPath === preferredPlanPath) ?? null
 }
 
-export function formatIncompletePlanList(
-  plans: readonly string[],
-  includeModifiedTime: boolean,
-): string {
+export function formatIncompletePlanList(plans: readonly string[], includeModifiedTime: boolean): string {
   return plans
     .map((planPath, index) => {
       const progress = getPlanProgress(planPath)
-      const modified = includeModifiedTime
-        ? ` - Modified: ${new Date(statSync(planPath).mtimeMs).toISOString()}`
-        : ""
+      const modified = includeModifiedTime ? ` - Modified: ${new Date(statSync(planPath).mtimeMs).toISOString()}` : ""
 
       return `${index + 1}. [${getPlanName(planPath)}]${modified} - Progress: ${progress.completed}/${progress.total}`
     })

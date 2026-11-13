@@ -76,10 +76,40 @@ fn a_selected_display_is_captured_alone() {
 
     assert_eq!((image.width(), image.height()), (1280, 800));
     assert_eq!(image.get_pixel(0, 0).0, root_pixel(0x80, 0x18));
+    let listed: Vec<String> = capture.all_displays().unwrap().into_iter().map(|display| display.name).collect();
+    assert_eq!(listed, ["DP-1", "HDMI-1"], "a configured display still lists every monitor for per-call targets");
 }
 
 #[test]
-fn window_capture_clips_to_the_root_and_frames_the_clipped_bounds() {
+fn active_capture_requeries_focus_and_per_call_target_does_not_change_default() {
+    let server = FakeServer::new(200, 80)
+        .monitor("DP-1", (0, 0, 100, 80), true)
+        .monitor("HDMI-1", (100, 0, 100, 80), false)
+        .root_words("_NET_ACTIVE_WINDOW", AtomEnum::WINDOW, &[77])
+        .window(77, viewable(10, 10, 50, 50))
+        .window(88, viewable(120, 10, 50, 50));
+    let mut capture = X11Capture::with_server(server, DisplaySelector::Active).unwrap();
+
+    let (first, frame) = capture.capture(&Target::Desktop).unwrap();
+    assert_eq!(first.dimensions(), (100, 80));
+    assert_eq!(frame.map_point(0.0, 0.0, None).unwrap(), (0.0, 0.0));
+    let server = std::mem::take(&mut capture.server);
+    capture.server = server.root_words("_NET_ACTIVE_WINDOW", AtomEnum::WINDOW, &[88]);
+    let (second, frame) = capture.capture(&Target::Desktop).unwrap();
+    assert_eq!(second.get_pixel(0, 0).0, root_pixel(100, 0));
+    assert_eq!(frame.map_point(0.0, 0.0, None).unwrap(), (100.0, 0.0));
+
+    let (override_image, _) = capture.capture(&Target::parse("display:DP-1")).unwrap();
+    assert_eq!(override_image.get_pixel(0, 0).0, root_pixel(0, 0));
+    let (again, _) = capture.capture(&Target::Desktop).unwrap();
+    assert_eq!(again, second);
+    let (all, _) = capture.capture(&Target::parse("display:all")).unwrap();
+    assert_eq!(all.dimensions(), (200, 80));
+    assert_eq!(capture.capture(&Target::parse("display:missing")).unwrap_err().code, ErrorCode::InvalidTarget);
+}
+
+#[test]
+fn window_capture_keeps_the_full_frame_and_clears_the_off_root_area() {
     let server = FakeServer::new(1280, 800)
         .root_words("_NET_CLIENT_LIST", AtomEnum::WINDOW, &[77])
         .window(77, viewable(1200, 700, 200, 200));
@@ -87,25 +117,59 @@ fn window_capture_clips_to_the_root_and_frames_the_clipped_bounds() {
 
     let (image, frame) = capture.capture(&Target::Window("77".into())).unwrap();
 
-    assert_eq!((image.width(), image.height()), (80, 100));
+    assert_eq!((image.width(), image.height()), (200, 200));
     assert_eq!(
         image.get_pixel(0, 0).0,
         root_pixel(0xb0, 0xbc),
         "1200 & 0xff = 0xb0, 700 & 0xff = 0xbc"
     );
-    let clipped = DesktopWindow {
+    assert_eq!(image.get_pixel(79, 99).0, root_pixel(0xff, 0x1f));
+    assert_eq!(image.get_pixel(80, 0).0, [0, 0, 0, 0]);
+    assert_eq!(image.get_pixel(0, 100).0, [0, 0, 0, 0]);
+    let full = DesktopWindow {
+        identity: None,
         id: "77".into(),
         title: String::new(),
         app: String::new(),
         pid: None,
         x: 1200,
         y: 700,
-        width: 80,
-        height: 100,
+        width: 200,
+        height: 200,
         focused: false,
+        is_on_screen: None,
         elevated: None,
     };
-    assert_eq!(frame, FrameGeometry::for_window(&clipped, 80, 100));
+    assert_eq!(frame, FrameGeometry::for_window(&full, 200, 200));
+}
+
+#[test]
+fn an_unchanged_partially_offscreen_window_keeps_a_targetable_full_frame() {
+    let current = DesktopWindow {
+        identity: None,
+        id: "78".into(),
+        title: String::new(),
+        app: String::new(),
+        pid: None,
+        x: -20,
+        y: -30,
+        width: 100,
+        height: 100,
+        focused: false,
+        is_on_screen: None,
+        elevated: None,
+    };
+    let server = FakeServer::new(1280, 800)
+        .root_words("_NET_CLIENT_LIST", AtomEnum::WINDOW, &[78])
+        .window(78, viewable(-20, -30, 100, 100));
+    let capture = X11Capture::with_server(server, DisplaySelector::All).unwrap();
+
+    let (image, frame) = capture.capture(&Target::Window("78".into())).unwrap();
+
+    assert_eq!((image.width(), image.height()), (100, 100));
+    assert_eq!(image.get_pixel(0, 0).0, [0, 0, 0, 0]);
+    assert_eq!(image.get_pixel(20, 30).0, root_pixel(0, 0));
+    assert_eq!(frame.map_point(20.0, 30.0, Some(&current)).unwrap(), (0.0, 0.0));
 }
 
 #[test]

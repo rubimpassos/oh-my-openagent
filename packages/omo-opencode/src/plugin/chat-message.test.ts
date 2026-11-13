@@ -6,7 +6,14 @@ import { join } from "node:path"
 import { unsafeTestValue } from "../../../../test-support/unsafe-test-value"
 import type { OhMyOpenCodeConfig } from "../config"
 import { readBoulderState } from "../features/boulder-state"
-import { _resetForTesting, getSessionAgent, registerAgentName, setMainSession, subagentSessions, updateSessionAgent } from "../features/claude-code-session-state"
+import {
+  _resetForTesting,
+  getSessionAgent,
+  registerAgentName,
+  setMainSession,
+  subagentSessions,
+  updateSessionAgent,
+} from "../features/claude-code-session-state"
 import { createAutoSlashCommandHook } from "../hooks/auto-slash-command"
 import { validateObjective } from "../hooks/goal/validation"
 import { createUlwExecuteHook } from "../hooks/ulw-execute"
@@ -98,10 +105,12 @@ function createMockHandlerArgs(overrides?: {
     ctx: unsafeTestValue<PluginContext>({
       client: { tui: { showToast: async () => {} } },
     }),
-    pluginConfig: unsafeTestValue<OhMyOpenCodeConfig>((overrides?.pluginConfig ?? {})),
+    pluginConfig: unsafeTestValue<OhMyOpenCodeConfig>(overrides?.pluginConfig ?? {}),
     firstMessageVariantGate: {
       shouldOverride: () => overrides?.shouldOverride ?? false,
-      markApplied: (sessionID: string) => { appliedSessions.push(sessionID) },
+      markApplied: (sessionID: string) => {
+        appliedSessions.push(sessionID)
+      },
     },
     hooks: unsafeTestValue<ChatMessageHandlerArgs["hooks"]>({
       stopContinuationGuard: null,
@@ -141,11 +150,13 @@ describe("createChatMessageHandler - synthetic/internal messages", () => {
     const handler = createChatMessageHandler(args)
     const output: ChatMessageHandlerOutput = {
       message: {},
-      parts: [{
-        type: "text",
-        text: "synthetic prompt\n<!-- OMO_INTERNAL_INITIATOR -->\n<!-- OMO_RUNTIME_FALLBACK_RETRY -->",
-        synthetic: true,
-      }],
+      parts: [
+        {
+          type: "text",
+          text: "synthetic prompt\n<!-- OMO_INTERNAL_INITIATOR -->\n<!-- OMO_RUNTIME_FALLBACK_RETRY -->",
+          synthetic: true,
+        },
+      ],
     }
 
     // when
@@ -169,11 +180,13 @@ describe("createChatMessageHandler - synthetic/internal messages", () => {
     const handler = createChatMessageHandler(args)
     const output: ChatMessageHandlerOutput = {
       message: {},
-      parts: [{
-        type: "text",
-        text: `todo continuation\n${OMO_INTERNAL_INITIATOR_MARKER}`,
-        synthetic: true,
-      }],
+      parts: [
+        {
+          type: "text",
+          text: `todo continuation\n${OMO_INTERNAL_INITIATOR_MARKER}`,
+          synthetic: true,
+        },
+      ],
     }
 
     // when
@@ -319,13 +332,16 @@ describe("createChatMessageHandler - cache warning behavior", () => {
     const toastCalls: Array<{ body: { title: string; message: string } }> = []
     const providerModelsCachePath = join(getOmoOpenCodeCacheDir(), "provider-models.json")
     mkdirSync(getOmoOpenCodeCacheDir(), { recursive: true })
-    writeFileSync(providerModelsCachePath, JSON.stringify({
-      models: {
-        openai: [{ id: "gpt-5.4" }],
-      },
-      connected: ["openai"],
-      updatedAt: new Date().toISOString(),
-    }))
+    writeFileSync(
+      providerModelsCachePath,
+      JSON.stringify({
+        models: {
+          openai: [{ id: "gpt-5.4" }],
+        },
+        connected: ["openai"],
+        updatedAt: new Date().toISOString(),
+      }),
+    )
 
     const args = createMockHandlerArgs()
     args.ctx = {
@@ -351,14 +367,17 @@ describe("createChatMessageHandler - cache warning behavior", () => {
     const toastCalls: Array<{ body: { title: string; message: string } }> = []
     const modelsCachePath = join(getOpenCodeCacheDir(), "models.json")
     mkdirSync(getOpenCodeCacheDir(), { recursive: true })
-    writeFileSync(modelsCachePath, JSON.stringify({
-      openai: {
-        id: "openai",
-        models: {
-          "gpt-5.4": { id: "gpt-5.4" },
+    writeFileSync(
+      modelsCachePath,
+      JSON.stringify({
+        openai: {
+          id: "openai",
+          models: {
+            "gpt-5.4": { id: "gpt-5.4" },
+          },
         },
-      },
-    }))
+      }),
+    )
 
     const args = createMockHandlerArgs()
     args.ctx = {
@@ -442,7 +461,7 @@ describe("createChatMessageHandler - /ulw-execute integration", () => {
     const input = createMockInput("prometheus")
     const output: ChatMessageHandlerOutput = {
       message: {},
-      parts: [{ type: "text", text: "/ulw-execute \"my feature plan\"" }],
+      parts: [{ type: "text", text: '/ulw-execute "my feature plan"' }],
     }
 
     // when
@@ -651,14 +670,8 @@ describe("createChatMessageHandler - goal command handling and stop continuation
     })
 
     // then
-    expect(ulwExecuteCalls).toEqual([
-      "test-session",
-      "test-session",
-      "test-session",
-      "test-session",
-      "test-session",
-    ])
     // The ulw-execute template is not a /goal command, so it does not become the objective.
+    expect(ulwExecuteCalls).toEqual(["test-session", "test-session", "test-session", "test-session", "test-session"])
     expect(goalMock.setGoalCalls).toEqual([{ sessionID: "test-session", objective: "Ship it" }])
     expect(goalMock.pauseGoalCalls).toEqual(["test-session"])
     expect(goalMock.resumeGoalCalls).toEqual(["test-session"])
@@ -669,6 +682,38 @@ describe("createChatMessageHandler - goal command handling and stop continuation
 })
 
 describe("createChatMessageHandler - /goal raw slash fallback", () => {
+  test("does not execute a command embedded in a later ordinary text part", async () => {
+    const goalMock = createGoalHookMock()
+    const args = createMockHandlerArgs()
+    args.hooks.goal = goalMock.hook
+    const output = {
+      message: {},
+      parts: [
+        { type: "text", text: "Please explain this command; do not execute it:" },
+        { type: "text", text: "/goal clear" },
+      ],
+    }
+    await createChatMessageHandler(args)(createMockInput("sisyphus"), output)
+    expect(goalMock.clearGoalCalls).toEqual([])
+    expect(goalMock.setGoalCalls).toEqual([])
+    expect(output.parts[1].text).toBe("/goal clear")
+  })
+
+  test("automatic goal uses original user text before hook injection", async () => {
+    const goalMock = createGoalHookMock()
+    const args = createMockHandlerArgs({ shouldOverride: true })
+    args.hooks.goal = goalMock.hook
+    args.pluginConfig.default_mode = { goal: true }
+    args.hooks.keywordDetector = {
+      "chat.message": async (_input, output) => {
+        output.parts.push({ type: "text", text: "injected instructions".repeat(200) })
+      },
+    }
+    const output = { message: {}, parts: [{ type: "text", text: "original task" }] }
+    await createChatMessageHandler(args)(createMockInput("sisyphus"), output)
+    expect(goalMock.setGoalCalls).toEqual([{ sessionID: "test-session", objective: "original task" }])
+    expect(output.parts[1].text).toBe("injected instructions".repeat(200))
+  })
   test("does not route an auto-slash-expanded skill payload into goal handling", async () => {
     // given
     const setGoal = mock((_: string, objective: string) => {
@@ -678,14 +723,16 @@ describe("createChatMessageHandler - /goal raw slash fallback", () => {
     const goalMock = createGoalHookMock()
     const args = createMockHandlerArgs()
     args.hooks.autoSlashCommand = createAutoSlashCommandHook({
-      skills: unsafeTestValue([{
-        name: "long-skill",
-        definition: {
-          description: "Long skill regression fixture",
-          template: "x".repeat(2_100),
+      skills: unsafeTestValue([
+        {
+          name: "long-skill",
+          definition: {
+            description: "Long skill regression fixture",
+            template: "x".repeat(2_100),
+          },
+          scope: "user",
         },
-        scope: "user",
-      }]),
+      ]),
     })
     args.hooks.goal = { ...goalMock.hook, setGoal }
     const handler = createChatMessageHandler(args)
@@ -719,9 +766,7 @@ describe("createChatMessageHandler - /goal raw slash fallback", () => {
     await handler(input, output)
 
     // then
-    expect(goalMock.setGoalCalls).toEqual([
-      { sessionID: "test-session", objective: "Ship the dashboard" },
-    ])
+    expect(goalMock.setGoalCalls).toEqual([{ sessionID: "test-session", objective: "Ship the dashboard" }])
   })
 
   test("pauses goal when /goal pause arrives", async () => {
@@ -803,11 +848,8 @@ describe("createChatMessageHandler - /goal raw slash fallback", () => {
     await handler(input, output)
 
     // then
-    expect(goalMock.setGoalCalls).toEqual([
-      { sessionID: "test-session", objective: "Ship the dashboard" },
-    ])
+    expect(goalMock.setGoalCalls).toEqual([{ sessionID: "test-session", objective: "Ship the dashboard" }])
   })
-
 })
 
 function createMockInput(agent?: string, model?: { providerID: string; modelID: string }) {
@@ -901,10 +943,7 @@ describe("createChatMessageHandler - TUI variant passthrough", () => {
     //#given
     const args = createMockHandlerArgs()
     args.hooks.backgroundNotificationHook = {
-      "chat.message": async (
-        _input: { sessionID: string },
-        output: ChatMessageHandlerOutput,
-      ): Promise<void> => {
+      "chat.message": async (_input: { sessionID: string }, output: ChatMessageHandlerOutput): Promise<void> => {
         output.parts.push({
           type: "text",
           text: "<system-reminder>[BACKGROUND TASK COMPLETED]</system-reminder>",

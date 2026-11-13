@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test"
+import { mkdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
+
+import { COMMENT_CHECKER_RELEASE_VERSION, COMMENT_CHECKER_VERSION_MARKER } from "@oh-my-opencode/comment-checker-core"
 
 import { createTempCwd } from "./comment-checker.test-support"
 import { resolveSenpiCommentCheckerBinary } from "./index"
@@ -89,10 +92,12 @@ describe("omo-senpi comment-checker binary resolver", () => {
     const expectedPathCandidate = process.platform === "win32" ? "comment-checker.exe" : "comment-checker"
     expect(resolutionOrder).toEqual(["package-api", `path:${expectedPathCandidate}`])
   })
-it("#given env, package and PATH miss #when the shared cache holds a checker #then the cached binary resolves last", () => {
+  it("#given env, package and PATH miss #when the shared cache holds a checker #then the cached binary resolves last", () => {
     // given
     const cacheDir = join(createTempCwd(), "bin")
     const cachedBinary = join(cacheDir, process.platform === "win32" ? "comment-checker.exe" : "comment-checker")
+    mkdirSync(cacheDir, { recursive: true })
+    writeFileSync(join(cacheDir, COMMENT_CHECKER_VERSION_MARKER), `${COMMENT_CHECKER_RELEASE_VERSION}\n`)
     const resolutionOrder: string[] = []
 
     // when

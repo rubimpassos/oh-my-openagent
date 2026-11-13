@@ -1,6 +1,8 @@
+[English](README.md) | [简体中文](README.zh-cn.md) | [日本語](README.ja.md) | [Русский](README.ru.md) | [한국어](README.ko.md) | [Español](README.es.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Português (Brasil)](README.pt-br.md) | [Italiano](README.it.md)
+
 > [!NOTE]
 > **OmO ベータ: OmO ❤️ Pi**
-> `bun add -g omo-ai` でインストールしてください。メモリシステム、CodeMode、Anthropic サブスクリプションにすべて対応しています。
+> `curl -fsSL https://get.omo.dev/install.sh | bash` でインストールしてください。メモリシステム、CodeMode、Anthropic サブスクリプションにすべて対応しています。
 > [![OmO Herdr DAG - live OmO workflow DAGs in a Herdr side pane](./.github/assets/omo-herdr-dag.png)](https://github.com/jc01rho/omo-herdr-dag)
 > *プロンプトに "mass ulw" と入れるだけ。あなたはもうグラフエンジニアリングのマスター。マルチモデルの ultracode を、より良いメモリシステムとともに。(右側のパネルは [omo-herdr-dag](https://github.com/jc01rho/omo-herdr-dag) です)*
 
@@ -10,11 +12,6 @@
 > | [<img alt="OpenGateway" src="./.github/assets/opengateway-logo.svg" width="156px" />](https://opengateway.ai/) | **[OpenGateway](https://opengateway.ai/)** は OmO のスポンサーです。複数のモデルプロバイダーをひとつの API で使える OpenAI 互換ゲートウェイです。オープンソースへのご支援に感謝します。 |
 > | :-----| :----- |
 
-
-> [!NOTE]
->
-> [![Sisyphus Labs - Meet Dori. Not a demo. Subscribes to everything.](./.github/assets/sisyphuslabs.png?v=4)](https://sisyphuslabs.ai)
-> > **OmO は上記の Jobdori によってメンテナンスされています。あなた専用の Jobdori、Dori に会いましょう。 <br />[こちら](https://sisyphuslabs.ai) からウェイトリストにご登録ください。**
 
 > [!TIP]
 > 私たちと一緒に！
@@ -35,13 +32,12 @@
 **Your tool for real work. But it's an agent.**
 
 [![GitHub Release](https://img.shields.io/github/v/release/code-yeongyu/oh-my-openagent?color=369eff&labelColor=black&logo=github&style=flat-square)](https://github.com/code-yeongyu/oh-my-openagent/releases)
-[![npm downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fomo.dev%2Fapi%2Fnpm-downloads&style=flat-square)](https://www.npmjs.com/package/omo-ai)
+[![downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fomo.dev%2Fapi%2Fdownloads&style=flat-square)](https://omo.dev)
 [![GitHub Contributors](https://img.shields.io/github/contributors/code-yeongyu/oh-my-openagent?color=c4f042&labelColor=black&style=flat-square)](https://github.com/code-yeongyu/oh-my-openagent/graphs/contributors)
 [![GitHub Stars](https://img.shields.io/github/stars/code-yeongyu/oh-my-openagent?color=ffcb47&labelColor=black&style=flat-square)](https://github.com/code-yeongyu/oh-my-openagent/stargazers)
 [![License](https://img.shields.io/badge/license-SUL--1.0-white?labelColor=black&style=flat-square)](https://github.com/code-yeongyu/oh-my-openagent/blob/dev/LICENSE.md)
 [![Docs](https://img.shields.io/badge/docs-omo.dev-369eff?labelColor=black&logo=readthedocs&logoColor=white&style=flat-square)](https://omo.dev/docs)
 
-[English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-cn.md) | [Русский](README.ru.md)
 
 </div>
 
@@ -52,13 +48,15 @@ OmO は、あなたのトークンを完成した成果に変える `omo` コマ
 ## インストール
 
 ```bash
-bun add -g omo-ai
+curl -fsSL https://get.omo.dev/install.sh | bash
 omo
 ```
 
-bun がない場合は `npm i -g omo-ai` でも動きます。パッケージ名は `omo-ai` です。npm にある `omo` パッケージは無関係の別物です。
+Windows では PowerShell で `irm https://get.omo.dev/install.ps1 | iex` を実行してください。OS と CPU に合ったネイティブの `omo` を `~/.local/bin` に入れ、リリースのチェックサムで検証します。パッケージマネージャーを使いたい場合は `bun add -g omo-ai`(または `npm i -g omo-ai`)で同じ OmO が入ります。パッケージ名は `omo-ai` です。npm にある `omo` パッケージは無関係の別物です。Windows CMD、`PATH` の直し方、更新とアンインストールは [omo.dev/docs/install](https://omo.dev/docs/install) で説明しています。
 
 プロジェクトを開いて `omo` を実行し、やることを伝えてください。セットアップはそれだけです。
+
+セッション中は `/thinking <level>` でモデルの思考の深さを設定できます（`/thinking` だけならレベルを選ぶ画面が開きます）。`Shift+Tab` はレベルを順に切り替え、`/efforts <level>` は強さの段階があるモデルで推論の強さを直接設定します。前の作業に戻るには `/resume`（または `/sessions`）で過去のセッションを開きます。シェルからは `omo -c` で直前のセッションを続け、`omo -r` でセッション一覧を開けます。ほかのコマンドは `/help` にまとまっています。
 
 OpenCode 版や LazyCodex から移行する場合は、`omo setup` を一度実行してください。プロバイダーキー、カスタムプロバイダー、MCP サーバー、スキル、モデルの選択を引き継ぎます。続けて `omo doctor` を実行すると、お使いのプロバイダーでどのタスクカテゴリを実行できるか、旧インストールに何が残っているかを確認できます。詳しい手順は [OpenCode からの移行](docs/guide/migrating-from-opencode.md) をご覧ください。
 
@@ -88,7 +86,7 @@ OpenCode 版や LazyCodex から移行する場合は、`omo setup` を一度実
 - [OpenCode からの移行](docs/guide/migrating-from-opencode.md)
 - [設定リファレンス](docs/reference/configuration.md)
 - [機能一覧](docs/reference/features.md)
-- [コンピューター操作](docs/guide/computer-use.md)
+- [コンピューター操作](docs/guide/computer-use.md)（実験的機能）
 - [Ultrawork マニフェスト](docs/manifesto.md)
 
 ## レビュー

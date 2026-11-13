@@ -1,6 +1,5 @@
 import { Plugin } from "@opencode/plugin"
 import type { PluginModule } from "@opencode-ai/plugin"
-
 import { createPluginModule } from "./testing/create-plugin-module"
 import { setupOpenCodeV2 } from "./v2/host"
 

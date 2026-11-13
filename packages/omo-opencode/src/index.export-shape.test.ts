@@ -9,4 +9,19 @@ describe("oh-my-openagent plugin export shape", () => {
     expect(typeof pluginModule.server).toBe("function")
     expect(pluginModule.server).toBe(omoPlugin)
   })
+
+  it("requires the V2 host context rather than silently loading an inactive plugin", async () => {
+    // given
+    const definition: Record<string, unknown> = pluginModule
+
+    // when
+    const setup = definition["setup"]
+
+    // then
+    expect(definition["id"]).toBe("oh-my-openagent")
+    expect(typeof definition["server"]).toBe("function")
+    expect(typeof setup).toBe("function")
+    if (typeof setup !== "function") throw new Error("setup missing")
+    await expect(setup({})).rejects.toBeInstanceOf(TypeError)
+  })
 })

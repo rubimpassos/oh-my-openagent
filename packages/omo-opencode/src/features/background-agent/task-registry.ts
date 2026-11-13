@@ -13,12 +13,7 @@ type GlobalWithBackgroundTaskRegistry = typeof globalThis & {
   [REGISTRY_KEY]?: BackgroundTaskRegistry
 }
 
-const TERMINAL_TASK_STATUSES = new Set<BackgroundTask["status"]>([
-  "completed",
-  "error",
-  "cancelled",
-  "interrupt",
-])
+const TERMINAL_TASK_STATUSES = new Set<BackgroundTask["status"]>(["completed", "error", "cancelled", "interrupt"])
 
 function getRegistry(): BackgroundTaskRegistry {
   const registryGlobal = globalThis as GlobalWithBackgroundTaskRegistry

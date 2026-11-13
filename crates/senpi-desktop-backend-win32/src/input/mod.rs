@@ -8,19 +8,37 @@
 pub mod held;
 pub mod keys;
 pub mod messages;
+#[cfg(any(test, target_os = "windows"))]
+mod cursor_placement;
+#[cfg(any(test, target_os = "windows"))]
+mod focus_policy;
+#[cfg(any(test, target_os = "windows"))]
+mod events;
+#[cfg(any(test, target_os = "windows"))]
+mod recovery;
+#[cfg(any(test, target_os = "windows"))]
+mod typing_progress;
 
 #[cfg(target_os = "windows")]
 mod background;
 #[cfg(target_os = "windows")]
+mod background_pointer;
+#[cfg(target_os = "windows")]
 mod barrier;
 #[cfg(target_os = "windows")]
 mod char_sink;
+#[cfg(target_os = "windows")]
+mod compositor;
 #[cfg(target_os = "windows")]
 mod dispatch;
 #[cfg(target_os = "windows")]
 mod foreground;
 #[cfg(target_os = "windows")]
 mod global;
+#[cfg(target_os = "windows")]
+mod holds;
+#[cfg(target_os = "windows")]
+mod menu_guard;
 #[cfg(target_os = "windows")]
 mod native;
 #[cfg(target_os = "windows")]
@@ -35,6 +53,17 @@ pub(crate) use foreground::raise_window;
 #[cfg(target_os = "windows")]
 pub(crate) use native::foreground_window_id;
 
+#[cfg(target_os = "windows")]
+pub(crate) use menu_guard::menu_pattern_safe;
+
+#[cfg(target_os = "windows")]
+pub(crate) fn menu_target(
+    id: &str,
+    integrity: crate::integrity::IntegrityRid,
+) -> senpi_desktop_core::error::CoreResult<windows_sys::Win32::Foundation::HWND> {
+    native::Window::target(id, integrity).map(native::Window::hwnd)
+}
+
 #[cfg(test)]
 mod tests;
 
@@ -43,3 +72,6 @@ mod win_tests;
 
 #[cfg(all(test, target_os = "windows"))]
 pub(crate) mod live_tests;
+
+#[cfg(all(test, target_os = "windows"))]
+mod live_release_tests;

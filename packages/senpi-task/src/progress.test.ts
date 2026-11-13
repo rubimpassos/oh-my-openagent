@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
+import { HOST_TURN_RESUMED_EVENT } from "./manager/host-turn-resumed"
 import { createChildProgress, readToolProgressDetails } from "./progress"
 
 const RESOLVED_MODEL = {
@@ -52,7 +53,8 @@ describe("child task progress", () => {
     const details = progress.details()
     expect(details).toEqual({
       progress: {
-        activity: "st_00000001 · category:quick(kimi-coding/kimi-k3-unlocked:max) · turn 1 (1 tool) · running · 50 tok/s",
+        activity:
+          "st_00000001 · category:quick(kimi-coding/kimi-k3-unlocked:max) · turn 1 (1 tool) · running · 50 tok/s",
         startedAt: 1_000,
       },
       childId: "st_00000001",
@@ -174,6 +176,41 @@ describe("child task progress before the first successful turn", () => {
     expect(details.failedTurns).toBeUndefined()
   })
 
+  test("#given a reattach that flagged the task awaiting input #when progress is composed #then the row reads resumed, waiting for input instead of starting (senpi#3266)", () => {
+    // given - the manager synthesizes this event when a revival re-joins a session whose last
+    // turn ended aborted; the verb is the issue's user-visible contract
+    const progress = createChildProgress("st_00032606", { category: "quick" }, 1_000, () => 2_000)
+
+    // when
+    progress.accept({ type: "task_awaiting_input" })
+
+    // then
+    expect(progress.details().progress.activity).toBe("st_00032606 · category:quick · resumed, waiting for input")
+  })
+
+  test("#given a progress created for an already-flagged record #when composed #then the initial state already reads resumed, waiting for input", () => {
+    // given
+    const progress = createChildProgress("st_00032607", { category: "quick" }, 1_000, () => 2_000, {
+      awaitingInput: true,
+    })
+
+    // when / then
+    expect(progress.details().progress.activity).toBe("st_00032607 · category:quick · resumed, waiting for input")
+  })
+
+  test("#given a flagged child whose turn starts moving #when events arrive #then the verb leaves waiting and reads like any live child", () => {
+    // given
+    const progress = createChildProgress("st_00032608", { category: "quick" }, 1_000, () => 2_000, {
+      awaitingInput: true,
+    })
+
+    // when - a tool actually starts: the child is working again, so the waiting flag is over
+    progress.accept({ type: "tool_execution_start", toolName: "bash", args: {} })
+
+    // then
+    expect(progress.details().progress.activity).toContain("running bash")
+  })
+
   test("#given failed assistant turns #when progress is composed #then the row counts failures and reads retrying", () => {
     // given
     let nowMs = 1_000
@@ -220,6 +257,20 @@ describe("child task progress before the first successful turn", () => {
     expect(details.failedTurns).toBe(1)
   })
 
+  test("#given a turn resumed on a new host generation #when progress is composed before any successful turn #then the row reads running", () => {
+    // given
+    const progress = createChildProgress("st_00000009", { category: "quick" }, 1_000, () => 2_000)
+    expect(progress.details().progress.activity).toBe("st_00000009 · category:quick · starting")
+
+    // when
+    const changed = progress.accept({ type: HOST_TURN_RESUMED_EVENT })
+
+    // then
+    expect(changed).toBe(true)
+    expect(progress.details().progress.activity).toBe("st_00000009 · category:quick · running")
+    expect(progress.details().turns).toBe(0)
+  })
+
   test("#given a tool in flight #when progress is composed #then the tool leads the verb even before any turn", () => {
     // given
     const progress = createChildProgress("st_00000008", { category: "quick" }, 1_000, () => 2_000)
@@ -228,7 +279,9 @@ describe("child task progress before the first successful turn", () => {
     progress.accept({ type: "tool_execution_start", toolName: "read", args: { path: "a.ts" } })
 
     // then — tool calls are real progress, so the turn token renders with zero turns
-    expect(progress.details().progress.activity).toBe("st_00000008 · category:quick · turn 0 (1 tool) · running read a.ts")
+    expect(progress.details().progress.activity).toBe(
+      "st_00000008 · category:quick · turn 0 (1 tool) · running read a.ts",
+    )
   })
 
   test("#given details carrying failed turns #when read #then the field survives the round trip and stays optional", () => {
@@ -247,7 +300,12 @@ describe("child task progress before the first successful turn", () => {
       failedTurns: 2,
     })
     expect(
-      readToolProgressDetails({ progress: { activity: "starting", startedAt: 1 }, childId: "st_1", turns: 0, failedTurns: "2" }),
+      readToolProgressDetails({
+        progress: { activity: "starting", startedAt: 1 },
+        childId: "st_1",
+        turns: 0,
+        failedTurns: "2",
+      }),
     ).toBeUndefined()
   })
 })

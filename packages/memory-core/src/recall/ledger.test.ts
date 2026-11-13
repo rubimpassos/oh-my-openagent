@@ -4,6 +4,7 @@ import { mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promise
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { RecallLedger, recallLedgerDiskReads, sanitizeSessionFilename } from "./ledger"
+import { removeTree } from "../../../../test-support/remove-tree"
 
 const tempDirs: string[] = []
 
@@ -14,9 +15,7 @@ async function createLedgerDir(): Promise<string> {
 }
 
 afterEach(async () => {
-  await Promise.all(
-    tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })),
-  )
+  await Promise.all(tempDirs.splice(0).map((dir) => removeTree(dir, { maxRetries: 10, retryDelay: 200 })))
 })
 
 describe("sanitizeSessionFilename", () => {
@@ -171,10 +170,14 @@ describe("RecallLedger", () => {
     const ledger = new RecallLedger(dir)
     await writeFile(
       join(dir, "session-1.json"),
-      `${JSON.stringify({
-        version: 1,
-        surfaced: { "reference/a.md": { hash: "aaaa", at: "2026-09-16T00:00:00.000Z" } },
-      }, null, 2)}\n`,
+      `${JSON.stringify(
+        {
+          version: 1,
+          surfaced: { "reference/a.md": { hash: "aaaa", at: "2026-09-16T00:00:00.000Z" } },
+        },
+        null,
+        2,
+      )}\n`,
       "utf8",
     )
     const before = recallLedgerDiskReads()
@@ -216,13 +219,17 @@ describe("RecallLedger", () => {
     // when
     await writeFile(
       join(dir, "session-1.json"),
-      `${JSON.stringify({
-        version: 1,
-        surfaced: {
-          "reference/a.md": { hash: "aaaa", at: "2026-09-16T00:00:00.000Z" },
-          "notes/external.md": { hash: "cccc", at: "2026-09-16T00:00:00.000Z" },
+      `${JSON.stringify(
+        {
+          version: 1,
+          surfaced: {
+            "reference/a.md": { hash: "aaaa", at: "2026-09-16T00:00:00.000Z" },
+            "notes/external.md": { hash: "cccc", at: "2026-09-16T00:00:00.000Z" },
+          },
         },
-      }, null, 2)}\n`,
+        null,
+        2,
+      )}\n`,
       "utf8",
     )
     const surfaced = await ledger.surfacedPaths("session-1")

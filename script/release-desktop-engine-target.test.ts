@@ -10,7 +10,19 @@ import {
   loadDesktopEngineTargets,
   stageCompiledDesktopEngine,
 } from "./release-desktop-engine-target"
-import { buildRuntimeManifest, RELEASE_BINARY_TARGETS, resolveExpectedSidecarRelPaths, stageSidecarPayload } from "./build-omo-binary"
+import {
+  buildRuntimeManifest,
+  RELEASE_BINARY_TARGETS,
+  resolveExpectedSidecarRelPaths,
+  stageSidecarPayload,
+} from "./build-omo-binary"
+
+// The CLI test spawns three bun children. On 16 windows-latest runs it passed in at most 0.2 s,
+// while cold runners went past Bun's 5 s default (#9386): the per-test budget absorbs those slow
+// cold-runner spawns. It cannot catch a hang, because spawnSync blocks the timer that enforces it,
+// so each spawn carries its own timeout: a hung child is killed and the test fails on its status.
+const SUBPROCESS_TEST_TIMEOUT_MS = 30_000
+const SUBPROCESS_SPAWN_TIMEOUT_MS = 20_000
 
 describe("desktop engine target fixture", () => {
   test("all twelve targets resolve from the fixture with explicit unavailable entries", () => {
@@ -24,12 +36,39 @@ describe("desktop engine target fixture", () => {
     expect(decisions).toEqual(RELEASE_BINARY_TARGETS.map((entry) => entry.target))
     expect(targets).toEqual(DESKTOP_ENGINE_TARGETS)
     expect(targets.filter((entry) => entry.available).map((entry) => entry.target)).toEqual([
-      "darwin-arm64", "darwin-x64", "darwin-x64-baseline",
-      "linux-x64", "linux-x64-baseline", "windows-x64", "windows-x64-baseline",
+      "darwin-arm64",
+      "darwin-x64",
+      "darwin-x64-baseline",
+      "linux-x64",
+      "linux-x64-baseline",
+      "linux-arm64",
+      "windows-x64",
+      "windows-x64-baseline",
+      "windows-arm64",
     ])
-    expect(targets.filter((entry) => !entry.available).every((entry) =>
-      entry.host === null && entry.asset === null && entry.source === null && entry.payload === null,
-    )).toBe(true)
+    expect(desktopEngineTarget("linux-arm64")).toEqual({
+      target: "linux-arm64",
+      available: true,
+      host: "linux-arm64",
+      asset: "senpi-desktop-engine-linux-arm64",
+      source: "target/aarch64-unknown-linux-gnu/release/senpi-desktop-engine",
+      payload: "native/prebuilds/linux-arm64/senpi-desktop-engine",
+    })
+    expect(desktopEngineTarget("windows-arm64")).toEqual({
+      target: "windows-arm64",
+      available: true,
+      host: "win32-arm64",
+      asset: "senpi-desktop-engine-win32-arm64.exe",
+      source: "target/aarch64-pc-windows-msvc/release/senpi-desktop-engine.exe",
+      payload: "native/prebuilds/win32-arm64/senpi-desktop-engine.exe",
+    })
+    expect(
+      targets
+        .filter((entry) => !entry.available)
+        .every(
+          (entry) => entry.host === null && entry.asset === null && entry.source === null && entry.payload === null,
+        ),
+    ).toBe(true)
   })
 
   test("missing, extra, and mismatched hosts are rejected rather than falling back", () => {
@@ -47,27 +86,47 @@ describe("desktop engine target fixture", () => {
     expect(() => loadDesktopEngineTargets(wrongHost)).toThrow(/cannot use darwin-x64/)
   })
 
-  test("CLI outputs one JSON decision for an available baseline and an unavailable target", () => {
-    // Given the query CLI and target names.
-    const cli = join(import.meta.dir, "release-desktop-engine-target.ts")
-    // When a workflow queries each target.
-    const baseline = spawnSync("bun", [cli, "--target", "darwin-x64-baseline"], { encoding: "utf8" })
-    const unavailable = spawnSync("bun", [cli, "--target", "linux-arm64"], { encoding: "utf8" })
+  test(
+    "CLI outputs one JSON decision for an available baseline and an unavailable target",
+    () => {
+      // Given the query CLI and target names.
+      const cli = join(import.meta.dir, "release-desktop-engine-target.ts")
+      // When a workflow queries each target.
+      const baseline = spawnSync("bun", [cli, "--target", "darwin-x64-baseline"], {
+        encoding: "utf8",
+        timeout: SUBPROCESS_SPAWN_TIMEOUT_MS,
+      })
+      const unavailable = spawnSync("bun", [cli, "--target", "linux-arm64-musl"], {
+        encoding: "utf8",
+        timeout: SUBPROCESS_SPAWN_TIMEOUT_MS,
+      })
 
-    // Then the machine-consumed host, asset and Rust source are explicit.
-    expect(baseline.status).toBe(0)
-    expect(JSON.parse(baseline.stdout)).toEqual({
-      target: "darwin-x64-baseline", available: true, host: "darwin-x64",
-      asset: "senpi-desktop-engine-darwin-x64",
-      source: "target/x86_64-apple-darwin/release/senpi-desktop-engine",
-      payload: "native/prebuilds/darwin-x64/senpi-desktop-engine",
-    })
-    expect(unavailable.status).toBe(0)
-    expect(JSON.parse(unavailable.stdout)).toEqual({
-      target: "linux-arm64", available: false, host: null, asset: null, source: null, payload: null,
-    })
-    expect(spawnSync("bun", [cli, "--target", "surprise"], { encoding: "utf8" }).status).toBe(1)
-  })
+      // Then the machine-consumed host, asset and Rust source are explicit.
+      expect(baseline.status).toBe(0)
+      expect(JSON.parse(baseline.stdout)).toEqual({
+        target: "darwin-x64-baseline",
+        available: true,
+        host: "darwin-x64",
+        asset: "senpi-desktop-engine-darwin-x64",
+        source: "target/x86_64-apple-darwin/release/senpi-desktop-engine",
+        payload: "native/prebuilds/darwin-x64/senpi-desktop-engine",
+      })
+      expect(unavailable.status).toBe(0)
+      expect(JSON.parse(unavailable.stdout)).toEqual({
+        target: "linux-arm64-musl",
+        available: false,
+        host: null,
+        asset: null,
+        source: null,
+        payload: null,
+      })
+      expect(
+        spawnSync("bun", [cli, "--target", "surprise"], { encoding: "utf8", timeout: SUBPROCESS_SPAWN_TIMEOUT_MS })
+          .status,
+      ).toBe(1)
+    },
+    SUBPROCESS_TEST_TIMEOUT_MS,
+  )
 })
 
 describe("compiled desktop engine staging", () => {
@@ -110,10 +169,11 @@ describe("compiled desktop engine staging", () => {
       const stageDir = join(root, "stage")
 
       // When the declared available target is staged, then no fallback is accepted.
-      expect(() => stageCompiledDesktopEngine("linux-x64", stageDir, root))
-        .toThrow(/missing required desktop engine for linux-x64:.*x86_64-unknown-linux-gnu/)
+      expect(() => stageCompiledDesktopEngine("linux-x64", stageDir, root)).toThrow(
+        /missing required desktop engine for linux-x64:.*x86_64-unknown-linux-gnu/,
+      )
       expect(existsSync(stageDir)).toBe(false)
-      expect(stageCompiledDesktopEngine("linux-arm64", stageDir, root)).toBeNull()
+      expect(stageCompiledDesktopEngine("linux-arm64-musl", stageDir, root)).toBeNull()
       expect(existsSync(stageDir)).toBe(false)
     } finally {
       rmSync(root, { recursive: true, force: true })
@@ -128,12 +188,15 @@ describe("compiled desktop engine staging", () => {
       if (target === undefined) throw new Error("windows-x64 target expected")
 
       // When the actual release staging entry point is run.
-      const stage = (): void => { stageSidecarPayload(target, join(root, "stage"), "1.0.0", undefined, root) }
+      const stage = (): void => {
+        stageSidecarPayload(target, join(root, "stage"), "1.0.0", undefined, root)
+      }
 
-      // Then a missing required compiled payload fails closed.
+      // Then a missing required compiled payload fails closed before the plugin build starts (#9857).
       expect(stage).toThrow(/missing required desktop engine for windows-x64:.*x86_64-pc-windows-msvc/)
+      expect(existsSync(join(root, "stage", "plugin"))).toBe(false)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
-  }, 60_000)
+  })
 })

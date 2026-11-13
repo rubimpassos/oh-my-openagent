@@ -48,6 +48,26 @@ pub(crate) fn audit_event(
         text_delivered: mutation.text.map(|_| mutation.text_delivered.get()),
         text_sha256: mutation.text.map(text_sha256_prefix),
         keys: mutation.keys.map(<[String]>::to_vec),
+        id: None,
+    }
+}
+
+/// The audit of a `control.grant` / `control.revoke`: no backend action ran,
+/// and the reason is hashed exactly like typed text, never logged.
+pub(crate) fn control_audit(action: Method, reason: Option<&str>, code: Option<ErrorCode>) -> AuditEvent {
+    AuditEvent {
+        action,
+        target: "control".to_owned(),
+        delivery: "control".to_owned(),
+        frame_id: None,
+        code,
+        duration_ms: 0,
+        focus_restored: None,
+        text_length: reason.map(|text| u32::try_from(text.chars().count()).unwrap_or(u32::MAX)),
+        text_delivered: None,
+        text_sha256: reason.map(text_sha256_prefix),
+        keys: None,
+        id: None,
     }
 }
 
@@ -145,11 +165,7 @@ impl Worker {
     /// and never fail the action. The same [`AuditEvent`] was already sent to
     /// [`crate::mutate::SessionSafety::audit`].
     pub(crate) fn persist_audit(&self, event: &AuditEvent, error: Option<&DesktopError>) {
-        let Some(path) = self
-            .options
-            .as_ref()
-            .and_then(|options| options.audit_path.as_deref())
-        else {
+        let Some(path) = self.options.as_ref().and_then(|options| options.audit_path.as_deref()) else {
             return;
         };
         writer::append(path, &AuditRecord::new(self, event, error));
@@ -189,9 +205,7 @@ pub(crate) fn rfc3339_ms(unix_ms: u64) -> String {
 
 /// Howard Hinnant's `civil_from_days` for Unix day counts.
 fn civil_ymd(unix_days: u64) -> (i32, u8, u8) {
-    let z = i64::try_from(unix_days)
-        .unwrap_or(i64::MAX)
-        .saturating_add(719_468);
+    let z = i64::try_from(unix_days).unwrap_or(i64::MAX).saturating_add(719_468);
     let era = z.div_euclid(146_097);
     let doe = z.rem_euclid(146_097);
     let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;

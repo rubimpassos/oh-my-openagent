@@ -13,6 +13,7 @@ import {
   type RecallWakeLease,
 } from "./index"
 import { createLockRecord, type LockRecord } from "./lock-record"
+import { setRecallWakeTicketFsForTests } from "./recall-wake-domain"
 
 const dirs: string[] = []
 afterEach(async () => {
@@ -34,17 +35,6 @@ function withinMs<T>(promise: Promise<T>, label: string, ms = 5_000): Promise<T>
   return Promise.race([promise, deadline]).finally(() => clearTimeout(timer))
 }
 
-/**
- * True when the promise has already settled. Both racers sit one microtask hop deep and the settled
- * branch is subscribed first, so an already-settled promise always beats the sentinel; a pending one
- * never does.
- */
-async function settledAlready(promise: Promise<unknown>): Promise<boolean> {
-  const sentinel = Symbol("pending")
-  const winner = await Promise.race([promise.then(() => "settled", () => "settled"), Promise.resolve().then(() => sentinel)])
-  return winner !== sentinel
-}
-
 async function tickets(dir: string): Promise<string[]> {
   return (await readdir(recallWakeTicketDirectory(dir))).filter((name) => name.endsWith(".ticket"))
 }
@@ -56,7 +46,8 @@ async function writeRecord(filePath: string, record: LockRecord): Promise<void> 
 /** Our own live identity: the strongest possible "live owner" a test can put in front of a contender. */
 async function liveRecord(purpose: string): Promise<LockRecord> {
   const record = await createLockRecord(purpose)
-  if (record.process_start === "unavailable") throw new Error("this host cannot prove process identity; the lock tests need it")
+  if (record.process_start === "unavailable")
+    throw new Error("this host cannot prove process identity; the lock tests need it")
   return record
 }
 
@@ -92,39 +83,50 @@ describe("recall-wake lock domain: counting FIFO lease", () => {
 
   test("#given ten contenders and two slots #when slots are released one at a time #then every contender acquires, in ticket order, with never more than two leases live", async () => {
     const dir = await fixture()
+    const controller = new AbortController()
     const order: number[] = []
     let live = 0
     let peak = 0
     const leases: Array<RecallWakeLease | undefined> = []
     const waits = Array.from({ length: 10 }, (_, index) =>
-      acquireRecallWakeLease(dir, { waitTimeoutMs: 10_000, retryDelayMs: 10 }).then((lease) => {
-        order.push(index)
-        leases[index] = lease
-        live += 1
-        peak = Math.max(peak, live)
-        return lease
-      }),
+      acquireRecallWakeLease(dir, { waitTimeoutMs: 10_000, retryDelayMs: 10, signal: controller.signal }).then(
+        (lease) => {
+          order.push(index)
+          leases[index] = lease
+          live += 1
+          peak = Math.max(peak, live)
+          return lease
+        },
+      ),
     )
 
-    await withinMs(Promise.all([waits[0], waits[1]]), "the first two leases")
-    expect(order).toEqual([0, 1])
-    expect(await settledAlready(waits[2] ?? Promise.resolve())).toBe(false)
+    try {
+      await withinMs(Promise.all([waits[0], waits[1]]), "the first two leases")
+      expect(order).toEqual([0, 1])
 
-    // Each release admits exactly the next ticket, never a later one.
-    for (let next = 2; next < 10; next += 1) {
-      const releasing = leases[next - 2]
-      if (releasing === undefined) throw new Error(`lease ${next - 2} was never acquired`)
-      live -= 1
-      expect(await releasing.release()).toBe(true)
-      await withinMs(waits[next] ?? Promise.resolve(), `lease ${next}`)
-      expect(order[next]).toBe(next)
-      if (next + 1 < 10) expect(await settledAlready(waits[next + 1] ?? Promise.resolve())).toBe(false)
+      // Each release admits exactly the next ticket, never a later one.
+      for (let next = 2; next < 10; next += 1) {
+        const releasing = leases[next - 2]
+        if (releasing === undefined) throw new Error(`lease ${next - 2} was never acquired`)
+        live -= 1
+        expect(await releasing.release()).toBe(true)
+        await withinMs(waits[next] ?? Promise.resolve(), `lease ${next}`)
+        expect(order).toEqual(Array.from({ length: next + 1 }, (_, index) => index))
+        expect(live).toBe(2)
+      }
+
+      expect(peak).toBe(2)
+      expect(await tickets(dir)).toEqual([])
+      for (const lease of leases.slice(8)) expect(await lease?.release()).toBe(true)
+    } finally {
+      controller.abort(new Error("FIFO test teardown"))
+      await Promise.allSettled(waits)
+      await Promise.all(
+        leases.map(async (lease) => {
+          await lease?.release()
+        }),
+      )
     }
-
-    expect(order).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-    expect(peak).toBe(2)
-    expect(await tickets(dir)).toEqual([])
-    for (const lease of leases.slice(8)) expect(await lease?.release()).toBe(true)
   })
 
   test("#given a dead owner recorded on both slots #when a contender arrives #then both are reclaimed on the liveness proof and the new owner is recorded", async () => {
@@ -172,7 +174,9 @@ describe("recall-wake lock domain: counting FIFO lease", () => {
 
     const lease = await acquireRecallWakeLease(dir, fast)
     expect(lease.slot).toBe(1)
-    expect((JSON.parse(await readFile(recallWakeLockPath(dir, 1), "utf8")) as LockRecord).nonce).not.toBe(recycled.nonce)
+    expect((JSON.parse(await readFile(recallWakeLockPath(dir, 1), "utf8")) as LockRecord).nonce).not.toBe(
+      recycled.nonce,
+    )
     expect(await readFile(recallWakeLockPath(dir, 2), "utf8")).toBe(`${JSON.stringify(unprovable)}\n`)
 
     await expect(acquireRecallWakeLease(dir, fast)).rejects.toBeInstanceOf(RecallWakeBusyError)
@@ -184,7 +188,11 @@ describe("recall-wake lock domain: counting FIFO lease", () => {
     const ticketDir = recallWakeTicketDirectory(dir)
     await mkdir(ticketDir, { recursive: true })
     const stale = await createLockRecord("recall-wake:ticket")
-    await writeRecord(path.join(ticketDir, "0000000000000000-000000-0000000000-dead.ticket"), { ...stale, pid: 99_999_999, process_start: "proc-start-epoch:0" })
+    await writeRecord(path.join(ticketDir, "0000000000000000-000000-0000000000-dead.ticket"), {
+      ...stale,
+      pid: 99_999_999,
+      process_start: "proc-start-epoch:0",
+    })
 
     const lease = await acquireRecallWakeLease(dir, fast)
     expect(lease.slot).toBe(1)
@@ -197,6 +205,55 @@ describe("recall-wake lock domain: counting FIFO lease", () => {
     await writeRecord(liveTicket, live)
     await expect(acquireRecallWakeLease(dir, fast)).rejects.toBeInstanceOf(RecallWakeBusyError)
     expect(await tickets(dir)).toEqual([path.basename(liveTicket)])
+  })
+
+  test("#given a live head ticket with a transient sharing violation #when a follower inspects it #then the ticket keeps its place and both waiters acquire in order", async () => {
+    const dir = await fixture()
+    const controller = new AbortController()
+    const holder = await acquireRecallWakeLease(dir, { ...fast, maxConcurrent: 1 })
+    const sharingObserved = Promise.withResolvers<void>()
+    let sharingInjected = false
+    const restore = setRecallWakeTicketFsForTests({
+      readFile: async (filePath, encoding) => {
+        if (!sharingInjected && filePath.endsWith(".ticket")) {
+          sharingInjected = true
+          sharingObserved.resolve()
+          throw Object.assign(new Error("ticket is transitioning"), { code: "EPERM" })
+        }
+        return await readFile(filePath, encoding)
+      },
+      isSharingError: (error) => error instanceof Error && "code" in error && error.code === "EPERM",
+    })
+    // The waiters' budgets are circuit breakers, not the behavior under test: each must outlast the
+    // whole hand-off (sharing violation, holder release, head acquire and release) on a slow runner.
+    const waiting = { waitTimeoutMs: 10_000, retryDelayMs: 10, maxConcurrent: 1, signal: controller.signal }
+    const headWait = acquireRecallWakeLease(dir, waiting)
+    const followerWait = acquireRecallWakeLease(dir, waiting)
+    const followerResult = followerWait.then(
+      (lease) => ({ status: "acquired", lease }) as const,
+      (error: unknown) => ({ status: "rejected", error }) as const,
+    )
+    let headLease: RecallWakeLease | undefined
+    let followerLease: RecallWakeLease | undefined
+
+    try {
+      await withinMs(sharingObserved.promise, "the injected ticket sharing violation")
+      expect(await holder.release()).toBe(true)
+      headLease = await withinMs(headWait, "the head waiter")
+      expect(await headLease.release()).toBe(true)
+
+      const follower = await withinMs(followerResult, "the follower waiter")
+      expect(follower.status).toBe("acquired")
+      if (follower.status !== "acquired") throw follower.error
+      followerLease = follower.lease
+      expect(await followerLease.release()).toBe(true)
+      expect(await tickets(dir)).toEqual([])
+    } finally {
+      controller.abort(new Error("sharing test teardown"))
+      await Promise.allSettled([headWait, followerWait])
+      await Promise.all([holder.release(), headLease?.release(), followerLease?.release()])
+      restore()
+    }
   })
 
   test("#given a waiting contender #when its signal aborts #then the wait ends promptly with the abort reason and no ticket is left behind", async () => {
@@ -217,9 +274,15 @@ describe("recall-wake lock domain: counting FIFO lease", () => {
     const dir = await fixture()
     const slot = await withRecallWakeLease(dir, async (lease) => lease.slot, fast)
     expect(slot).toBe(1)
-    await expect(withRecallWakeLease(dir, async () => {
-      throw new Error("wake failed")
-    }, fast)).rejects.toThrow("wake failed")
+    await expect(
+      withRecallWakeLease(
+        dir,
+        async () => {
+          throw new Error("wake failed")
+        },
+        fast,
+      ),
+    ).rejects.toThrow("wake failed")
     const again = await acquireRecallWakeLease(dir, { ...fast, maxConcurrent: 1 })
     expect(again.slot).toBe(1)
     expect(await again.release()).toBe(true)

@@ -3,14 +3,23 @@
 
 pub mod ax;
 pub mod backend;
+#[cfg(feature = "system-clipboard")]
+pub mod clipboard;
 pub mod error;
 pub mod frame;
+pub mod holds;
+pub mod intervention;
 pub mod keys;
+pub mod menus;
 pub mod methods;
 pub mod protocol;
+mod protocol_holds;
 pub mod protocol_params;
 pub mod protocol_results;
 pub mod protocol_schema;
+pub mod report;
+pub mod text_range;
 pub mod types;
+pub mod user_input;
 
 pub use protocol_schema::engine_schema;

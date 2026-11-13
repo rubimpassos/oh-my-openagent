@@ -1,18 +1,23 @@
 export const TASK_START_FAILURE_KINDS = [
+  "suspended_unresumable",
   "child-prompt-failed",
   "child-turn-failed",
+  "child-unresponsive",
   "session-create-failed",
   "depth-exceeded",
   "model_unavailable",
   "tools_unavailable",
   "session_unavailable",
   "host_unavailable",
+  "model_chain_exhausted",
 ] as const
 
 export type TaskStartFailureKind = (typeof TASK_START_FAILURE_KINDS)[number]
 
 export const MODEL_START_FAILURE_REASONS = [
   "model_not_in_child_profile",
+  // No longer produced: a timed-out probe admits the start since #10863. Kept so records written by
+  // earlier versions (and the rollback contract) still parse.
   "catalog_probe_timed_out",
   "catalog_probe_failed",
 ] as const
@@ -27,6 +32,15 @@ export const HOST_START_FAILURE_REASONS = [
   "host_unreachable",
   "ensure_failed",
   "ensure_timed_out",
+  "shard_socket_too_long",
+  "shard_alt_root_unsafe",
+  "legacy_host",
+  "host_incompatible",
+  "store_index_unavailable",
+  "own_host_unreachable",
+  "shard_identity_missing",
+  "host_busy",
+  "launch_spec_insecure",
 ] as const
 
 export const SESSION_START_FAILURE_REASONS = [

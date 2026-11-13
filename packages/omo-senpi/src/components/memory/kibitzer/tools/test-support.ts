@@ -1,9 +1,15 @@
-import { afterEach } from "bun:test"
+import { onTestFinished } from "bun:test"
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 
-import { GitMemoryRepo, renderMemoryFile, type GitCommitAuthor, type RecallNudge } from "@oh-my-opencode/memory-core"
+import {
+  GitMemoryRepo,
+  RecallCorpusCache,
+  renderMemoryFile,
+  type GitCommitAuthor,
+  type RecallNudge,
+} from "@oh-my-opencode/memory-core"
 
 import { rmEfaultTolerant } from "../../teardown.test-support"
 import { createWakeToolBudget, type WakeToolBudget } from "./budget"
@@ -14,15 +20,17 @@ import { createSessionBranchSnapshot } from "./session-read"
 export const IDENTITY = "agent-kibitzer-tools-test"
 export const AUTHOR: GitCommitAuthor = { agentId: IDENTITY, authorName: "Kibitzer Tools Test Agent" }
 
-const roots: string[] = []
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rmEfaultTolerant(root, { recursive: true, force: true, maxRetries: 30, retryDelay: 200 })))
-})
+// The recall cache saves a repository's terms into its `.git` after the tool call returns; removing the root
+// while that save runs leaves the root behind, so every root waits for this test's caches first.
+const caches = new Set<RecallCorpusCache>()
 
 export async function tempRoot(prefix = "omo-kibitzer-tools-"): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), prefix))
-  roots.push(root)
+  onTestFinished(async () => {
+    await Promise.all([...caches].map((cache) => cache.settled()))
+    caches.clear()
+    await rmEfaultTolerant(root, { recursive: true, force: true, maxRetries: 30, retryDelay: 200 })
+  })
   return root
 }
 
@@ -33,15 +41,37 @@ export async function memoryRepo(): Promise<GitMemoryRepo> {
   return repo
 }
 
-export async function writeMemory(repo: GitMemoryRepo, path: string, body: string, description = "Seed"): Promise<void> {
+export async function writeMemory(
+  repo: GitMemoryRepo,
+  path: string,
+  body: string,
+  description = "Seed",
+): Promise<void> {
   const fullPath = join(repo.dir, path)
   await mkdir(dirname(fullPath), { recursive: true })
   await writeFile(fullPath, renderMemoryFile({ description }, body), "utf8")
 }
 
-export async function commitMemory(repo: GitMemoryRepo, path: string, body: string, description = "Seed"): Promise<void> {
+export async function commitMemory(
+  repo: GitMemoryRepo,
+  path: string,
+  body: string,
+  description = "Seed",
+): Promise<void> {
   await writeMemory(repo, path, body, description)
   await repo.commitWrite([path], `seed ${path}`, AUTHOR)
+}
+
+/** Commits through raw git with no hook, the way content written before secret screening existed sits in a repo. */
+export async function commitLegacyMemory(repo: GitMemoryRepo, path: string, body: string): Promise<void> {
+  await writeMemory(repo, path, body)
+  for (const argv of [
+    ["add", "--", path],
+    ["commit", "--no-verify", "-m", `legacy ${path}`],
+  ]) {
+    const result = Bun.spawnSync(["git", ...argv], { cwd: repo.dir })
+    if (result.exitCode !== 0) throw new Error(`git ${argv[0]} failed: ${result.stderr.toString()}`)
+  }
 }
 
 export interface Harness {
@@ -61,6 +91,7 @@ export interface HarnessOptions {
   readonly budgetLimit?: number
   readonly maxItems?: number
   readonly caps?: KibitzerSidecarToolsInput["caps"]
+  readonly queryExpansion?: boolean
 }
 
 export function harness(options: HarnessOptions): Harness {
@@ -69,10 +100,16 @@ export function harness(options: HarnessOptions): Harness {
   const offered = new Set<string>()
   const surfaced = new Set<string>()
   const snapshot = createSessionBranchSnapshot()
+  const cache = new RecallCorpusCache()
+  caches.add(cache)
   const created = createKibitzerSidecarTools({
     workspaceRoot: options.workspaceRoot,
     session: snapshot,
-    memory: { repo: options.repo },
+    memory: {
+      repo: options.repo,
+      cache,
+      ...(options.queryExpansion === undefined ? {} : { queryExpansion: options.queryExpansion }),
+    },
     nudge: { offered, surfaced, maxItems: options.maxItems ?? 2, accepted: () => accepted },
     budget: () => budget,
     ...(options.caps === undefined ? {} : { caps: options.caps }),
@@ -102,7 +139,12 @@ export function jsonOf(result: KibitzerToolResult): Record<string, unknown> {
   return JSON.parse(textOf(result)) as Record<string, unknown>
 }
 
-export function message(role: "user" | "assistant", text: string, id: string, customType?: string): Record<string, unknown> {
+export function message(
+  role: "user" | "assistant",
+  text: string,
+  id: string,
+  customType?: string,
+): Record<string, unknown> {
   return {
     type: "message",
     id,
@@ -117,7 +159,15 @@ export function customEntry(customType: string, id: string, data: unknown = {}):
 }
 
 export function customMessage(customType: string, id: string, text: string): Record<string, unknown> {
-  return { type: "custom_message", id, parentId: null, timestamp: "2026-09-11T00:00:00.000Z", customType, content: text, display: false }
+  return {
+    type: "custom_message",
+    id,
+    parentId: null,
+    timestamp: "2026-09-11T00:00:00.000Z",
+    customType,
+    content: text,
+    display: false,
+  }
 }
 
 export function sessionContext(entries: readonly unknown[]): Record<string, unknown> {

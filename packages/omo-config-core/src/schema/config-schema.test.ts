@@ -21,11 +21,18 @@ function makeConfigFixture(): { readonly cwd: string; readonly homeDir: string; 
 
 describe("omo config schema", () => {
   test("#given an empty formatOnMutation config #when parsed #then formatter defaults are available", () => {
-    expect(OmoConfigSchema.parse({ formatOnMutation: {} }).formatOnMutation).toEqual({ mode: "best-effort", maxFileBytes: 1048576, timeoutMs: 3000 })
+    expect(OmoConfigSchema.parse({ formatOnMutation: {} }).formatOnMutation).toEqual({
+      mode: "best-effort",
+      maxFileBytes: 1048576,
+      timeoutMs: 3000,
+    })
   })
 
   test("#given formatOnMutation overrides #when parsed #then mode limits and language map survive", () => {
-    expect(OmoConfigSchema.parse({ formatOnMutation: { mode: "required", languages: { python: false }, timeoutMs: 1000 } }).formatOnMutation).toEqual({ mode: "required", languages: { python: false }, maxFileBytes: 1048576, timeoutMs: 1000 })
+    expect(
+      OmoConfigSchema.parse({ formatOnMutation: { mode: "required", languages: { python: false }, timeoutMs: 1000 } })
+        .formatOnMutation,
+    ).toEqual({ mode: "required", languages: { python: false }, maxFileBytes: 1048576, timeoutMs: 1000 })
   })
   test("#given a full omo config #when parsed #then task defaults and deprecated category keys normalize", () => {
     // given
@@ -105,7 +112,11 @@ describe("omo config schema", () => {
     // then
     expect(result.success).toBe(true)
     if (!result.success) throw new Error(result.error.message)
-    expect(result.data.git_master).toEqual({ commit_footer: false, include_co_authored_by: false })
+    expect(result.data.git_master).toEqual({
+      commit_footer: false,
+      include_co_authored_by: true,
+      git_env_prefix: "GIT_MASTER=1",
+    })
   })
 
   test("#given an unknown root key #when parsed #then the schema rejects the config", () => {
@@ -139,6 +150,7 @@ describe("omo config schema", () => {
       model_profiles: {
         capable: {
           display_name: "Capable",
+          caution: "NOT RECOMMENDED FOR WRITING OR EVERYDAY WORK.",
           family: "daily",
           tier: "normal",
           models: ["anthropic/claude-fable-5-1", { model: "openai/gpt-6-astra", reasoning: "high" }],
@@ -166,6 +178,7 @@ describe("omo config schema", () => {
     expect(results.config.data.model_profile).toBe("capable")
     expect(results.config.data.model_profiles?.capable).toEqual({
       display_name: "Capable",
+      caution: "NOT RECOMMENDED FOR WRITING OR EVERYDAY WORK.",
       family: "daily",
       tier: "normal",
       models: ["anthropic/claude-fable-5-1", { model: "openai/gpt-6-astra", reasoning: "high" }],
@@ -195,7 +208,12 @@ describe("omo config schema", () => {
 
     try {
       // when
-      const result = loadOmoConfig({ cwd: fixture.cwd, env: { HOME: fixture.homeDir }, harness: "senpi", platform: "linux" })
+      const result = loadOmoConfig({
+        cwd: fixture.cwd,
+        env: { HOME: fixture.homeDir },
+        harness: "senpi",
+        platform: "linux",
+      })
 
       // then
       expect(result.diagnostics).toEqual([])
@@ -217,7 +235,12 @@ describe("omo config schema", () => {
 
     try {
       // when
-      const result = loadOmoConfig({ cwd: fixture.cwd, env: { HOME: fixture.homeDir }, harness: "senpi", platform: "linux" })
+      const result = loadOmoConfig({
+        cwd: fixture.cwd,
+        env: { HOME: fixture.homeDir },
+        harness: "senpi",
+        platform: "linux",
+      })
 
       // then
       expect(result.diagnostics).toEqual([])

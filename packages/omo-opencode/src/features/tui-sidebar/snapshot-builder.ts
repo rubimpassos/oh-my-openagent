@@ -38,9 +38,7 @@ export type BuildTuiRuntimeSnapshotInput = {
 
 type ActiveAgentStatus = Extract<AgentStatus, "busy" | "retry" | "running">
 
-export async function buildTuiRuntimeSnapshot(
-  input: BuildTuiRuntimeSnapshotInput,
-): Promise<TuiRuntimeSnapshot> {
+export async function buildTuiRuntimeSnapshot(input: BuildTuiRuntimeSnapshotInput): Promise<TuiRuntimeSnapshot> {
   const statuses = await readStatuses(input)
   const loop = readActiveLoop(input.projectDir)
 
@@ -48,7 +46,11 @@ export async function buildTuiRuntimeSnapshot(
     version: MIRROR_SCHEMA_VERSION,
     projectDir: canonicalProjectDir(input.projectDir),
     updatedAt: Date.now(),
-    activeAgents: await activeAgentsFromStatuses(statuses, input.client, input.sessionAgentResolver ?? resolveSessionAgent),
+    activeAgents: await activeAgentsFromStatuses(
+      statuses,
+      input.client,
+      input.sessionAgentResolver ?? resolveSessionAgent,
+    ),
     jobBoard: input.backgroundManager.getTasksSnapshot().map(toJobRow),
     loop: loop.kind === "live" ? redactLoopText(loop) : null,
   }

@@ -31,13 +31,7 @@ export function createContinuationHooks(args: {
   safeHookEnabled: boolean
   backgroundManager: BackgroundManager
 }): ContinuationHooks {
-  const {
-    ctx,
-    pluginConfig,
-    isHookEnabled,
-    safeHookEnabled,
-    backgroundManager,
-  } = args
+  const { ctx, pluginConfig, isHookEnabled, safeHookEnabled, backgroundManager } = args
 
   const safeHook = <T>(hookName: HookName, factory: () => T): T | null =>
     safeCreateHook(hookName, factory, { enabled: safeHookEnabled })
@@ -46,15 +40,15 @@ export function createContinuationHooks(args: {
     ? safeHook("stop-continuation-guard", () =>
         createStopContinuationGuardHook(ctx, {
           backgroundManager,
-        }))
+        }),
+      )
     : null
 
   const isContinuationStopped = (sessionID: string): boolean =>
     (stopContinuationGuard?.isStopped(sessionID) ?? false) || isGoalPaused(ctx.directory, sessionID)
 
   const compactionContextInjector = isHookEnabled("compaction-context-injector")
-    ? safeHook("compaction-context-injector", () =>
-        createCompactionContextInjector({ ctx, backgroundManager }))
+    ? safeHook("compaction-context-injector", () => createCompactionContextInjector({ ctx, backgroundManager }))
     : null
 
   const compactionTodoPreserver = isHookEnabled("compaction-todo-preserver")
@@ -63,15 +57,17 @@ export function createContinuationHooks(args: {
 
   const todoContinuationEnforcer = isHookEnabled("todo-continuation-enforcer")
     ? safeHook("todo-continuation-enforcer", () =>
-      createTodoContinuationEnforcer(ctx, {
+        createTodoContinuationEnforcer(ctx, {
           backgroundManager,
           isContinuationStopped,
-        }))
+        }),
+      )
     : null
 
   const unstableAgentBabysitter = isHookEnabled("unstable-agent-babysitter")
     ? safeHook("unstable-agent-babysitter", () =>
-        createUnstableAgentBabysitter({ ctx, backgroundManager, pluginConfig }))
+        createUnstableAgentBabysitter({ ctx, backgroundManager, pluginConfig }),
+      )
     : null
 
   const backgroundNotificationHook = isHookEnabled("background-notification")
@@ -86,7 +82,8 @@ export function createContinuationHooks(args: {
           isContinuationStopped,
           agentOverrides: pluginConfig.agents,
           autoCommit: pluginConfig.ulw_execute?.auto_commit,
-        }))
+        }),
+      )
     : null
 
   return {

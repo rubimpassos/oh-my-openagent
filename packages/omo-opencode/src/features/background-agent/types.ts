@@ -2,13 +2,7 @@ import type { FallbackEntry } from "../../shared/model-requirements"
 import type { DelegatedModelConfig } from "../../shared/model-resolution-types"
 import type { SessionPermissionRule } from "../../shared/question-denied-session-permission"
 
-export type BackgroundTaskStatus =
-  | "pending"
-  | "running"
-  | "completed"
-  | "error"
-  | "cancelled"
-  | "interrupt"
+export type BackgroundTaskStatus = "pending" | "running" | "completed" | "error" | "cancelled" | "interrupt"
 
 export interface ToolCallWindow {
   lastSignature: string
@@ -50,10 +44,12 @@ export interface BackgroundTask {
   teamRunId?: string
   description: string
   prompt: string
+  originalPrompt?: string
   agent: string
   spawnDepth?: number
   status: BackgroundTaskStatus
   queuedAt?: Date
+  pendingResume?: object
   startedAt?: Date
   completedAt?: Date
   result?: string
@@ -101,6 +97,8 @@ export interface BackgroundTask {
   stablePolls?: number
   /** Number of consecutive polls where session was missing from status map */
   consecutiveMissedPolls?: number
+  /** Number of consecutive idle polls where the session still ended on an errored assistant turn */
+  consecutiveErroredIdlePolls?: number
 }
 
 export interface BackgroundTaskSnapshot {

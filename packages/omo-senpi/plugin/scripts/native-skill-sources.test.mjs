@@ -24,6 +24,7 @@ describe("createNativeSkillSources", () => {
     "ultrawork",
     "ulw-plan",
     "ulw-research",
+    "visualize",
   ]
 
   test("#given the registry #when ordered names are extracted #then they match the expected alphabetical sequence including onboarding", () => {
@@ -45,19 +46,21 @@ describe("createNativeSkillSources", () => {
     }
   })
 
-  test("#given onboarding skill #when checked #then it is present in the registry at the correct position", () => {
-    const onboardingEntry = sources.find(({ name }) => name === "onboarding")
-    assert.ok(onboardingEntry, "onboarding must be in the registry")
-    assert.equal(sources.indexOf(onboardingEntry), 5, "onboarding must be at index 5 (alphabetical)")
-    assert.equal(onboardingEntry.source, join(nativeSkillsRoot, "onboarding"))
-  })
-
   test("#given the registry #when sharedAssets are read #then only ulw-research overlays the shared runtime and reference", () => {
     const withSharedAssets = sources.filter((entry) => entry.sharedAssets !== undefined).map(({ name }) => name)
     assert.deepEqual(withSharedAssets, ["ulw-research"])
 
     const ulwResearch = sources.find(({ name }) => name === "ulw-research")
-    assert.deepEqual(ulwResearch?.sharedAssets, ["scripts", "references/report-gates.md", "references/deliverable-phase.md"])
+    assert.deepEqual(ulwResearch?.sharedAssets, [
+      "scripts",
+      "references/report-gates.md",
+      "references/deliverable-phase.md",
+      "references/report-visualization.md",
+      "references/fact-ledger-grammar.md",
+      "references/fidelity-claim-kinds.md",
+      "references/unit-rules.md",
+      "references/fact-ledger.md",
+    ])
   })
 
   test("#given each sharedAssets path #when resolved against the shared skill #then it is relative, contained, and exists", () => {
@@ -75,14 +78,26 @@ describe("createNativeSkillSources", () => {
 describe("sharedAssetSourceFor", () => {
   test("#given a path inside a native skill's shared asset #when resolved #then it maps to the shared source it is overlaid from", () => {
     const shipped = join(nativeSkillsRoot, "ulw-research", "references", "report-gates.md")
-    assert.equal(sharedAssetSourceFor(repoRoot, shipped), join(sharedSkillsRoot, "ulw-research", "references", "report-gates.md"))
+    assert.equal(
+      sharedAssetSourceFor(repoRoot, shipped),
+      join(sharedSkillsRoot, "ulw-research", "references", "report-gates.md"),
+    )
     const script = join(nativeSkillsRoot, "ulw-research", "scripts", "report-tools.mjs")
-    assert.equal(sharedAssetSourceFor(repoRoot, script), join(sharedSkillsRoot, "ulw-research", "scripts", "report-tools.mjs"))
+    assert.equal(
+      sharedAssetSourceFor(repoRoot, script),
+      join(sharedSkillsRoot, "ulw-research", "scripts", "report-tools.mjs"),
+    )
   })
 
   test("#given a path outside every shared asset #when resolved #then it is null", () => {
-    assert.equal(sharedAssetSourceFor(repoRoot, join(nativeSkillsRoot, "ulw-research", "references", "missing.md")), null)
-    assert.equal(sharedAssetSourceFor(repoRoot, join(nativeSkillsRoot, "ulw-plan", "references", "report-gates.md")), null)
+    assert.equal(
+      sharedAssetSourceFor(repoRoot, join(nativeSkillsRoot, "ulw-research", "references", "missing.md")),
+      null,
+    )
+    assert.equal(
+      sharedAssetSourceFor(repoRoot, join(nativeSkillsRoot, "ulw-plan", "references", "report-gates.md")),
+      null,
+    )
     assert.equal(sharedAssetSourceFor(repoRoot, join(repoRoot, "omo-senpi", "README.md")), null)
   })
 })

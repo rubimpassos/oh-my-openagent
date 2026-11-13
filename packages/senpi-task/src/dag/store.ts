@@ -1,12 +1,27 @@
 // allow: SIZE_OK - crash-safe DAG persistence is kept in one module so WAL, checkpoint, lock, and GC invariants share one filesystem boundary.
 import { createHash, randomUUID } from "node:crypto"
 import * as fs from "node:fs"
-import { basename, dirname, join } from "node:path"
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path"
 
 import { defaultSignaller } from "../lifecycle/context"
 import { resolveStateDir } from "../store/state-dir"
-import { DAG_SETTINGS_DEFAULTS, type DagEventLane, type DagRunEvent, type DagRunId, type DagRunStatus, type DagSettings } from "./types"
+import {
+  DAG_SETTINGS_DEFAULTS,
+  isSafeDagPathSegment,
+  type DagEventLane,
+  type DagRunEvent,
+  type DagRunId,
+  type DagRunStatus,
+  type DagSettings,
+  isTerminalDagRunStatus,
+} from "./types"
 import type { DagRunEventType } from "./events"
+import {
+  decodePausedNodes,
+  decodePausedTransition,
+  encodePausedNodes,
+  encodePausedTransition,
+} from "./paused-node-encoding"
 
 const SCHEMA_VERSION = 1
 const LOCK_RETRY_MS = 10
@@ -14,7 +29,6 @@ const LOCK_WAIT_TIMEOUT_MS = 1_000
 const WINDOWS_CLEANUP_RETRIES = 8
 const WINDOWS_CLEANUP_RETRY_MS = 5
 const READ_BUFFER_BYTES = 64 * 1024
-const TERMINAL_STATUSES = new Set<DagRunStatus>(["completed", "failed", "cancelled"])
 const sleeper = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT))
 
 export type DagStoreConfig = {
@@ -94,6 +108,8 @@ export type DagFileStore = {
   readonly withRunLock: <T>(runId: DagRunId, operation: () => T) => T
   readonly withKeyLock: <T>(parentSessionId: string, runKey: string, operation: () => T) => T
   readonly withTaskOwnerLock: <T>(taskOwner: string, runId: DagRunId, operation: () => T) => T
+  /** Runs `operation` under the session capacity lock once `runId` fits under the active-run cap (it is not counted). */
+  readonly withSessionRunCapacity: <T>(parentSessionId: string, runId: DagRunId, operation: () => T) => T
   readonly pruneExpired: (now?: number) => readonly DagRunId[]
 }
 
@@ -171,7 +187,7 @@ export function createDagFileStore(config: DagStoreConfig, options: StoreOptions
       fs.mkdirSync(dirname(path), { recursive: true })
       const fd = fs.openSync(path, "a")
       try {
-        fs.writeSync(fd, `${JSON.stringify(event)}\n`)
+        fs.writeSync(fd, `${JSON.stringify(encodePausedTransition(event))}\n`)
         if (fsyncWrites) fs.fsyncSync(fd)
       } finally {
         fs.closeSync(fd)
@@ -214,7 +230,7 @@ export function createDagFileStore(config: DagStoreConfig, options: StoreOptions
       writeCheckpointWithinSessionLimit(
         paths,
         runId,
-        checkpoint,
+        encodePausedNodes(checkpoint),
         maxRunsPerSession,
         platform,
         fsyncWrites,
@@ -228,7 +244,7 @@ export function createDagFileStore(config: DagStoreConfig, options: StoreOptions
       const value = readJsonFile(path, runId, now)
       if (value === null) return null
       assertSupportedSchema(value, path, runId, now)
-      return value as T
+      return decodePausedNodes(value as T)
     },
     writeKey(record) {
       assertSupportedSchema(record, paths.key(record.parentSessionId, record.runKey), record.runId, now)
@@ -265,12 +281,22 @@ export function createDagFileStore(config: DagStoreConfig, options: StoreOptions
       assertSafeSegment(runId, "run id")
       return withLock(paths.runLock(runId), runId, operation, isProcessAlive, now, fsyncWrites)
     },
-    withKeyLock: (parentSessionId, runKey, operation) => withLock(
-      paths.keyLock(parentSessionId, runKey), undefined, operation, isProcessAlive, now, fsyncWrites,
-    ),
-    withTaskOwnerLock: (taskOwner, runId, operation) => withLock(
-      paths.taskOwnerLock(taskOwner), runId, operation, isProcessAlive, now, fsyncWrites,
-    ),
+    withKeyLock: (parentSessionId, runKey, operation) =>
+      withLock(paths.keyLock(parentSessionId, runKey), undefined, operation, isProcessAlive, now, fsyncWrites),
+    withTaskOwnerLock: (taskOwner, runId, operation) =>
+      withLock(paths.taskOwnerLock(taskOwner), runId, operation, isProcessAlive, now, fsyncWrites),
+    withSessionRunCapacity: (parentSessionId, runId, operation) =>
+      withLock(
+        sessionCapacityLock(paths, parentSessionId),
+        undefined,
+        () => {
+          assertSessionRunCapacity(paths, parentSessionId, runId, maxRunsPerSession, now)
+          return operation()
+        },
+        isProcessAlive,
+        now,
+        fsyncWrites,
+      ),
     pruneExpired(pruneNow = now()) {
       const cutoff = pruneNow - retentionDays * 24 * 60 * 60 * 1000
       const pruned: DagRunId[] = []
@@ -283,9 +309,9 @@ export function createDagFileStore(config: DagStoreConfig, options: StoreOptions
         const value = readJsonFile(path, entry.name.slice(0, -5) as DagRunId, now)
         if (value === null) continue
         const checkpoint = value as RetentionCheckpoint
-        const runId = checkpoint.runId ?? entry.name.slice(0, -5) as DagRunId
+        const runId = checkpoint.runId ?? (entry.name.slice(0, -5) as DagRunId)
         assertSupportedSchema(checkpoint, path, runId, now)
-        if (checkpoint.status === undefined || !TERMINAL_STATUSES.has(checkpoint.status)) continue
+        if (!isTerminalDagRunStatus(checkpoint.status)) continue
         const terminalAt = checkpoint.completedAt ?? checkpoint.updatedAt
         if (terminalAt === undefined || Date.parse(terminalAt) > cutoff) continue
         pruneRunArtifacts(paths, checkpoint, runId, artifacts)
@@ -314,7 +340,24 @@ function createPaths(stateDir: string): DagStorePaths {
     key: (parentSessionId, runKey) => join(keys, `${dagKeyHash(parentSessionId, runKey)}.json`),
     run: (runId) => join(runs, `${runId}.json`),
     event: (runId) => join(events, `${runId}.jsonl`),
-    result: (runId, nodeId) => join(results, runId, `${nodeId}.txt`),
+    // A node id becomes one path segment under the run's results directory. The store's own gate is
+    // the containment check below: it is structural, so a caller that bypasses
+    // writeResult/readResult (results.ts, scheduler.ts) cannot escape even if the shared deny-list is
+    // later weakened. The deny-list still runs after it for the hazards containment does not cover
+    // (a NUL byte, ":" alternate-data-stream), so the two layers are not one rule applied twice.
+    result: (runId, nodeId) => {
+      assertSafeSegment(runId, "run id")
+      const runDir = join(results, runId)
+      const outputPath = join(runDir, `${nodeId}.txt`)
+      const fromRunDir = relative(runDir, resolve(outputPath))
+      // An escape is ".." itself, or ".." followed by a separator; a plain "..name" is an ordinary
+      // filename (id "..." yields "....txt") and must stay allowed.
+      if (isAbsolute(fromRunDir) || fromRunDir === ".." || fromRunDir.startsWith(`..${sep}`)) {
+        throw new Error(`Unsafe dag result path: node id "${nodeId}" escapes the run results directory`)
+      }
+      assertSafeSegment(nodeId, "node id")
+      return outputPath
+    },
     runLock: (runId) => join(locks, `${runId}.lock`),
     keyLock: (parentSessionId, runKey) => join(locks, `key-${dagKeyHash(parentSessionId, runKey)}.lock`),
     taskOwnerLock: (taskOwner) => join(locks, `task-owner-${sha256(taskOwner)}.lock`),
@@ -337,28 +380,59 @@ function writeCheckpointWithinSessionLimit(
     writeJsonAtomic(path, checkpoint, platform, fsyncWrites)
     return
   }
-  const capacityLock = join(paths.locks, `session-runs-${sha256(parentSessionId)}.lock`)
-  withLock(capacityLock, undefined, () => {
-    if (fs.existsSync(path)) {
+  withLock(
+    sessionCapacityLock(paths, parentSessionId),
+    undefined,
+    () => {
+      if (fs.existsSync(path)) {
+        writeJsonAtomic(path, checkpoint, platform, fsyncWrites)
+        return
+      }
+      try {
+        assertSessionRunCapacity(paths, parentSessionId, runId, maxRunsPerSession, now)
+      } catch (error) {
+        fs.rmSync(join(paths.root, "skills", `${runId}.json`), { force: true })
+        throw error
+      }
       writeJsonAtomic(path, checkpoint, platform, fsyncWrites)
-      return
-    }
-    let runCount = 0
-    for (const entry of readDagDirectory(paths.runs)) {
-      if (!entry.isFile() || !entry.name.endsWith(".json")) continue
-      const existingRunId = entry.name.slice(0, -5) as DagRunId
-      const existingPath = join(paths.runs, entry.name)
-      const existing = readJsonFile(existingPath, existingRunId, now)
-      if (existing === null) continue
-      assertSupportedSchema(existing, existingPath, existingRunId, now)
-      if (readOptionalString(existing, "parentSessionId") === parentSessionId) runCount += 1
-    }
-    if (runCount >= maxRunsPerSession) {
-      fs.rmSync(join(paths.root, "skills", `${runId}.json`), { force: true })
-      throw new Error(`DAG session run limit reached: ${maxRunsPerSession}`)
-    }
-    writeJsonAtomic(path, checkpoint, platform, fsyncWrites)
-  }, isProcessAlive, now, fsyncWrites)
+    },
+    isProcessAlive,
+    now,
+    fsyncWrites,
+  )
+}
+
+function sessionCapacityLock(paths: DagStorePaths, parentSessionId: string): string {
+  return join(paths.locks, `session-runs-${sha256(parentSessionId)}.lock`)
+}
+
+// Only runs that can still hold a scheduler count: a finished run waits for retention, not a slot.
+// Call with the session capacity lock held; `runId` itself is never counted.
+function assertSessionRunCapacity(
+  paths: DagStorePaths,
+  parentSessionId: string,
+  runId: DagRunId,
+  maxRunsPerSession: number,
+  now: () => number,
+): void {
+  let active = 0
+  for (const entry of readDagDirectory(paths.runs)) {
+    if (!entry.isFile() || !entry.name.endsWith(".json")) continue
+    const existingRunId = entry.name.slice(0, -5) as DagRunId
+    if (existingRunId === runId) continue
+    const existingPath = join(paths.runs, entry.name)
+    const existing = readJsonFile(existingPath, existingRunId, now)
+    if (existing === null) continue
+    assertSupportedSchema(existing, existingPath, existingRunId, now)
+    if (readOptionalString(existing, "parentSessionId") !== parentSessionId) continue
+    if (isTerminalDagRunStatus(readOptionalString(existing, "status"))) continue
+    active += 1
+  }
+  if (active < maxRunsPerSession) return
+  const runs = active === 1 ? "1 run is" : `${active} runs are`
+  throw new Error(
+    `DAG session run limit reached: ${runs} active in this session (limit ${maxRunsPerSession}); wait for one to finish, cancel one, or raise task.dag.max_runs_per_session`,
+  )
 }
 
 function writeJsonAtomic(path: string, value: object, platform: NodeJS.Platform, fsyncWrites: boolean): void {
@@ -461,10 +535,7 @@ function forEachJsonLine(path: string, visit: (value: unknown) => void): void {
   })
 }
 
-function forEachRawLine(
-  path: string,
-  visit: (line: Buffer, endOffset: number, complete: boolean) => void,
-): void {
+function forEachRawLine(path: string, visit: (line: Buffer, endOffset: number, complete: boolean) => void): void {
   if (!fs.existsSync(path)) return
   const fd = fs.openSync(path, "r")
   const buffer = Buffer.allocUnsafe(READ_BUFFER_BYTES)
@@ -503,7 +574,7 @@ function parseEvent(value: unknown, path: string, runId: DagRunId, now: () => nu
   if (!isRecord(value) || typeof value.seq !== "number" || typeof value.type !== "string") {
     throw corrupt(path, runId, "invalid DAG event envelope", now)
   }
-  return value as DagRunEvent
+  return decodePausedTransition(value as DagRunEvent)
 }
 
 function parseJson(text: string, path: string, runId?: DagRunId, now: () => number = Date.now): unknown {
@@ -532,7 +603,12 @@ function assertSupportedSchema(value: unknown, path: string, runId: DagRunId | u
   }
 }
 
-function corrupt(path: string, runId: DagRunId | undefined, message: string, now: () => number): DagJournalCorruptError {
+function corrupt(
+  path: string,
+  runId: DagRunId | undefined,
+  message: string,
+  now: () => number,
+): DagJournalCorruptError {
   return new DagJournalCorruptError({
     kind: "journal_corrupt",
     ...(runId === undefined ? {} : { runId }),
@@ -710,8 +786,11 @@ function reclaimObservedLock(
     fs.closeSync(fd)
     fd = undefined
     const currentHolder = readLockHolder(path)
-    if (currentHolder === undefined || !sameLockHolder(observedHolder, currentHolder) ||
-      (currentHolder.pid !== undefined && isProcessAlive(currentHolder.pid))) {
+    if (
+      currentHolder === undefined ||
+      !sameLockHolder(observedHolder, currentHolder) ||
+      (currentHolder.pid !== undefined && isProcessAlive(currentHolder.pid))
+    ) {
       return { kind: "holder_changed" }
     }
     fs.renameSync(successorPath, path)
@@ -743,8 +822,7 @@ function tryAcquireReclaimMutex(
     return { holder: { pid: process.pid, content }, clearedStaleMutex: false }
   }
   const observedHolder = readLockHolder(path)
-  if (observedHolder === undefined ||
-    (observedHolder.pid !== undefined && isProcessAlive(observedHolder.pid))) {
+  if (observedHolder === undefined || (observedHolder.pid !== undefined && isProcessAlive(observedHolder.pid))) {
     return { holder: undefined, clearedStaleMutex: false }
   }
   const clearedStaleMutex = removeObservedLock(
@@ -787,8 +865,12 @@ function removeWindowsContendedFile(path: string): void {
       fs.rmSync(path, { force: true })
       return
     } catch (error) {
-      if (process.platform !== "win32" || attempt >= WINDOWS_CLEANUP_RETRIES ||
-        (!hasCode(error, "EPERM") && !hasCode(error, "EBUSY"))) throw error
+      if (
+        process.platform !== "win32" ||
+        attempt >= WINDOWS_CLEANUP_RETRIES ||
+        (!hasCode(error, "EPERM") && !hasCode(error, "EBUSY"))
+      )
+        throw error
       Atomics.wait(sleeper, 0, 0, WINDOWS_CLEANUP_RETRY_MS)
     }
   }
@@ -877,7 +959,7 @@ function pruneRunArtifacts(
 }
 
 function assertSafeSegment(value: string, label: string): void {
-  if (value.length === 0 || value === "." || value === ".." || value.includes("/") || value.includes("\\") || value.includes("\0")) {
+  if (!isSafeDagPathSegment(value)) {
     throw new Error(`Invalid ${label}`)
   }
 }

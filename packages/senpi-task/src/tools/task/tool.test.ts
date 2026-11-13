@@ -37,7 +37,7 @@ function fakeManager(overrides: Partial<TaskManager>): TaskManager {
     get: () => undefined,
     list: () => [],
     waitFor: () => notImplemented("waitFor"),
-    forget: () => {},
+    forget: (_taskId, _options) => {},
     getResidentHandle: () => undefined,
     subscribeChild: () => () => {},
     residentTaskIds: () => [],
@@ -50,7 +50,11 @@ function fakeManager(overrides: Partial<TaskManager>): TaskManager {
 }
 
 function deps(manager: TaskManager): TaskToolDeps {
-  return { manager, omoConfig: OMO_CONFIG, agents: { "plan-reviewer": { name: "plan-reviewer", description: "Deep reasoning" } } }
+  return {
+    manager,
+    omoConfig: OMO_CONFIG,
+    agents: { "plan-reviewer": { name: "plan-reviewer", description: "Deep reasoning" } },
+  }
 }
 
 function renderedLines(component: unknown, width: number): string[] {

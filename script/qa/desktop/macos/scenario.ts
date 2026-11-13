@@ -8,6 +8,7 @@ export const SCENARIOS = [
   "background-type-sole-window",
   "background-type-multiwindow-refused",
   "foreground-restores",
+  "background-scroll-once",
   "killswitch-real-hid",
   "tcc-diagnostic",
   "screenshot-budget",
@@ -32,7 +33,9 @@ export interface RunOptions {
 }
 
 export async function withSession<T>(
-  options: RunOptions, computer: Json, use: (session: AgentSession) => Promise<T>,
+  options: RunOptions,
+  computer: Json,
+  use: (session: AgentSession) => Promise<T>,
 ): Promise<T> {
   const session = new AgentSession(computer, options.senpiBin, options.enginePath)
   try {
@@ -58,16 +61,28 @@ export function onWindow(title: string, body: string): Json {
 export const warmUp = (session: AgentSession, title: string): Promise<ToolOutcome> =>
   session.call(onWindow(title, 'await w.move(Math.round(s.width / 2), Math.round(s.height / 2)); return "warm";'))
 
-export const clickCode = (title: string, delivery: string): Json =>
-  onWindow(title, `await w.click(Math.round(s.width / 2), Math.round(s.height * 0.8), { delivery: ${JSON.stringify(delivery)} }); return "clicked";`)
+// A foreground click needs the human-confirmed grant first (#9651 B5); background needs none.
+const acquireFor = (delivery: string): string =>
+  delivery === "foreground" ? 'await desktop.control.acquire({ reason: "macOS QA foreground click" }); ' : ""
 
-export const toolError = (result: ToolOutcome): string | null => result.isError ? result.text : null
+export const clickCode = (title: string, delivery: string): Json =>
+  onWindow(
+    title,
+    `${acquireFor(delivery)}await w.click(Math.round(s.width / 2), Math.round(s.height * 0.8), { delivery: ${JSON.stringify(delivery)} }); return "clicked";`,
+  )
+
+export const toolError = (result: ToolOutcome): string | null => (result.isError ? result.text : null)
 
 export async function keyLands(sink: KeySink): Promise<{ readonly token: string; readonly landed: boolean }> {
   const token = String(Date.now()).slice(-6)
   await postKeystroke(token)
-  const landed = await settle("keystroke in key sink", async () => sink.read(), (text) => text.includes(token),
-    undefined, sink.path)
+  const landed = await settle(
+    "keystroke in key sink",
+    async () => sink.read(),
+    (text) => text.includes(token),
+    undefined,
+    sink.path,
+  )
     .then(() => true)
     .catch(() => false)
   return { token, landed }

@@ -1,22 +1,25 @@
 import type { ToolDefinition } from "@code-yeongyu/senpi"
 import { OmoTaskSettingsSchema, type OmoConfig, type OmoTaskSettings } from "@oh-my-opencode/omo-config-core"
+import { readTurnTraceparent } from "@oh-my-opencode/telemetry-core"
 import { log } from "@oh-my-opencode/utils"
 import {
   createCompletionNotifier,
   createFsSkillLoader,
   createIsolationRuntime,
-  createTaskLifecycle,
-  parseExtensionEntries,
   createTaskManager,
   createTeamMemberRespawnLaunchResolver,
   createTaskRecordStore,
+  readSessionAncestry,
+  readSettingsDefaultRoute,
   resolveMemberExtensionEntryPath,
+  TASK_CHILD_EXTENSION_EVENT,
   type AgentDefinition,
   type ChildPlanner,
   type CompletionNotifier,
   type PersistedTaskEvent,
+  type ResolveAncestry,
+  type SessionAncestry,
   type SkillInvocationState,
-  type SpawnAdmission,
   type SkillLoader,
   type TaskLifecycle,
   type TaskManager,
@@ -26,7 +29,8 @@ import {
 
 import type { IdleInjectionCoordinator } from "../../extension/idle-injection-coordinator"
 import type { SenpiExtensionAPI } from "../../extension/types"
-import { createEngineHostRuntime, type EngineHostRuntime } from "./host-execution-mode"
+import { resolveAgentHome } from "../agent-home/resolve-agent-home"
+import type { EngineHostRuntime } from "./host-execution-mode"
 import {
   createCategoryConfigGenerations,
   createGenerationObservingPlanner,
@@ -34,25 +38,37 @@ import {
 } from "./category-config-generation"
 import { createCategoryUnavailableWarningPlanner } from "./category-unavailable-warning"
 import { createTaskStoreChain } from "./engine-store-chain"
+import type { StoreMutation } from "./store-mutation-observer"
 import { createEngineKernelTools } from "./engine-kernel-tools"
+import { composeEngineHostWiring } from "./engine-host-wiring"
 import { createEngineLiveness } from "./engine-liveness"
 import {
   DEFAULT_RUNNER_FACTORIES,
   buildRespawnRunner,
-  createInheritedExtensionsResolver,
   resolveTaskAgents,
-  type RunnerBuildContext,
   type TaskRunnerFactories,
 } from "./engine-runners"
+import { registerTaskMemoryReporter } from "./memory-reporter"
 import { createParentNotifier } from "./parent-notifier"
+import { notifyHostLiveness } from "./host-liveness-notice"
 import { createTaskChildPlanner, type ResolveModelRegistry } from "./planner"
 import type { TeamMemberLivenessNotifier } from "./member-liveness"
 import { createManagerResidencyRegistry } from "./residency-registry"
 import { TaskRuntimeContext } from "./runtime-context"
 import { sharedTaskTerminalObservers, type TaskTerminalObservers } from "./terminal-observers"
+import { admitAdapter } from "./engine-admission"
+import { AdmissionBarrier } from "../../../../senpi-task/src/pause/admission-barrier"
+import type { ChildPausePort, ChildCreationPort } from "../../../../senpi-task/src/pause/ports"
+import type { TaskPauseMethods } from "../../../../senpi-task/src/manager/run-pause"
+import { createEngineRunPause } from "./engine-run-pause"
+import { nativeChildPausePort } from "../../../../senpi-task/src/pause/native-child-pause"
+
+export { admitAdapter } from "./engine-admission"
 
 export interface TaskEngine {
-  readonly manager: TaskManager
+  readonly runPause?: ReturnType<typeof createEngineRunPause>
+  readonly admissionBarrier: AdmissionBarrier
+  readonly manager: TaskManager & TaskPauseMethods
   // The session's package-aware inherited extension list, shared with every child-launch producer.
   readonly resolveInheritedExtensions: () => Promise<readonly string[]>
   readonly lifecycle: TaskLifecycle
@@ -65,8 +81,12 @@ export interface TaskEngine {
   readonly agents: Readonly<Record<string, AgentDefinition>>
   readonly omoConfig: OmoConfig
   readonly settings: OmoTaskSettings
-  // This parent session's shared-daemon wiring: the ONE answer to `task.default_execution_mode:
-  // "auto"`, and the deduped reasons the daemon could not take its children.
+  // Where THIS session sits in the task tree (undefined = top-level). Every spawn entry point - task,
+  // workpool, workflow, team - counts its children's depth from here so max_depth holds (#9036).
+  readonly ancestry: SessionAncestry | undefined
+  readonly resolveAncestry: ResolveAncestry
+  // This session's task-host wiring: the ONE answer to `task.default_execution_mode: "auto"`, the
+  // per-call shard routing, and the deduped reasons its host could not take its children.
   readonly host: EngineHostRuntime
   readonly stateDir: string
   readonly loadSkills: SkillLoader
@@ -81,10 +101,13 @@ export interface TaskEngine {
   readonly appendTaskEvent: (taskId: string, event: PersistedTaskEvent) => void
   // Subscribe to every store mutation (spawn/transition/replace/remove). The UI status sync attaches
   // here so the footer/widget refresh on background task activity. Returns an unsubscribe.
-  onStoreMutation(listener: () => void): () => void
+  onStoreMutation(listener: (change: StoreMutation) => void): () => void
 }
 
 export interface ComposeTaskEngineDeps {
+  readonly admissionBarrier?: AdmissionBarrier
+  readonly childPausePort?: ChildPausePort
+  readonly childCreationPort?: ChildCreationPort
   readonly pi: SenpiExtensionAPI
   readonly omoConfig: OmoConfig
   readonly cwd: string
@@ -100,6 +123,8 @@ export interface ComposeTaskEngineDeps {
   // This session's shared-daemon wiring. Defaults to the real one (ensure + capability check); a
   // suite injects it whole so no test ever ensures a daemon and its notices are the engine's.
   readonly host?: EngineHostRuntime
+  // The process env the per-child launch channel is read from. Defaults to this process's env.
+  readonly env?: NodeJS.ProcessEnv
 }
 
 export type { RunnerBuildContext, TaskRunnerFactories } from "./engine-runners"
@@ -113,7 +138,9 @@ export type { RunnerBuildContext, TaskRunnerFactories } from "./engine-runners"
  * Construction order breaks the store<->manager and lifecycle<->manager cycles via late binding.
  */
 export function composeTaskEngine(deps: ComposeTaskEngineDeps): TaskEngine {
+  const admissionBarrier = deps.admissionBarrier ?? new AdmissionBarrier()
   const settings: OmoTaskSettings = deps.omoConfig.task ?? OmoTaskSettingsSchema.parse({})
+  const ancestry = readSessionAncestry(deps.pi, deps.env ?? process.env)
   const runtime = new TaskRuntimeContext(deps.cwd)
   const loadSkills = deps.loadSkills ?? createFsSkillLoader()
   const stateDir = {
@@ -140,6 +167,7 @@ export function composeTaskEngine(deps: ComposeTaskEngineDeps): TaskEngine {
     deps.coordinator,
     () => runtime.parentState().kind === "streaming",
     (taskIds, error) => notifier.recordDeliveryFailure({ taskIds, error }),
+    () => runtime.parentModel(),
   )
   const notifier = createCompletionNotifier({
     notifier: parentNotifier,
@@ -182,35 +210,47 @@ export function composeTaskEngine(deps: ComposeTaskEngineDeps): TaskEngine {
     generations: categoryConfigGenerations,
   })
 
-  const registry = createManagerResidencyRegistry(getManager)
+  const registry = createManagerResidencyRegistry(getManager, () => runtime.sessionId())
   // The engine owns ONE isolation runtime: the manager clones the checkout for an isolated child
   // with it, and the lifecycle salvages and sweeps a crashed host's clones through the same object.
   // Without it every `isolated: true` spawn is refused as `isolation_unavailable`.
   const isolation = createIsolationRuntime()
-  const lifecycle = createTaskLifecycle({ store: storeChain.store, registry, config: settings, kernelToolBindings, isolation,
-    revivePolicy: {
-      currentGeneration: () => {
-        const modelRegistry = runtime.modelRegistry()
-        return modelRegistry === undefined ? categoryConfigGenerations.current()?.generation
-          : categoryConfigGenerations.observe({ omoConfig: deps.omoConfig, registry: modelRegistry }).generation
-      },
-      warn: (warning) => {
-        baseStore.appendEvent(warning.task_id, { type: "config_generation_mismatch", payload: warning })
-        deps.pi.sendMessage({ customType: "senpi-task.config-generation-mismatch", content: "Resuming the recorded task configuration.", display: true, details: warning }, {})
-      },
+  const { host, lifecycle, resolveInheritedExtensions, runnerContext } = composeEngineHostWiring({
+    pi: deps.pi,
+    omoConfig: deps.omoConfig,
+    settings,
+    runtime,
+    sharedParentTools: deps.sharedParentTools,
+    ...(deps.host === undefined ? {} : { host: deps.host }),
+    baseStore,
+    generations: categoryConfigGenerations,
+    lifecycle: {
+      store: storeChain.store,
+      registry,
+      kernelToolBindings,
+      isolation,
+      onStoreMutation: storeChain.onMutation,
     },
   })
 
   const factories = deps.runnerFactories ?? DEFAULT_RUNNER_FACTORIES
-  const host = deps.host ?? createEngineHostRuntime(settings)
-  const baseRunnerContext: RunnerBuildContext = { runtime, sharedParentTools: deps.sharedParentTools, settings, kernelToolBindings, agentDir: host.agentDir, onHostWarning: host.notices.add }
-  // One resolver for the whole session, so an ordinary spawn, a revival, a team member and a
-  // workpool worker all inherit the SAME package-aware extension list (#8492).
-  const resolveInheritedExtensions = createInheritedExtensionsResolver(baseRunnerContext)
-  const runnerContext: RunnerBuildContext = { ...baseRunnerContext, resolveInheritedExtensions }
   const resolveRegistry: ResolveModelRegistry = () => runtime.modelRegistry()
+  // The default route a pin-less child would ride, named in model_unavailable refusals (#9722) so
+  // the caller sees the substitution the failure prevented. Read lazily per plan: a mid-session
+  // default change reaches the next spawn's message.
+  const resolveDefaultRoute = () =>
+    readSettingsDefaultRoute({
+      cwd: runtime.cwd(),
+      agentDir: host.agentDir ?? resolveAgentHome({ env: deps.env ?? process.env }),
+    })
   const basePlanner = createGenerationObservingPlanner({
-    planner: createTaskChildPlanner(deps.omoConfig, agents, resolveRegistry, () => runtime.parentServiceTier()),
+    planner: createTaskChildPlanner(
+      deps.omoConfig,
+      agents,
+      resolveRegistry,
+      () => runtime.parentServiceTier(),
+      resolveDefaultRoute,
+    ),
     omoConfig: deps.omoConfig,
     resolveRegistry,
     generations: categoryConfigGenerations,
@@ -223,6 +263,21 @@ export function composeTaskEngine(deps: ComposeTaskEngineDeps): TaskEngine {
     settings,
   })
   const manager = createTaskManager({
+    onChildLiveness: (record, status) => {
+      if (record.parent_session_id === runtime.sessionId())
+        notifyHostLiveness(deps.pi, deps.coordinator, record, status, () => runtime.parentState().kind === "streaming")
+    },
+    onPausedChild: (record, owner, childSeq) => runPause.notePausedChild(record, owner, childSeq),
+    admissionBarrier,
+    childPausePort: deps.childPausePort ?? nativeChildPausePort,
+    ...(deps.childCreationPort === undefined ? {} : { childCreationPort: deps.childCreationPort }),
+    // An in-process child's task tool shares this manager; its owner connection is still ours.
+    onChildExtensionEvent: (event, owner) =>
+      deps.pi.events?.emit(TASK_CHILD_EXTENSION_EVENT, {
+        parent_session_id: runtime.sessionId(),
+        root_session_id: owner.root_session_id,
+        event,
+      }),
     store: storeChain.store,
     isolation,
     runners: { "in-process": factories.inProcess(runnerContext), process: factories.process(runnerContext) },
@@ -233,10 +288,13 @@ export function composeTaskEngine(deps: ComposeTaskEngineDeps): TaskEngine {
     resolveInheritedExtensions,
     rpcRespawnRunner: buildRespawnRunner(runnerContext),
     executionModeGate: host.executionModeGate,
+    // A process child continues the trace of the parent turn that delegated it (telemetry todo 41).
+    traceparentFor: readTurnTraceparent,
     cwd: deps.cwd,
     destruction: {
-      destroyResidentTask: (taskId, cause) =>
-        lifecycle.destroyResidentTask(taskId, cause),
+      destroyResidentTask: (taskId, cause) => lifecycle.destroyResidentTask(taskId, cause),
+      parkTerminalResident: (taskId) => lifecycle.parkTerminalResident(taskId),
+      ...(lifecycle.hostSessionCancel === undefined ? {} : { hostSessionCancel: lifecycle.hostSessionCancel }),
     },
     admit: (parentSessionId) => admitAdapter(lifecycle, parentSessionId),
     trustedRespawnLaunch: createTeamMemberRespawnLaunchResolver({
@@ -249,8 +307,26 @@ export function composeTaskEngine(deps: ComposeTaskEngineDeps): TaskEngine {
     }),
   })
   managerRef = manager
+  const runPause = createEngineRunPause({ stateDir: baseStore.stateDir, manager, barrier: admissionBarrier, runtime })
+  registerTaskMemoryReporter(deps.pi, {
+    residentTaskIds: () => manager.residentTaskIds(),
+    residentFigures: () => baseStore.residentFigures(),
+  })
+
+  const resolveAncestry: ResolveAncestry = (sessionId) => {
+    // In-process children share our tool closures, but call them as their own sessions.
+    const caller = manager.findTaskByChildSession?.(sessionId)
+    if (caller?.execution_mode === "in-process") {
+      return { depth: caller.depth, rootSessionId: caller.root_session_id }
+    }
+    return ancestry === undefined
+      ? undefined
+      : { depth: ancestry.depth, rootSessionId: ancestry.rootSessionId ?? sessionId }
+  }
 
   return {
+    runPause,
+    admissionBarrier,
     manager,
     resolveInheritedExtensions,
     lifecycle,
@@ -261,6 +337,8 @@ export function composeTaskEngine(deps: ComposeTaskEngineDeps): TaskEngine {
     agents,
     omoConfig: deps.omoConfig,
     settings,
+    ancestry,
+    resolveAncestry,
     host,
     stateDir: baseStore.stateDir,
     loadSkills,
@@ -270,6 +348,7 @@ export function composeTaskEngine(deps: ComposeTaskEngineDeps): TaskEngine {
       manager,
       omoConfig: deps.omoConfig,
       agents,
+      resolveAncestry,
       loadSkills,
       resolveSkillInvocations,
       resolveChildToolNames: kernelTools.childToolNames,
@@ -277,21 +356,5 @@ export function composeTaskEngine(deps: ComposeTaskEngineDeps): TaskEngine {
     }),
     appendTaskEvent,
     onStoreMutation: storeChain.onMutation,
-  }
-}
-
-// Exported for scripts/qa/dag-cross-run-residency-qa.ts, which composes the real lifecycle +
-// manager + scheduler graph through this exact seam.
-export async function admitAdapter(lifecycle: TaskLifecycle, parentSessionId: string): Promise<SpawnAdmission> {
-  const admission = await lifecycle.admitResident(parentSessionId)
-  if (admission.kind === "admitted") return { kind: "admitted" }
-  if (admission.kind === "evicted") return { kind: "evicted", evicted_task_id: admission.evicted_task_id }
-  // #8396: keep the residents on the rejection so a residency-denied DAG node can tell "held by
-  // live siblings, wait" from "nothing can free a slot".
-  return {
-    kind: "rejected",
-    message: admission.error.message,
-    max_children: admission.error.max_children,
-    residents: admission.error.residents,
   }
 }

@@ -7,13 +7,7 @@ import { RunnerError } from "./in-process/runner-error"
 import { isHostSessionHandle } from "./rpc-host"
 import { HostUnavailableError } from "./rpc-host/daemon"
 import { SessionHeldElsewhereError } from "./rpc-host/session-client"
-import {
-  CHILD_STATE_DIR,
-  childSpec,
-  fakeFallbackRunner,
-  hostRunnerHarness,
-  stubChannel,
-} from "./rpc-host.test-support"
+import { CHILD_STATE_DIR, childSpec, fakeFallbackRunner, hostRunnerHarness, stubChannel } from "./rpc-host.test-support"
 import type { FakeHostCommand } from "./rpc-host/__fixtures__/fake-host"
 import type { RpcRunnerSpec } from "./types"
 
@@ -83,6 +77,8 @@ describe("RpcHostRunner start", () => {
       sessionPath: session?.sessionPath ?? "",
       instanceId: "fake-instance",
     })
+    // The model the host reports for the fresh session reaches the handle (#9722).
+    expect(handle.reportedModel).toEqual({ provider: "anthropic", id: "claude-sonnet-4-5" })
   })
 
   test("#given a session the daemon still retains #when the child resumes #then it attaches without a second prompt or a switch", async () => {
@@ -106,6 +102,7 @@ describe("RpcHostRunner start", () => {
     expect(ofType(host.commands, "prompt")).toHaveLength(1)
     expect(ofType(host.commands, "switch_session")).toHaveLength(0)
     expect(host.sessions().map((session) => session.sessionPath)).toEqual([sessionPath])
+    expect(isHostSessionHandle(resumed) ? resumed.openDisposition : undefined).toBe("attached")
   })
 
   test("#given a session path the daemon no longer holds #when the child resumes #then it reopens from the path, never re-prompts and stays steerable", async () => {
@@ -119,6 +116,7 @@ describe("RpcHostRunner start", () => {
 
     // then
     expect(isHostSessionHandle(handle) && handle.attached).toBe(true)
+    expect(isHostSessionHandle(handle) ? handle.openDisposition : undefined).toBe("reopened")
     expect(ofType(host.commands, "prompt")).toHaveLength(0)
     expect(ofType(host.commands, "switch_session")).toHaveLength(0)
     expect(host.sessions().map((session) => session.sessionPath)).toEqual([sessionPath])
@@ -164,7 +162,9 @@ describe("RpcHostRunner fallback", () => {
     const fallback = fakeFallbackRunner()
     const runner = runnerWithout({
       ensureDaemon: () =>
-        Promise.reject(new HostUnavailableError("ensure_failed", { fallbackAllowed: false, detail: "socket dir unwritable" })),
+        Promise.reject(
+          new HostUnavailableError("ensure_failed", { fallbackAllowed: false, detail: "socket dir unwritable" }),
+        ),
       fallback,
     })
 
@@ -226,6 +226,7 @@ describe("RpcHostRunner start failures", () => {
     expect(RunnerError.is(failure) ? failure.failure.kind : undefined).toBe("child-prompt-failed")
     expect(RunnerError.is(failure) ? failure.failure.rejected_while : undefined).toBe("alive")
     expect(RunnerError.is(failure) ? failure.failure.message : "").toContain("prompt rejected by the host")
+    await runner.settleTeardowns()
     expect(channel.calls).toEqual(["open", "prompt", "abort", "close", "detach"])
   })
 

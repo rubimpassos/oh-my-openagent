@@ -11,8 +11,13 @@ const nonNegativeInteger = z.number().int().nonnegative()
  */
 export const OmoComputerSettingsLayerSchema = z
   .object({
-    enabled: z.boolean(),
+    enabled: z
+      .boolean()
+      .describe(
+        "Experimental: register the computer tool in OmO Native sessions (default: on where the host is supported; false leaves it unregistered)",
+      ),
     display: z.string().min(1),
+    showCursor: z.boolean().describe("Show the display-only macOS cursor overlay (default: true; false hides it)"),
     max_width: positiveInteger,
     max_height: positiveInteger,
     screenshot_max_bytes: positiveInteger,
@@ -26,9 +31,22 @@ export const OmoComputerSettingsLayerSchema = z
       .strict(),
     engine_path: z.string().min(1),
     cua_adapter: z.boolean(),
+    run_sandbox: z
+      .enum(["vm", "quickjs"])
+      .describe("Where `run` code executes (default: vm; reserved: every run uses vm until the QuickJS cell lands)"),
+    intervention: z
+      .enum(["continue", "pause"])
+      .describe("What a background action does while the user uses the target app (default: continue)"),
+    macos_key_priming: z
+      .enum(["on", "off"])
+      .describe("macOS background keys first make the target window key (default: off)"),
+    trace: z.boolean().describe("Per-request timing traces (default: false)"),
   })
   .partial()
   .strict()
+  .describe(
+    "Experimental computer use in OmO Native: screenshots, windows, accessibility trees and native mouse and keyboard input. Every key is optional; defaults depend on the host.",
+  )
 
 export const OmoComputerSettingsSchema = OmoComputerSettingsLayerSchema
 
@@ -40,6 +58,7 @@ type ComputerSettingPath = `computer.${ComputerSettingKey}`
 export const COMPUTER_HARNESS_SUPPORT: Record<ComputerSettingPath, readonly OmoHarnessId[]> = {
   "computer.enabled": ["native"],
   "computer.display": ["native"],
+  "computer.showCursor": ["native"],
   "computer.max_width": ["native"],
   "computer.max_height": ["native"],
   "computer.screenshot_max_bytes": ["native"],
@@ -50,4 +69,8 @@ export const COMPUTER_HARNESS_SUPPORT: Record<ComputerSettingPath, readonly OmoH
   "computer.screenshot_gc": ["native"],
   "computer.engine_path": ["native"],
   "computer.cua_adapter": ["native"],
+  "computer.run_sandbox": ["native"],
+  "computer.intervention": ["native"],
+  "computer.macos_key_priming": ["native"],
+  "computer.trace": ["native"],
 } as const

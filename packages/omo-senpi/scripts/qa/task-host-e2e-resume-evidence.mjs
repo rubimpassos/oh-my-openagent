@@ -1,19 +1,36 @@
 export function reattachedTaskIds(rows, taskIds, parentSessionId) {
-  const snapshots = rows.filter((row) => row.message?.role === "toolResult" &&
-    row.message.toolName === "task_output" && row.message.isError !== true &&
-    row.message.details?.kind === "status").map((row) => row.message.details.snapshot)
-  return [...new Set(taskIds)].filter((id) => snapshots.some((snapshot) =>
-    snapshot?.task_id === id && snapshot.parent_session_id === parentSessionId &&
-    snapshot.status === "running" && snapshot.residency_state === "resident"))
+  const snapshots = rows
+    .filter(
+      (row) =>
+        row.message?.role === "toolResult" &&
+        row.message.toolName === "task_output" &&
+        row.message.isError !== true &&
+        row.message.details?.kind === "status",
+    )
+    .map((row) => row.message.details.snapshot)
+  return [...new Set(taskIds)].filter((id) =>
+    snapshots.some(
+      (snapshot) =>
+        snapshot?.task_id === id &&
+        snapshot.parent_session_id === parentSessionId &&
+        snapshot.status === "running" &&
+        snapshot.residency_state === "resident",
+    ),
+  )
 }
 
-export function resumeReleaseStep(session, taskIds, parentSessionId, linesBeforeResume) {
+export function resumeReleaseStep(session, taskIds, parentSessionId, linesBeforeResume, tasksDir) {
   return {
-    type: "tool_call", name: "eval", arguments: {
-      language: "js", summary: "verify reattachment, release children and observe completion", timeout: 1_260,
+    type: "tool_call",
+    name: "eval",
+    arguments: {
+      language: "js",
+      summary: "verify reattachment, release children and observe completion",
+      timeout: 1_260,
       code: `var fs = await import("node:fs");
         var ids = ${JSON.stringify(taskIds)};
         var session = ${JSON.stringify(session)};
+        var tasksDir = ${JSON.stringify(tasksDir)};
         var acceptedIds = ${reattachedTaskIds.toString()};
         var waitForState = (path, probe, trigger = () => {}) => new Promise((resolve, reject) => {
           var cleanup = () => { clearTimeout(timer); watcher.close(); };
@@ -34,8 +51,8 @@ export function resumeReleaseStep(session, taskIds, parentSessionId, linesBefore
           }
           return true;
         });
-        await waitForState(".omo/senpi-task/tasks", () =>
-          ids.map(id => JSON.parse(fs.readFileSync(".omo/senpi-task/tasks/" + id + ".json", "utf8")))
+        await waitForState(tasksDir, () =>
+          ids.map(id => JSON.parse(fs.readFileSync(tasksDir + "/" + id + ".json", "utf8")))
             .every(record => ["completed", "error", "lost", "cancelled"].includes(record.status)),
           () => fs.writeFileSync(".omo/resume-release", "release"));`,
     },
