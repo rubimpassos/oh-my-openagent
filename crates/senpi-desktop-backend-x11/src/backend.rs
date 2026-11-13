@@ -3,12 +3,13 @@
 //! capabilities measured from what actually connected.
 
 use image::RgbaImage;
-use senpi_desktop_backend_atspi::{AtSpiAx, AxPermission};
+use senpi_desktop_backend_atspi::{AtSpiAx, AxPermission, WindowIds};
 use senpi_desktop_core::ax::AxBackend;
 use senpi_desktop_core::backend::{Backend, DeliveryMode, PointerEvent};
 use senpi_desktop_core::error::{CoreResult, DesktopError};
 use senpi_desktop_core::frame::FrameGeometry;
 use senpi_desktop_core::keys::KeyName;
+use senpi_desktop_core::menus::MenuItem;
 use senpi_desktop_core::types::{
     CaptureCaps, DesktopCapabilities, DesktopDisplay, DesktopPoint, DesktopWindow, DisplaySelector,
     FrontWindow, Target,
@@ -23,6 +24,8 @@ pub struct X11Backend<S = X11Connection, I = X11InputConnection> {
     input: Result<X11Input<I>, DesktopError>,
     ax: Option<AtSpiAx>,
     display_server: Option<String>,
+    focus_restore_owner: Option<String>,
+    pointer_restore_owner: Option<DesktopPoint>,
 }
 
 impl X11Backend<X11Connection, X11InputConnection> {
@@ -36,8 +39,12 @@ impl X11Backend<X11Connection, X11InputConnection> {
         Ok(Self {
             capture: X11Capture::new(selector)?,
             input: X11Input::connect(),
-            ax: AtSpiAx::new().ok(),
+            // X11 windows are XIDs, which AT-SPI cannot name: owners are
+            // joined to them by pid, title and geometry.
+            ax: AtSpiAx::new(WindowIds::Native).ok(),
             display_server: std::env::var("DISPLAY").ok(),
+            focus_restore_owner: None,
+            pointer_restore_owner: None,
         })
     }
 }
@@ -54,6 +61,8 @@ impl<S: XServer, I: InputServer> X11Backend<S, I> {
             input,
             ax: None,
             display_server,
+            focus_restore_owner: None,
+            pointer_restore_owner: None,
         }
     }
 
@@ -121,14 +130,14 @@ impl<S: XServer + Send, I: InputServer + Send> Backend for X11Backend<S, I> {
     }
 
     fn displays(&mut self) -> CoreResult<Vec<DesktopDisplay>> {
-        self.capture.displays()
+        self.capture.all_displays()
     }
 
     fn windows(&mut self) -> CoreResult<Vec<DesktopWindow>> {
         self.capture.windows()
     }
 
-    fn capture(&mut self, target: &Target, _caps: &CaptureCaps) -> CoreResult<(RgbaImage, FrameGeometry)> {
+    fn capture(&mut self, target: &Target, _caps: &CaptureCaps, _exclude_window_titles: &[String]) -> CoreResult<(RgbaImage, FrameGeometry)> {
         self.capture.capture(target)
     }
 
@@ -139,11 +148,29 @@ impl<S: XServer + Send, I: InputServer + Send> Backend for X11Backend<S, I> {
         _frame: &FrameGeometry,
         mode: DeliveryMode,
     ) -> CoreResult<()> {
-        self.input()?.pointer(target, &event, mode)
+        self.focus_restore_owner = foreground_owner(target, mode);
+        self.pointer_restore_owner = None;
+        let (result, cursor) = {
+            let input = self.input()?;
+            let result = input.pointer(target, &event, mode);
+            (result, input.last_pointer_motion())
+        };
+        self.pointer_restore_owner = cursor;
+        result
     }
 
     fn type_text(&mut self, target: &Target, text: &str, mode: DeliveryMode) -> CoreResult<()> {
+        self.focus_restore_owner = foreground_owner(target, mode);
+        self.pointer_restore_owner = None;
         self.input()?.type_text(target, text, mode)
+    }
+
+    fn clipboard_read(&mut self) -> CoreResult<String> {
+        senpi_desktop_core::clipboard::read_text()
+    }
+
+    fn clipboard_write(&mut self, text: &str) -> CoreResult<()> {
+        senpi_desktop_core::clipboard::write_text(text)
     }
 
     fn type_text_interruptible(
@@ -154,16 +181,70 @@ impl<S: XServer + Send, I: InputServer + Send> Backend for X11Backend<S, I> {
         check_stop: &dyn Fn() -> CoreResult<()>,
         delivered: &mut dyn FnMut(),
     ) -> CoreResult<()> {
+        self.focus_restore_owner = foreground_owner(target, mode);
+        self.pointer_restore_owner = None;
         self.input()?.type_text_interruptible(target, text, mode, check_stop, delivered)
     }
 
     fn key_chord(&mut self, target: &Target, keys: &[KeyName], mode: DeliveryMode) -> CoreResult<()> {
+        self.focus_restore_owner = foreground_owner(target, mode);
+        self.pointer_restore_owner = None;
         self.input()?.key_chord(target, keys, mode)
+    }
+
+    fn hold_keys(
+        &mut self, target: &Target, keys: &[KeyName], mode: DeliveryMode,
+        control: &senpi_desktop_core::holds::HoldControl<'_>,
+    ) -> CoreResult<()> {
+        self.focus_restore_owner = foreground_owner(target, mode);
+        self.pointer_restore_owner = None;
+        self.input()?.hold_keys(target, keys, mode, control)
+    }
+
+    fn hold_mouse(
+        &mut self, target: &Target, hold: &senpi_desktop_core::holds::MouseHold<'_>,
+        mode: DeliveryMode, control: &senpi_desktop_core::holds::HoldControl<'_>,
+    ) -> CoreResult<()> {
+        self.focus_restore_owner = foreground_owner(target, mode);
+        self.pointer_restore_owner = None;
+        let (result, cursor) = {
+            let input = self.input()?;
+            let result = input.hold_mouse(target, hold, mode, control);
+            (result, input.last_pointer_motion())
+        };
+        self.pointer_restore_owner = cursor;
+        result
     }
 
     fn raise_window(&mut self, id: &str) -> CoreResult<()> {
         self.window(id)?;
         self.input()?.raise_window(id)
+    }
+
+    fn menu_items(&mut self, window: &DesktopWindow, path: &[String]) -> CoreResult<Vec<MenuItem>> {
+        let windows = self.capture.windows()?;
+        self.ax
+            .as_mut()
+            .ok_or_else(DesktopError::ax_unsupported)?
+            .menu_items(window, &windows, path)
+    }
+
+    /// The command runs through its own AT-SPI action, which needs neither
+    /// focus nor a raised window, so both delivery modes dispatch the same way
+    /// and a refused request never moves focus.
+    fn menu_select(
+        &mut self,
+        window: &DesktopWindow,
+        path: &[String],
+        _delivery: DeliveryMode,
+        check_stop: &dyn Fn() -> CoreResult<()>,
+    ) -> CoreResult<()> {
+        let windows = self.capture.windows()?;
+        let capture = &self.capture;
+        self.ax
+            .as_mut()
+            .ok_or_else(DesktopError::ax_unsupported)?
+            .menu_select(window, &windows, &|| capture.windows(), path, check_stop)
     }
 
     fn ax(&mut self) -> Option<&mut dyn AxBackend> {
@@ -184,7 +265,14 @@ impl<S: XServer + Send, I: InputServer + Send> Backend for X11Backend<S, I> {
     }
 
     fn warp_cursor(&mut self, point: DesktopPoint) -> CoreResult<()> {
-        self.input()?.warp_cursor(point)
+        let Some(owner) = self.pointer_restore_owner.take() else {
+            return Ok(());
+        };
+        let input = self.input()?;
+        if input.cursor_position()? == owner {
+            input.warp_cursor(point)?;
+        }
+        Ok(())
     }
 
     fn front_window(&mut self) -> CoreResult<Option<FrontWindow>> {
@@ -202,9 +290,23 @@ impl<S: XServer + Send, I: InputServer + Send> Backend for X11Backend<S, I> {
     }
 
     fn restore_front_window(&mut self, front: &FrontWindow) -> CoreResult<()> {
-        match &front.window_id {
-            Some(id) => self.input()?.raise_window(id),
-            None => Ok(()),
+        let (Some(owner), Some(id)) = (self.focus_restore_owner.take(), &front.window_id) else {
+            return Ok(());
+        };
+        let input = self.input()?;
+        if input.window_owns_foreground(id)? {
+            return Ok(());
         }
+        if input.window_owns_foreground(&owner)? {
+            input.raise_window(id)?;
+        }
+        Ok(())
+    }
+}
+
+fn foreground_owner(target: &Target, mode: DeliveryMode) -> Option<String> {
+    match (target, mode) {
+        (Target::Window(id), DeliveryMode::Foreground) => Some(id.clone()),
+        (Target::Desktop | Target::Display(_), _) | (Target::Window(_), DeliveryMode::Background) => None,
     }
 }

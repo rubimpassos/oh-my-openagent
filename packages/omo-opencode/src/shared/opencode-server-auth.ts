@@ -4,15 +4,16 @@ import { log } from "./logger"
 /**
  * Builds HTTP Basic Auth header from environment variables.
  *
- * @returns Basic Auth header string, or undefined if OPENCODE_SERVER_PASSWORD is not set
+ * @returns Basic Auth header string, or undefined if neither server password is set
  */
 export function getServerBasicAuthHeader(): string | undefined {
-  const password = process.env.OPENCODE_SERVER_PASSWORD
+  const v2Password = process.env.OPENCODE_PASSWORD
+  const password = v2Password ?? process.env.OPENCODE_SERVER_PASSWORD
   if (!password) {
     return undefined
   }
 
-  const username = process.env.OPENCODE_SERVER_USERNAME ?? "opencode"
+  const username = v2Password !== undefined ? "opencode" : (process.env.OPENCODE_SERVER_USERNAME ?? "opencode")
   const token = Buffer.from(`${username}:${password}`, "utf8").toString("base64")
 
   return `Basic ${token}`
@@ -20,15 +21,13 @@ export function getServerBasicAuthHeader(): string | undefined {
 
 type UnknownRecord = Record<string, unknown>
 
-
-
 function isRequestFetch(value: unknown): value is (request: Request) => Promise<Response> {
   return typeof value === "function"
 }
 
 function wrapRequestFetch(
   baseFetch: (request: Request) => Promise<Response>,
-  auth: string
+  auth: string,
 ): (request: Request) => Promise<Response> {
   return async (request: Request): Promise<Response> => {
     const headers = new Headers(request.headers)

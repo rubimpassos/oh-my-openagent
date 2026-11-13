@@ -41,11 +41,16 @@ export class KernelToolError extends Error {
   }
 }
 
+/** The kernels senpi defines tools in: JavaScript `tool(fn)` and Python `@tool`. */
+export type KernelToolLanguage = "js" | "py"
+
+const KERNEL_TOOL_LANGUAGES: ReadonlySet<unknown> = new Set<KernelToolLanguage>(["js", "py"])
+
 export type KernelToolDescriptor = {
   readonly name: string
   readonly description: string
   readonly input_schema: Record<string, unknown>
-  readonly language: "js"
+  readonly language: KernelToolLanguage
   readonly kernel_generation: number
   readonly definition_revision: number
 }
@@ -128,7 +133,7 @@ export function isKernelToolDescriptor(value: unknown): value is KernelToolDescr
     value["name"].length > 0 &&
     typeof value["description"] === "string" &&
     isRecord(value["input_schema"]) &&
-    value["language"] === "js" &&
+    KERNEL_TOOL_LANGUAGES.has(value["language"]) &&
     Number.isInteger(value["kernel_generation"]) &&
     Number.isInteger(value["definition_revision"])
   )
@@ -162,7 +167,10 @@ export function parseDescribeResults(value: unknown): readonly KernelToolDescrib
 }
 
 /** Read the producer's typed error code off a thrown capability error; anything else is a failure. */
-export function kernelToolErrorCode(error: unknown, fallback: KernelToolErrorCode = "kernel_tool_failed"): KernelToolErrorCode {
+export function kernelToolErrorCode(
+  error: unknown,
+  fallback: KernelToolErrorCode = "kernel_tool_failed",
+): KernelToolErrorCode {
   if (error instanceof KernelToolError) return error.code
   if (isRecord(error) && typeof error["code"] === "string" && CODES.has(error["code"])) {
     return error["code"] as KernelToolErrorCode

@@ -1,15 +1,17 @@
 import { describe, expect, test } from "bun:test"
-import { channelPackageSpec, updateTarget } from "../bin/lib/package-paths.js"
+import { channelPackageSpec, releaseChannel, updateTarget } from "../bin/lib/package-paths.js"
 
 // updateTarget reads the version of the install it is pointed at and falls back to this package's own
 // manifest, so the expected spelling follows the package channel (`omo-ai` stable, `omo-ai@beta` prerelease).
 const SPEC = channelPackageSpec()
-import {
-  formatUpdateCommand,
-  formatVersionChange,
-  isPrintOnlyUpdate,
-  runSelfUpdate,
-} from "../bin/lib/self-update.js"
+import { formatUpdateCommand, formatVersionChange, isPrintOnlyUpdate, runSelfUpdate } from "../bin/lib/self-update.js"
+
+// These cases cover the spawn mechanics on the registry-unreachable path, which keeps the unpinned
+// channel spec; the pinned path lives in self-update-pinned-target.test.ts.
+const offline = { fetchDistTags: () => null }
+function unconfirmedNotice(version: string): string {
+  return `omo: could not confirm the ${releaseChannel(version)} omo-ai version from the npm registry; installing the unpinned ${channelPackageSpec(version)}`
+}
 
 function bunRoot(path: string): string {
   return path.replace(/\\/g, "/")
@@ -71,12 +73,18 @@ describe("omo self-update", () => {
     }
 
     describe("#when --dry-run or --print is requested", () => {
-      for (const args of [["update", "--dry-run"], ["update", "--print"], ["update", "--self", "--dry-run"]]) {
+      for (const args of [
+        ["update", "--dry-run"],
+        ["update", "--print"],
+        ["update", "--self", "--dry-run"],
+      ]) {
         test(`#then ${args.join(" ")} prints the command and does not spawn`, async () => {
           const spawned: unknown[] = []
           const lines: string[] = []
           const code = await runSelfUpdate(args, {
-            update: bunUpdate,
+            resolveUpdate: () => bunUpdate,
+            ...offline,
+            readInstalled: () => ({ omo: "5.0.0", engine: "2026.9.29" }),
             run: async (...call: unknown[]) => {
               spawned.push(call)
               return { status: 0, signal: null }
@@ -87,7 +95,7 @@ describe("omo self-update", () => {
           expect(isPrintOnlyUpdate(args)).toBe(true)
           expect(code).toBe(0)
           expect(spawned).toEqual([])
-          expect(lines).toEqual([formatUpdateCommand(bunUpdate)])
+          expect(lines).toEqual([unconfirmedNotice("5.0.0"), formatUpdateCommand(bunUpdate)])
         })
       }
     })
@@ -98,7 +106,8 @@ describe("omo self-update", () => {
         const lines: string[] = []
         let reads = 0
         const code = await runSelfUpdate(["update"], {
-          update: bunUpdate,
+          resolveUpdate: () => bunUpdate,
+          ...offline,
           env: { PATH: "/usr/bin", BUN_INSTALL: "/wrong" },
           readInstalled: () => {
             reads += 1
@@ -114,25 +123,31 @@ describe("omo self-update", () => {
           error: (line) => lines.push(`err:${line}`),
         })
         expect(code).toBe(0)
-        expect(spawned).toEqual([{
-          command: "bun",
-          args: ["add", "-g", SPEC],
-          env: { PATH: "/usr/bin", BUN_INSTALL: "/tmp/custom-bun" },
-        }])
+        expect(spawned).toEqual([
+          {
+            command: "bun",
+            args: ["add", "-g", SPEC],
+            env: { PATH: "/usr/bin", BUN_INSTALL: "/tmp/custom-bun" },
+          },
+        ])
         expect(lines).toEqual([
+          unconfirmedNotice("5.0.0-0.beta.88"),
           `omo is updated via bun: bun add -g ${SPEC}`,
           "omo 5.0.0-0.beta.88 -> 5.0.0-0.beta.89 (engine: senpi 2026.9.24)",
         ])
-        expect(formatVersionChange(
-          { omo: "5.0.0-0.beta.88", engine: "2026.9.1" },
-          { omo: "5.0.0-0.beta.89", engine: "2026.9.24" },
-        )).toBe("omo 5.0.0-0.beta.88 -> 5.0.0-0.beta.89 (engine: senpi 2026.9.24)")
+        expect(
+          formatVersionChange(
+            { omo: "5.0.0-0.beta.88", engine: "2026.9.1" },
+            { omo: "5.0.0-0.beta.89", engine: "2026.9.24" },
+          ),
+        ).toBe("omo 5.0.0-0.beta.88 -> 5.0.0-0.beta.89 (engine: senpi 2026.9.24)")
       })
 
       test("#then an npm-managed install spawns npm i -g without a BUN_INSTALL overlay", async () => {
         const spawned: Array<{ command: string; args: string[]; env: NodeJS.ProcessEnv }> = []
         const code = await runSelfUpdate(["update"], {
-          update: npmUpdate,
+          resolveUpdate: () => npmUpdate,
+          ...offline,
           env: { PATH: "/usr/bin" },
           readInstalled: () => ({ omo: "1.0.0", engine: "1" }),
           run: async (command, args, options = {}) => {
@@ -142,11 +157,13 @@ describe("omo self-update", () => {
           log: () => {},
         })
         expect(code).toBe(0)
-        expect(spawned).toEqual([{
-          command: "npm",
-          args: ["i", "-g", SPEC],
-          env: { PATH: "/usr/bin" },
-        }])
+        expect(spawned).toEqual([
+          {
+            command: "npm",
+            args: ["i", "-g", SPEC],
+            env: { PATH: "/usr/bin" },
+          },
+        ])
       })
     })
 
@@ -155,21 +172,23 @@ describe("omo self-update", () => {
         const lines: string[] = []
         const errors: string[] = []
         const code = await runSelfUpdate(["update"], {
-          update: bunUpdate,
+          resolveUpdate: () => bunUpdate,
+          ...offline,
           readInstalled: () => ({ omo: "5.0.0-0.beta.88", engine: "x" }),
           run: async () => ({ status: 7, signal: null }),
           log: (line) => lines.push(line),
           error: (line) => errors.push(line),
         })
         expect(code).toBe(7)
-        expect(lines).toEqual([`omo is updated via bun: bun add -g ${SPEC}`])
+        expect(lines).toEqual([unconfirmedNotice("5.0.0-0.beta.88"), `omo is updated via bun: bun add -g ${SPEC}`])
         expect(errors).toEqual([`omo: update failed; retry with: bun add -g ${SPEC}`])
       })
 
       test("#then a spawn error exits 1 with the same retry command", async () => {
         const errors: string[] = []
         const code = await runSelfUpdate(["update"], {
-          update: npmUpdate,
+          resolveUpdate: () => npmUpdate,
+          ...offline,
           readInstalled: () => ({ omo: "1.0.0", engine: "1" }),
           run: async () => {
             throw new Error("ENOENT")

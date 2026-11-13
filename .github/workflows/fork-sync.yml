@@ -1,13 +1,5 @@
 name: Fork sync (main)
-# Default branch of this fork: schedules only run from here.
-
-# Keeps this fork's `main` branch (the OpenCode V2 line) current with its two sources:
-#   - upstream `dev` (code-yeongyu/oh-my-openagent)
-#   - the OpenCode V2 port in upstream PR #9016, while it is open
-# `main` is rebuilt as <base> + every non-merge commit carrying the trailer
-# `Fork-Patch: v2-support` (the trailer keeps its original name). The base is the PR head while the PR is open, and
-# upstream `dev` once it is merged or closed. A conflict or a failing V2 test
-# leaves the branch untouched and opens (or updates) an issue.
+# Integrate both sources on top of validated fork history, for review only.
 on:
   schedule:
     - cron: '17 */6 * * *'
@@ -16,6 +8,7 @@ on:
 permissions:
   contents: write
   issues: write
+  pull-requests: write
 
 concurrency:
   group: fork-sync
@@ -35,74 +28,91 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Fetch sources
-        id: sources
+      - name: Skip pending sync review
+        id: pending
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git config user.name "fork-sync"
-          git config user.email "fork-sync@users.noreply.github.com"
-          git remote add upstream "https://github.com/${UPSTREAM}.git"
-          git fetch --no-tags upstream dev "pull/${PR_NUMBER}/head:refs/remotes/upstream/pr"
-          state=$(gh pr view "$PR_NUMBER" -R "$UPSTREAM" --json state -q .state)
-          echo "pr_state=$state" >> "$GITHUB_OUTPUT"
-          if [ "$state" = "OPEN" ]; then base=upstream/pr; else base=upstream/dev; fi
-          echo "base=$base" >> "$GITHUB_OUTPUT"
-          echo "base_sha=$(git rev-parse "$base")" >> "$GITHUB_OUTPUT"
+          pending=$(gh pr list -R "$GITHUB_REPOSITORY" --state open --base "$BRANCH" --limit 1000 --json headRefName --jq 'map(select(.headRefName | startswith("fork-sync/"))) | length')
+          echo "count=$pending" >> "$GITHUB_OUTPUT"
 
-      - name: Rebuild main
-        id: rebuild
+      - name: Fetch sources
+        id: sources
+        if: steps.pending.outputs.count == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          patches=$(git log --reverse --no-merges --format=%H --grep='^Fork-Patch: v2-support' "origin/${BRANCH}")
-          git checkout -q -B candidate "${{ steps.sources.outputs.base }}"
-          for sha in $patches; do
-            subject=$(git log -1 --format=%s "$sha")
-            if git merge-base --is-ancestor "$sha" HEAD; then continue; fi
-            if ! git cherry-pick -x "$sha" >/dev/null 2>&1; then
-              git cherry-pick --abort || true
-              echo "conflict=$subject" >> "$GITHUB_OUTPUT"
+          GIT_MASTER=1 git config user.name "fork-sync"
+          GIT_MASTER=1 git config user.email "fork-sync@users.noreply.github.com"
+          GIT_MASTER=1 git remote add upstream "https://github.com/${UPSTREAM}.git"
+          GIT_MASTER=1 git fetch --no-tags origin "$BRANCH"
+          GIT_MASTER=1 git fetch --no-tags upstream dev
+          state=$(gh pr view "$PR_NUMBER" -R "$UPSTREAM" --json state -q .state)
+          if [ "$state" = "OPEN" ]; then
+            GIT_MASTER=1 git fetch --no-tags upstream "pull/${PR_NUMBER}/head:refs/remotes/upstream/pr"
+          fi
+          echo "pr_state=$state" >> "$GITHUB_OUTPUT"
+
+      - name: Integrate sources
+        id: integrate
+        if: steps.pending.outputs.count == '0'
+        env:
+          PR_STATE: ${{ steps.sources.outputs.pr_state }}
+        run: |
+          GIT_MASTER=1 git checkout -q -b candidate "origin/${BRANCH}"
+          sources=(upstream/dev)
+          if [ "$PR_STATE" = "OPEN" ]; then sources+=(upstream/pr); fi
+          for source in "${sources[@]}"; do
+            if GIT_MASTER=1 git merge-base --is-ancestor "$source" HEAD; then continue; fi
+            if ! GIT_MASTER=1 git merge --no-ff --no-edit "$source"; then
+              GIT_MASTER=1 git merge --abort
+              echo "conflict=$source" >> "$GITHUB_OUTPUT"
               exit 0
             fi
           done
-          # Upstream's own workflows (CI, publish, cron jobs) must never run in this
-          # fork; the branch carries only the fork's sync and release workflows.
-          find .github/workflows -type f ! -name 'fork-sync.yml' ! -name 'fork-release.yml' -print0 | xargs -0 -r git rm -q
-          git diff --cached --quiet || git commit -q -m "ci(fork): drop upstream workflows from the fork branch"
-          if [ "$(git rev-parse HEAD^{tree})" = "$(git rev-parse "origin/${BRANCH}^{tree}")" ]; then
+          # Never enable upstream CI, publish, deploy or scheduled workflows here.
+          find .github/workflows -type f ! -name 'fork-sync.yml' ! -name 'fork-release.yml' -print0 | xargs -0 -r env GIT_MASTER=1 git rm -q
+          GIT_MASTER=1 git diff --cached --quiet || GIT_MASTER=1 git commit -q -m "ci(fork): drop upstream workflows from the fork branch"
+          if [ "$(GIT_MASTER=1 git rev-parse HEAD)" = "$(GIT_MASTER=1 git rev-parse "origin/${BRANCH}")" ]; then
             echo "unchanged=true" >> "$GITHUB_OUTPUT"
           fi
 
       - uses: oven-sh/setup-bun@v2
-        if: steps.rebuild.outputs.conflict == '' && steps.rebuild.outputs.unchanged != 'true'
+        if: steps.pending.outputs.count == '0' && steps.integrate.outputs.conflict == '' && steps.integrate.outputs.unchanged != 'true'
+        with:
+          bun-version: '1.4.4'
 
-      - name: Test the V2 adapter
+      - name: Test the candidate
         id: test
-        if: steps.rebuild.outputs.conflict == '' && steps.rebuild.outputs.unchanged != 'true'
-        continue-on-error: true
+        if: steps.pending.outputs.count == '0' && steps.integrate.outputs.conflict == '' && steps.integrate.outputs.unchanged != 'true'
         run: |
-          bun install --frozen-lockfile || bun install
-          bun test packages/omo-opencode/src/v2 packages/omo-config-core/src/loader
+          bun install --frozen-lockfile --ignore-scripts
+          bun test script/fork-sync.test.ts packages/omo-opencode/src/v2 packages/omo-config-core/src/loader
 
-      - name: Push
-        if: steps.rebuild.outputs.conflict == '' && steps.rebuild.outputs.unchanged != 'true' && steps.test.outcome == 'success'
-        run: git push --force-with-lease="${BRANCH}:origin/${BRANCH}" origin "candidate:${BRANCH}"
-
-      - name: Report failure
-        if: steps.rebuild.outputs.conflict != '' || steps.test.outcome == 'failure'
+      - name: Propose integration
+        id: propose
+        if: steps.test.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
-          CONFLICT: ${{ steps.rebuild.outputs.conflict }}
-          BASE: ${{ steps.sources.outputs.base }}
-          BASE_SHA: ${{ steps.sources.outputs.base_sha }}
+        run: |
+          head="fork-sync/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          GIT_MASTER=1 git push origin "HEAD:refs/heads/$head"
+          gh pr create -R "$GITHUB_REPOSITORY" --base "$BRANCH" --head "$head" --title "fork-sync: integrate upstream and V2 updates" --body "Integrates upstream dev and open PR #${PR_NUMBER} onto validated fork history. V2 and sync fixture tests passed. Review and merge without replacing main history."
+
+      - name: Report failure
+        id: report
+        if: failure() || steps.integrate.outputs.conflict != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONFLICT: ${{ steps.integrate.outputs.conflict }}
         run: |
           title="fork-sync: main needs attention"
-          if [ -n "$CONFLICT" ]; then reason="Cherry-pick conflict on: $CONFLICT"; else reason="V2 adapter tests failed after rebase"; fi
+          if [ -n "$CONFLICT" ]; then reason="Merge conflict on: $CONFLICT"; else reason="Sync or candidate validation failed"; fi
           body="$reason
 
-          Base: \`$BASE\` @ \`$BASE_SHA\` (PR #${PR_NUMBER} state: ${{ steps.sources.outputs.pr_state }})
           Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
 
-          \`${BRANCH}\` was left unchanged."
+          Main was left unchanged. Resolve the integration in a reviewed PR."
           existing=$(gh issue list -R "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number -q '.[0].number')
           if [ -n "$existing" ]; then gh issue comment "$existing" -R "$GITHUB_REPOSITORY" --body "$body"; else gh issue create -R "$GITHUB_REPOSITORY" --title "$title" --body "$body"; fi
           exit 1

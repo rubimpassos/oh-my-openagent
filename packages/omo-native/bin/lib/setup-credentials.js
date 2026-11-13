@@ -10,6 +10,7 @@ import { join } from "node:path"
 import { readRow, readRows } from "./sqlite-rows.js"
 import { credentialGuidance } from "./setup-guidance.js"
 import { literalConfigValue, readAuthStore, writeAuthStore } from "./auth-store.js"
+import providerMap from "./provider-map.json" with { type: "json" }
 
 export const API_KEY_TYPE_ACCEPTLIST = new Set(["api_key"])
 const SQLITE_STORES = [
@@ -22,7 +23,7 @@ function sorted(values) {
 }
 
 function readProviderMap() {
-  return JSON.parse(readFileSync(new URL("./provider-map.json", import.meta.url), "utf8"))
+  return providerMap
 }
 
 function targetProvider(provider, providerMap) {
@@ -150,7 +151,14 @@ export async function planCredentials(runtime, target, customProviderIds) {
   const current = readAuthStore(target)
   if (current.malformed) {
     const notices = [...sources.notices, "WARN senpi: malformed auth.json; credentials were not imported"]
-    return { target, current, notices, malformed: true, pending: 0, found: sources.candidates.length + sources.oauth.length }
+    return {
+      target,
+      current,
+      notices,
+      malformed: true,
+      pending: 0,
+      found: sources.candidates.length + sources.oauth.length,
+    }
   }
   const result = classify(sources, current.entries, customProviderIds)
   return {
@@ -164,7 +172,13 @@ export async function planCredentials(runtime, target, customProviderIds) {
   }
 }
 
-export function applyCredentials(plan) {
+/**
+ * The stage's one writer. With `options.writeAuth` (the engine's locked credential store) the
+ * additions merge into whatever the store holds under its lock; the CLI path keeps its direct
+ * backup-and-write.
+ */
+export function applyCredentials(plan, options = {}) {
+  if (options.writeAuth !== undefined) return options.writeAuth(plan.target, plan.result.additions)
   writeAuthStore(plan.target, plan.current, plan.result.additions)
 }
 
@@ -175,7 +189,10 @@ function list(label, ids) {
 export function credentialPlanLines(plan) {
   if (plan.malformed) return []
   return [
-    list("planned-add", plan.result.additions.map((item) => item.provider)),
+    list(
+      "planned-add",
+      plan.result.additions.map((item) => item.provider),
+    ),
     list("skipped-existing", plan.result.skippedExisting),
     list("skipped-oauth", plan.result.skippedOauth),
     list("skipped-unmapped", plan.result.skippedUnmapped),

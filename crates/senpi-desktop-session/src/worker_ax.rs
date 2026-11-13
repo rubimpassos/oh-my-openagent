@@ -1,19 +1,19 @@
 //! Accessibility requests. Refs (`eN`) resolve through the session's
-//! registry; a ref older than the previous snapshot fails `StaleRef`.
+//! registry; a ref older than the previous snapshot fails `StaleRef`. In an
+//! object-mode session every action first passes the actionability battery
+//! ([`crate::actionability`]).
 
-use senpi_desktop_core::ax::{self, register_node, AxHandle};
-use senpi_desktop_core::backend::{DeliveryMode, PointerEvent};
-use senpi_desktop_core::error::{CoreResult, DesktopError};
-use senpi_desktop_core::frame::FrameGeometry;
-use senpi_desktop_core::protocol_params::{
-    AxClickParams, AxElementAtParams, AxQueryParams, AxSnapshotParams,
-};
-use senpi_desktop_core::types::{AxNode, Target};
+use std::cell::Cell;
+
+use senpi_desktop_core::ax::{self, register_node};
+use senpi_desktop_core::backend::DeliveryMode;
+use senpi_desktop_core::error::CoreResult;
+use senpi_desktop_core::protocol_params::{AxElementAtParams, AxQueryParams, AxSnapshotParams};
+use senpi_desktop_core::types::Target;
 
 use senpi_desktop_safety::MutatingAction;
 
 use crate::mutate::Mutation;
-use crate::pointer::ParsedPointerOptions;
 use crate::request::Response;
 use crate::worker::{Audited, Worker};
 
@@ -50,33 +50,14 @@ impl Worker {
         Ok(Response::MaybeNode(node))
     }
 
+    /// In object mode the node carries evidence, `secure`, and whether the
+    /// snapshot that registered it cut its children.
     pub(crate) fn ax_node(&mut self, reference: &str) -> CoreResult<Response> {
         let handle = self.registry.resolve(reference)?;
-        let props = self.ax_parts()?.0.props(&handle)?;
-        let (x, y, width, height) = props.bounds.map_or((None, None, None, None), |bounds| {
-            (
-                Some(bounds.x),
-                Some(bounds.y),
-                Some(bounds.width),
-                Some(bounds.height),
-            )
-        });
-        Ok(Response::Node(AxNode {
-            ref_: reference.to_owned(),
-            role: props.role,
-            native_role: props.native_role,
-            title: props.title,
-            value: props.value,
-            description: props.description,
-            enabled: props.enabled,
-            focused: props.focused,
-            x,
-            y,
-            width,
-            height,
-            actions: (!props.actions.is_empty()).then_some(props.actions),
-            child_count: props.child_count,
-        }))
+        let subtree_truncated = self.registry.subtree_truncated(reference);
+        let (backend, registry) = self.ax_parts()?;
+        let observed = ax::observe(backend, registry, &handle)?;
+        Ok(Response::Node(ax::node_to_wire(reference.to_owned(), observed, subtree_truncated)))
     }
 
     pub(crate) fn ax_attributes(&mut self, reference: &str) -> CoreResult<Response> {
@@ -126,13 +107,16 @@ impl Worker {
         action: &str,
         cancelled: &dyn Fn() -> bool,
     ) -> CoreResult<Audited> {
-        let mutation = Mutation::new(
+        let mut mutation = Mutation::new(
             MutatingAction::AxPerform,
             self.ref_target(reference),
             DeliveryMode::Background,
         );
-        self.mutate(&mutation, cancelled, |worker| {
+        mutation.ax_actionability = Some((reference, Some(action)));
+        let baseline = Cell::new(None);
+        let audited = self.mutate(&mutation, cancelled, |worker| {
             let handle = worker.registry.resolve(reference)?;
+            baseline.set(worker.element_surface_baseline(&handle));
             let backend = worker.ax_parts()?.0;
             if action.eq_ignore_ascii_case("press") {
                 ax::ax_press(backend, &handle)?;
@@ -140,7 +124,9 @@ impl Worker {
                 backend.perform(&handle, action)?;
             }
             Ok(Response::Unit)
-        })
+        })?;
+        self.report_opened_surfaces(baseline.take());
+        Ok(audited)
     }
 
     pub(crate) fn ax_set_value(
@@ -151,6 +137,7 @@ impl Worker {
     ) -> CoreResult<Audited> {
         let mutation = Mutation {
             text: Some(value),
+            ax_actionability: Some((reference, None)),
             ..Mutation::new(
                 MutatingAction::AxSetValue,
                 self.ref_target(reference),
@@ -165,61 +152,17 @@ impl Worker {
     }
 
     pub(crate) fn ax_focus(&mut self, reference: &str, cancelled: &dyn Fn() -> bool) -> CoreResult<Audited> {
-        let mutation = Mutation::new(
+        let mut mutation = Mutation::new(
             MutatingAction::AxFocus,
             self.ref_target(reference),
             DeliveryMode::Background,
         );
+        mutation.ax_actionability = Some((reference, None));
         self.mutate(&mutation, cancelled, |worker| {
             let handle = worker.registry.resolve(reference)?;
             worker.ax_parts()?.0.focus(&handle)?;
             Ok(Response::Unit)
         })
-    }
-
-    /// Clicks the centre of the element's bounds in the window containing it.
-    pub(crate) fn ax_click(
-        &mut self,
-        params: &AxClickParams,
-        cancelled: &dyn Fn() -> bool,
-    ) -> CoreResult<Audited> {
-        let mode = ParsedPointerOptions::requested_mode(params.opts.as_ref());
-        let mutation = Mutation::new(MutatingAction::AxClick, self.ref_target(&params.ref_), mode);
-        self.mutate(&mutation, cancelled, |worker| worker.ax_click_now(params))
-    }
-
-    fn ax_click_now(&mut self, params: &AxClickParams) -> CoreResult<Response> {
-        let options = ParsedPointerOptions::parse(params.opts.as_ref())?;
-        let handle: AxHandle = self.registry.resolve(&params.ref_)?;
-        let bounds = self
-            .ax_parts()?
-            .0
-            .props(&handle)?
-            .bounds
-            .ok_or_else(|| DesktopError::ax_failed(format!("{} has no clickable bounds", params.ref_)))?;
-        let x = bounds.x + bounds.width / 2.0;
-        let y = bounds.y + bounds.height / 2.0;
-        let window = self
-            .backend()?
-            .windows()?
-            .into_iter()
-            .find(|window| {
-                let (left, top) = (f64::from(window.x), f64::from(window.y));
-                (left..left + f64::from(window.width)).contains(&x)
-                    && (top..top + f64::from(window.height)).contains(&y)
-            })
-            .ok_or_else(|| DesktopError::window_not_found(format!("no window contains {}", params.ref_)))?;
-        let event = PointerEvent::Click {
-            x,
-            y,
-            button: options.button,
-            count: options.count,
-            modifiers: options.modifiers,
-        };
-        let target = Target::Window(window.id);
-        self.backend()?
-            .pointer(&target, event, &FrameGeometry::identity_global(), options.mode)?;
-        Ok(Response::Unit)
     }
 }
 
@@ -234,3 +177,10 @@ fn truncate(value: String) -> String {
         value
     }
 }
+
+mod click;
+#[cfg(test)]
+mod tests;
+mod type_text;
+#[cfg(test)]
+mod type_text_tests;

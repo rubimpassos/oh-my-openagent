@@ -1,4 +1,5 @@
 import type {
+  KernelToolLanguage,
   KernelToolDescriptor,
   KernelToolInvokeOptions,
   KernelToolInvokeRequest,
@@ -17,6 +18,7 @@ export type FakeKernelToolDefinition = {
   readonly name: string
   readonly description?: string
   readonly input_schema?: Record<string, unknown>
+  readonly language?: KernelToolLanguage
   readonly run?: (args: unknown, host: FakeHostCall) => unknown
 }
 
@@ -97,7 +99,7 @@ export function fakeKernelTools(options: FakeKernelToolsOptions = {}): FakeKerne
         properties: { value: { type: "string" } },
         additionalProperties: false,
       },
-      language: "js",
+      language: definition.language ?? "js",
       kernel_generation: generation,
       definition_revision: (previous?.descriptor.definition_revision ?? 0) + 1,
     }
@@ -133,7 +135,11 @@ export function fakeKernelTools(options: FakeKernelToolsOptions = {}): FakeKerne
         results: names.map((name) => {
           const entry = entries.get(name)
           return entry === undefined
-            ? { name, ok: false, error: { code: "kernel_tool_missing", message: `Kernel tool is not defined: ${name}` } }
+            ? {
+                name,
+                ok: false,
+                error: { code: "kernel_tool_missing", message: `Kernel tool is not defined: ${name}` },
+              }
             : { name, ok: true, descriptor: entry.descriptor }
         }),
       }
@@ -151,7 +157,8 @@ export function fakeKernelTools(options: FakeKernelToolsOptions = {}): FakeKerne
       if (entry.descriptor.definition_revision !== request.definition_revision) {
         throw error("kernel_tool_stale", "Kernel tool descriptor revision is stale")
       }
-      const scope = invokeOptions instanceof AbortSignal || invokeOptions === undefined ? undefined : invokeOptions.scope
+      const scope =
+        invokeOptions instanceof AbortSignal || invokeOptions === undefined ? undefined : invokeOptions.scope
       const host: FakeHostCall = async (toolName) => {
         const refusal = hostToolRefusal(scope, toolName)
         if (refusal !== null) {

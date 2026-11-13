@@ -1,5 +1,12 @@
-export { BOULDER_DIR, BOULDER_FILE, BOULDER_STATE_PATH, NOTEPAD_BASE_PATH, NOTEPAD_DIR, PROMETHEUS_PLANS_DIR } from "./constants"
-export { getPlanChecklist, parsePlanChecklist } from "./plan-checklist"
+export {
+  BOULDER_DIR,
+  BOULDER_FILE,
+  BOULDER_STATE_PATH,
+  NOTEPAD_BASE_PATH,
+  NOTEPAD_DIR,
+  PROMETHEUS_PLANS_DIR,
+} from "./constants"
+export { getPlanChecklist, isStructuredTaskRow, parsePlanChecklist } from "./plan-checklist"
 export { readCurrentTopLevelTask } from "./top-level-task"
 export {
   addBoulderWork,
@@ -11,17 +18,21 @@ export {
   DEFAULT_STALE_WORK_THRESHOLD_MS,
   endTaskTimer,
   findPrometheusPlans,
+  formatMomusReviewArtifact,
   generateWorkId,
   getActiveWorks,
   getBoulderFilePath,
   getBoulderWorks,
   getPlanName,
   getPlanProgress,
+  getPlanReviewsDir,
   getTaskSessionState,
   getWorkById,
   getWorkByPlanName,
   getWorkForSession,
   getWorkResumeOptions,
+  hashPlanContent,
+  isContainedPlanPath,
   isWorkStale,
   moveSessionWorks,
   normalizeSessionId,
@@ -36,6 +47,7 @@ export {
   upsertTaskSessionState,
   upsertTaskSessionStateForWork,
   writeBoulderState,
+  writeMomusReviewArtifact,
 } from "./storage"
 export type {
   BoulderSessionOrigin,
@@ -52,3 +64,4 @@ export type {
   TaskSessionState,
   TopLevelTaskRef,
 } from "./types"
+export type { MomusReviewArtifactInput, MomusReviewVerdict } from "./storage"

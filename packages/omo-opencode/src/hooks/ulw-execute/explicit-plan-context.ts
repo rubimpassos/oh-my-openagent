@@ -24,8 +24,7 @@ export function buildExplicitPlanContext(params: {
   readonly worktreeBlock: string
   readonly directory: string
 }): string {
-  const { explicitPlanName, sessionId, timestamp, activeAgent, worktreePath, worktreeBlock, directory } =
-    params
+  const { explicitPlanName, sessionId, timestamp, activeAgent, worktreePath, worktreeBlock, directory } = params
   log(`[${HOOK_NAME}] Explicit plan name requested: ${explicitPlanName}`, { sessionID: sessionId })
 
   const pathRequested = isPlanPathRequest(explicitPlanName)
@@ -124,10 +123,7 @@ No work was selected or created. Retry without --worktree to execute the request
   })
 }
 
-function buildPlanAlreadyCompleteContext(params: {
-  readonly planName: string
-  readonly totalTasks: number
-}): string {
+function buildPlanAlreadyCompleteContext(params: { readonly planName: string; readonly totalTasks: number }): string {
   const { planName, totalTasks } = params
 
   return `

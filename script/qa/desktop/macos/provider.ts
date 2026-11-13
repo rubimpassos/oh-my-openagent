@@ -20,7 +20,8 @@ function textOf(message: ContextMessage): string {
   if (!Array.isArray(message.content)) return ""
   return message.content
     .map((part: unknown) =>
-      typeof part === "object" && part !== null && "text" in part && typeof part.text === "string" ? part.text : "")
+      typeof part === "object" && part !== null && "text" in part && typeof part.text === "string" ? part.text : "",
+    )
     .join("")
 }
 
@@ -34,7 +35,9 @@ export function chooseStep(messages: readonly ContextMessage[], steps: readonly 
   const toolCall = steps.findLast((step) => step.type === "tool_call")
   const closing = steps.findLast((step) => step.type === "text")
   if (messages.at(-1)?.role === "toolResult") return closing ?? BACKGROUND_REPLY
-  const lastAnswered = messages.findLastIndex((message) => message.role === "assistant" || message.role === "toolResult")
+  const lastAnswered = messages.findLastIndex(
+    (message) => message.role === "assistant" || message.role === "toolResult",
+  )
   const pending = messages.slice(lastAnswered + 1)
   if (pending.some((message) => message.role === "user" && textOf(message).startsWith(QA_PROMPT_PREFIX)))
     return toolCall ?? closing ?? BACKGROUND_REPLY
@@ -51,18 +54,21 @@ export default function registerMacosProvider(pi: Parameters<typeof registerMock
     registerProvider(id, provider) {
       pi.registerProvider(id, {
         ...provider,
-        streamSimple(_model, context, options) {
+        streamSimple(model, context, options) {
           calls += 1
           const messages: readonly ContextMessage[] = Array.isArray(context.messages) ? context.messages : []
           const step = chooseStep(messages, loadMockScript(context.cwd ?? process.cwd()).steps)
-          const toolCall = stepToAssistantMessage(step, calls).content[0]
-          const stream = streamMockStep(step, calls, options)
+          const toolCall = stepToAssistantMessage(step, calls, model.id).content[0]
+          const stream = streamMockStep(step, calls, model.id, options)
           return {
             result: () => stream.result(),
             async *[Symbol.asyncIterator]() {
               for await (const event of stream) {
                 if (isRecord(event) && event.type === "toolcall_start" && toolCall?.type === "toolCall") {
-                  yield { ...event, partial: { ...(isRecord(event.partial) ? event.partial : {}), content: [toolCall] } }
+                  yield {
+                    ...event,
+                    partial: { ...(isRecord(event.partial) ? event.partial : {}), content: [toolCall] },
+                  }
                 } else yield event
               }
             },

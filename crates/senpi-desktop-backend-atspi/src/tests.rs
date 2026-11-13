@@ -13,6 +13,7 @@ use crate::{AtSpiAx, AxPermission};
 /// A window over the editor's frame rect.
 fn window(app: &str, title: &str, pid: Option<u32>) -> DesktopWindow {
     DesktopWindow {
+        identity: None,
         id: "0x2a".into(),
         title: title.into(),
         app: app.into(),
@@ -22,6 +23,7 @@ fn window(app: &str, title: &str, pid: Option<u32>) -> DesktopWindow {
         width: 640,
         height: 480,
         focused: false,
+        is_on_screen: None,
         elevated: None,
     }
 }

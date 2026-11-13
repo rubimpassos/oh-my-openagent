@@ -3,12 +3,7 @@ import { describe, expect, test } from "bun:test"
 import type { ThemeColor } from "@code-yeongyu/senpi"
 import { visibleWidth } from "@earendil-works/pi-tui"
 
-import {
-  renderTaskCancelCall,
-  renderTaskCancelResult,
-  renderTaskSendCall,
-  type ControlRenderTheme,
-} from "./renderers"
+import { renderTaskCancelCall, renderTaskCancelResult, renderTaskSendCall, type ControlRenderTheme } from "./renderers"
 import { toolResult } from "./tool-result"
 import type { CancelResultDetails } from "./types"
 
@@ -60,7 +55,8 @@ describe("control tool renderers", () => {
       renderTaskSendCall(
         {
           to: "builder",
-          message: "한국어 안내가 아주 길게 이어집니다.\nEnglish guidance also continues long enough to require truncation safely.",
+          message:
+            "한국어 안내가 아주 길게 이어집니다.\nEnglish guidance also continues long enough to require truncation safely.",
         },
         ANSI_THEME,
       ),
@@ -109,7 +105,10 @@ describe("control tool renderers", () => {
     )
     const reject = firstLine(
       renderTaskSendCall(
-        { to: "builder", message: { type: "shutdown_response", request_id: "req-2", approve: false, reason: "still testing" } },
+        {
+          to: "builder",
+          message: { type: "shutdown_response", request_id: "req-2", approve: false, reason: "still testing" },
+        },
         TEST_THEME,
       ),
       120,
@@ -198,6 +197,7 @@ describe("control tool renderers", () => {
     const call = firstLine(renderTaskCancelCall({ name: "alpha", reason: "no longer needed" }, TEST_THEME), 80)
     const details: readonly CancelResultDetails[] = [
       { kind: "cancelled", task_id: "st_1", previous_status: "running", status: "cancelled" },
+      { kind: "cancel_pending", task_id: "st_2", previous_status: "running", reason: "child unreachable" },
       { kind: "noop", task_id: "st_1", status: "cancelled", reason: "Already cancelled." },
       { kind: "not_found", reason: "No task found." },
       { kind: "invalid_arguments", reason: "Provide task_id or name." },
@@ -212,8 +212,9 @@ describe("control tool renderers", () => {
     expect(call).toContain("[warning]")
     expect(call).not.toContain("[toolTitle]")
     expect(lines.join("\n")).toContain("cancelled st_1")
+    expect(lines[1]).toStartWith("[warning]")
+    expect(lines[1]).toContain("pending st_2: child unreachable")
     expect(lines.join("\n")).toContain("[warning]")
     expect(lines.join("\n")).toContain("[error]")
   })
-
 })

@@ -72,7 +72,12 @@ describe("runTaskSend", () => {
   })
 
   test("#given a caller session id #when sending #then callerSessionId is injected into the steering call", async () => {
-    const { manager, sendCalls } = spyManager({ kind: "steered", task_id: "st_00000001", status: "running", delivered: "steer" })
+    const { manager, sendCalls } = spyManager({
+      kind: "steered",
+      task_id: "st_00000001",
+      status: "running",
+      delivered: "steer",
+    })
 
     await runTaskSend(manager, { to: "st_00000001", message: "hi" }, "session-42")
 
@@ -81,7 +86,12 @@ describe("runTaskSend", () => {
   })
 
   test("#given all_scope true #when sending #then allScope is forwarded to the engine", async () => {
-    const { manager, sendCalls } = spyManager({ kind: "steered", task_id: "st_00000001", status: "running", delivered: "steer" })
+    const { manager, sendCalls } = spyManager({
+      kind: "steered",
+      task_id: "st_00000001",
+      status: "running",
+      delivered: "steer",
+    })
 
     await runTaskSend(manager, { to: "st_00000001", message: "hi", all_scope: true }, "session-42")
 
@@ -96,6 +106,81 @@ describe("runTaskSend", () => {
 
     expect(result.details).toEqual({ kind: "invalid_arguments", reason: "message is required" })
     expect(sendCalls).toEqual([])
+  })
+
+  test("#given redispatch without a message #when sent #then the task is re-dispatched in one step (senpi#3266)", async () => {
+    // given
+    const dispatched: Array<{ readonly idOrName: string; readonly callerSessionId?: string }> = []
+    const manager = {
+      sendToTask: () => Promise.resolve({ kind: "not_found" as const, reason: "unused", suggestion: "unused" }),
+      list: () => [],
+      redispatchTask: (idOrName: string, callerSessionId?: string) => {
+        dispatched.push({ idOrName, callerSessionId })
+        return Promise.resolve({ kind: "redispatched" as const, task_id: idOrName, run_epoch: 3 })
+      },
+    }
+
+    // when
+    const result = await runTaskSend(manager, { to: "st_00000009", redispatch: true }, "lead-session")
+
+    // then
+    expect(dispatched).toEqual([{ idOrName: "st_00000009", callerSessionId: "lead-session" }])
+    expect(result.details.kind).toBe("redispatched")
+  })
+
+  test("#given redispatch with all_scope #when sent from another session #then the flagged task is re-dispatched across sessions", async () => {
+    // given
+    const { manager, store, inProcess } = makeManager({})
+    const started = await manager.start(baseSpec({ parent_session_id: "owner-session" }))
+    if (started.kind !== "started") throw new Error("expected started")
+    store.mutate(started.task_id, (record) => ({
+      ...record,
+      awaiting_input: { reason: "resumed_turn_aborted", since: new Date().toISOString() },
+    }))
+
+    // when
+    const denied = await runTaskSend(manager, { to: started.task_id, redispatch: true }, "other-session")
+    const crossed = await runTaskSend(
+      manager,
+      { to: started.task_id, redispatch: true, all_scope: true },
+      "other-session",
+    )
+
+    // then
+    expect(denied.details.kind).toBe("scope_denied")
+    expect(denied.isError).toBe(true)
+    expect(crossed.details.kind).toBe("redispatched")
+    expect(inProcess.startedSpecs).toHaveLength(2)
+  })
+
+  test("#given an unknown redispatch target #when sent #then not_found lists this session's task names", async () => {
+    // given
+    const { manager } = makeManager({})
+    const started = await manager.start(baseSpec({ name: "report-writer", parent_session_id: "lead-session" }))
+    if (started.kind !== "started") throw new Error("expected started")
+
+    // when
+    const result = await runTaskSend(manager, { to: "report-writr", redispatch: true }, "lead-session")
+
+    // then
+    expect(result.details).toMatchObject({ kind: "not_found", known_tasks: ["report-writer"] })
+  })
+
+  test("#given redispatch with a message #when sent #then it is rejected: the persisted prompt is what replays", async () => {
+    // given
+    const { manager } = spyManager({ kind: "not_found", reason: "unused", suggestion: "unused" })
+
+    // when
+    const result = await runTaskSend(
+      manager,
+      { to: "st_00000009", redispatch: true, message: "different instructions" },
+      "lead-session",
+    )
+
+    // then
+    expect(result.details.kind).toBe("invalid_arguments")
+    if (result.details.kind !== "invalid_arguments") throw new Error("expected invalid_arguments")
+    expect(result.details.reason).toContain("redispatch")
   })
 
   test("#given a child owned by another session #when sent without all_scope #then scope is denied naming the owner", async () => {
@@ -125,7 +210,7 @@ describe("runTaskSend", () => {
   })
 
   test("#given a string recipient that is not a child and no team routing #when sent #then the child not_found result is preserved", async () => {
-    const { manager } = spyManager({ kind: "not_found", reason: "No task found for \"ghost\".", suggestion: "unused" })
+    const { manager } = spyManager({ kind: "not_found", reason: 'No task found for "ghost".', suggestion: "unused" })
 
     const result = await runTaskSend(manager, { to: "ghost", message: "hi" }, "p1")
 

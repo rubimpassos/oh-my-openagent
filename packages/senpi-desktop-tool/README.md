@@ -6,13 +6,18 @@ Defines the senpi `computer` tool: its permission tiers, settings, the `/compute
 
 - `createComputerTool({handle, executeTool})` returns the `computer` `ToolDefinition`. It has `exposure: "search"` and `searchGroup: "desktop"`. The `searchText` and `searchKeywords` include `cua`, `computer use`, `screenshot`, and `accessibility`. The `promptGuidelines` are the safety bullets from `@oh-my-opencode/senpi-desktop-prelude`. `executionMode` is `"sequential"`.
 - `kernelPrelude` is `computerPreludeAssets`, whose `exports` is `["computer"]`. codemode installs the `computer` global for the next eval cell while the tool is active. Nothing is passed to codemode.
-- The parameters are `ComputerParams`, a TypeBox union:
+- The published parameters are `ComputerParams`: one root object with an `action` enum and every action's fields as optional, because providers reject a root-union schema (Anthropic `input_schema` needs `type: "object"`, OpenAI strict functions a root object, Gemini no root `anyOf`). `execute` narrows the arguments with `parseComputerParams` against `ComputerActionShape`, the exact per-action union, and throws `ComputerArgumentsError` (`COMPUTER_INVALID_ARGUMENTS`, naming the action and the offending field) before anything runs. The actions:
   - `{action: "call", chain}`: one desktop helper, optionally followed by one call on the window or element it returns.
   - `{action: "run", code, read_only?, timeout?}`: `timeout` is in seconds (1-600, default 60).
   - `{action: "capabilities"}`.
   - `{action: "close"}`: the prelude's `computer.close()`.
   - There is no `resume` action. Only the user resumes.
 - `execute` classifies a `call` chain with the protocol tier tables before anything else runs. An unknown or unchainable method (for example `userReset`) throws `ComputerCallError` before an engine starts. A read-tier chain runs read-only. Both `call` and `run` go through `runComputerCode` from `-service`, so one facade serves both. `run` code reaches host tools through the injected `executeTool` (`pi.executeTool`). `details.value` is the value the eval facade returns.
+
+## `computer_actions`
+
+- `createComputerActionsTool({handle, executeTool})` returns the `computer_actions` tool: OpenAI computer-use actions (`screenshot`, `click`, `double_click`, `move`, `drag`, `scroll`, `type`, `keypress`, `wait`), or `batch` over them, run through the same `computer` run path.
+- The published `ComputerActionsParams` is one root object: the `action` enum, every action's fields as optional (each description names the actions that take it), and `actions` for a batch, whose items use the same flat fields. `execute` narrows the arguments with `parseComputerActions`, checking every batch item. It answers a mismatch with an `isError` result carrying `COMPUTER_INVALID_ARGUMENTS`, the action (or `actions[i]`) and the offending field, before any engine starts.
 
 ## Permissions
 
@@ -27,18 +32,20 @@ Defines the senpi `computer` tool: its permission tiers, settings, the `/compute
 ## Handle, activation, and `/computer`
 
 - `new ComputerHandle({service, settings})` holds the per-session state shared by the tool, the command, and the host extension. `service` is a `DesktopService`; construct it with `engineChildFactory(settings.enginePath)` to honor the override.
-- `activate(context)` opens the engine session and arms `stopHotkey` through `ensureStopPath`. The host calls it on tool_search promotion, on a by-name call, and on `/computer on`, and `execute` calls it before every action. It is idempotent: `session.open` is re-sent only when its params change, because re-opening resets captures and AX refs. `onActivationChange(cb)` reports `true` or `false`, and the host turns that into the active-tool set.
+- `activate(context)` opens the engine session and arms `stopHotkey` through `ensureStopPath`. The host calls it on tool_search promotion, on a by-name call, and on `/computer on`, and `execute` calls it before every action. It is idempotent: `session.open` is re-sent only when its params change. Cursor-only changes are applied in place; substantive changes reset captures and AX refs. `onActivationChange(cb)` reports `true` or `false`, and the host turns that into the active-tool set.
 - `stop()` and `resume()` are the user-only stop surface. They work without a TUI, so the host can bind them to an rpc-reachable command. The resume token stays inside the service. Both return `undefined` when no engine runs.
-- `runComputerCommand(args, handle, context)` implements `/computer on|off|status|stop|resume` and returns text.
+- `runComputerCommand(args, handle, context)` implements `/computer on|off|status|stop|resume` plus `/computer cursor on|off`, and returns text.
   - `on` and `off` override `computer.enabled` for this session only. `off` closes the engine, and later activations fail with `ComputerDisabledError`.
+  - `cursor on|off` overrides only the display-only virtual cursor for this session. It never activates computer use, rearms input, changes delivery mode, or changes a control grant.
   - `status` prints `enabled`, `active`, the engine state, the capabilities (`stopPath=`, `focusGuard=`, and the capture, input, and AX permissions), and the permission tiers. It never starts an engine.
-- `isSupportedHost(platform)` is true on darwin, linux, and win32 (any arch). A missing prebuild, such as on Windows arm64, surfaces through the engine locator's `native-unavailable` diagnostic.
+- `isSupportedHost(platform)` is true on darwin, linux, and win32 (any arch). A missing prebuild, such as on musl Linux, surfaces through the engine locator's `native-unavailable` diagnostic.
 
 ## Session snapshot
 
 - `session.open` params come from the settings, the active model, and the session directory:
   - `auditPath` is `<sessionDir>/.computer-audit.jsonl` when `auditLog.enabled` is true, and `null` otherwise.
   - `artifactDir` is `os.tmpdir()`.
+  - `showCursor` is the resolved display preference. Cursor-only changes reconfigure the live backend without invalidating frames, AX refs, stop state, or control grants.
   - The GC knobs are passed through. With GC off, `staleMs` is `Number.MAX_SAFE_INTEGER`, so nothing is ever stale.
   - `captureCaps` carries `maxWidth`, `maxHeight`, `maxBytes`, and `coordinateSafe`.
 - `coordinateSafe` ports oh-my-pi's `usesCoordinateSafeImageSizing`. It is true when `compat.supportsImageDetailOriginal === false` or the model is in the Claude family (anthropic API, anthropic provider, or `claude` in the id). The engine then clamps captures to its coordinate-safe size.
@@ -50,12 +57,13 @@ Defines the senpi `computer` tool: its permission tiers, settings, the `/compute
 | Key | Default |
 |---|---|
 | `enabled` | `isSupportedHost()` |
-| `display` | `"all"` |
+| `showCursor` | `true`; set `false` or use `/computer cursor off` to hide it |
+| `display` | `"active"` (focused monitor, primary fallback); `"all"` composites every display, or use a display id |
 | `maxWidth` / `maxHeight` | `3840` / `2400` |
 | `screenshotMaxBytes` | `5000000` |
 | `stopHotkey` | `ctrl+alt+cmd+escape` on macOS, else `ctrl+alt+shift+escape` |
 | `allowHostRelayOnlyStop` | `false` |
-| `macosCanary` | `"session"` (`"session"` or `"off"`; `session.open` has no field for it yet) |
+| `macosCanary` | `"session"` (`"session"` or `"off"`) |
 | `auditLog.enabled` | `true` |
 | `screenshotGc.enabled` / `.staleMs` / `.scanIntervalMs` | `true` / `43200000` / `1800000` |
 | `enginePath` | unset (the located binary) |

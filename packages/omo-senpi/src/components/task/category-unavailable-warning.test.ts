@@ -62,7 +62,9 @@ function setup(options: {
   } as unknown as SenpiExtensionAPI
   const runtime = new TaskRuntimeContext("/tmp/category-unavailable-warning-test")
   const ui = {
-    notify: (message: string, type?: string) => { notifies.push({ message, type }) },
+    notify: (message: string, type?: string) => {
+      notifies.push({ message, type })
+    },
   }
   runtime.captureFrom({
     sessionManager: { getSessionId: () => options.sessionId ?? "session-1" },
@@ -112,6 +114,24 @@ describe("createCategoryUnavailableWarningPlanner", () => {
       },
     })
     expect(messages[0]?.options).toEqual({})
+  })
+
+  test("#given only an unlisted gateway serves the chain #when planned #then the one notice carries the opt-in pin", () => {
+    // given
+    const gatewayModel = "openrouter/moonshotai/kimi-k3"
+    const { planner, messages, notifies } = setup({
+      error: { ...deadChainError("quick"), unlisted_provider_model: gatewayModel },
+    })
+
+    // when
+    plan(planner, "quick")
+    plan(planner, "quick")
+
+    // then
+    expect(notifies).toHaveLength(1)
+    expect(notifies[0]?.message).toContain(`categories.quick.model = "${gatewayModel}"`)
+    expect(messages).toHaveLength(1)
+    expect(messages[0]?.message).toMatchObject({ details: { unlisted_provider_model: gatewayModel } })
   })
 
   test("#given repeated dead-chain failures #when planned #then it warns exactly once per session per category", () => {

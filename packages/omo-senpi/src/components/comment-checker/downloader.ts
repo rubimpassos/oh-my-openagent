@@ -4,6 +4,8 @@ import { join } from "node:path"
 import {
   COMMENT_CHECKER_RELEASE_VERSION,
   commentCheckerBinaryName,
+  isCachedCommentCheckerCurrent,
+  recordCachedCommentCheckerRelease,
   resolveCommentCheckerReleaseAsset,
 } from "@oh-my-opencode/comment-checker-core"
 import {
@@ -18,7 +20,9 @@ import {
 import { defaultCommentCheckerCacheDir } from "./resolver"
 import type { SenpiCommentCheckerDownloadOptions } from "./types"
 
-export async function downloadSenpiCommentCheckerBinary(options: SenpiCommentCheckerDownloadOptions): Promise<string | null> {
+export async function downloadSenpiCommentCheckerBinary(
+  options: SenpiCommentCheckerDownloadOptions,
+): Promise<string | null> {
   const platform = options.platform ?? process.platform
   const arch = options.arch ?? process.arch
   const asset = resolveCommentCheckerReleaseAsset(platform, arch)
@@ -29,11 +33,14 @@ export async function downloadSenpiCommentCheckerBinary(options: SenpiCommentChe
 
   const cacheDir = options.cacheDir ?? defaultCommentCheckerCacheDir(platform)
   const binaryPath = join(cacheDir, commentCheckerBinaryName(platform))
-  if (existsSync(binaryPath)) return binaryPath
+  if (existsSync(binaryPath) && isCachedCommentCheckerCurrent(cacheDir)) return binaryPath
 
   const url = options.resolveAssetUrl?.(asset) ?? asset.url
   const archivePath = join(cacheDir, asset.assetName)
-  options.logger.info(`omo-senpi comment-checker: downloading release v${COMMENT_CHECKER_RELEASE_VERSION}`, { url, cacheDir })
+  options.logger.info(`omo-senpi comment-checker: downloading release v${COMMENT_CHECKER_RELEASE_VERSION}`, {
+    url,
+    cacheDir,
+  })
   try {
     ensureCacheDir(cacheDir)
     await downloadArchive(url, archivePath)
@@ -44,9 +51,13 @@ export async function downloadSenpiCommentCheckerBinary(options: SenpiCommentChe
     }
     ensureExecutable(binaryPath)
     if (!existsSync(binaryPath)) {
-      options.logger.warn("omo-senpi comment-checker archive did not contain the expected binary", { archivePath, binaryPath })
+      options.logger.warn("omo-senpi comment-checker archive did not contain the expected binary", {
+        archivePath,
+        binaryPath,
+      })
       return null
     }
+    recordCachedCommentCheckerRelease(cacheDir)
     return binaryPath
   } catch (error) {
     options.logger.warn("omo-senpi comment-checker download failed", {

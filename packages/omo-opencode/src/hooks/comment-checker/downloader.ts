@@ -4,6 +4,8 @@ import { homedir, tmpdir } from "os"
 import {
   commentCheckerBinaryName,
   commentCheckerCacheDir,
+  isCachedCommentCheckerCurrent,
+  recordCachedCommentCheckerRelease,
   resolveCommentCheckerReleaseAsset,
 } from "@oh-my-opencode/comment-checker-core"
 import {
@@ -23,7 +25,7 @@ const DEBUG_FILE = join(tmpdir(), "comment-checker-debug.log")
 
 function debugLog(...args: unknown[]) {
   if (DEBUG) {
-    const msg = `[${new Date().toISOString()}] [comment-checker:downloader] ${args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ')}\n`
+    const msg = `[${new Date().toISOString()}] [comment-checker:downloader] ${args.map((a) => (typeof a === "object" ? JSON.stringify(a, null, 2) : String(a))).join(" ")}\n`
     appendFileSync(DEBUG_FILE, msg)
   }
 }
@@ -50,10 +52,14 @@ export function getBinaryName(): string {
 }
 
 /**
- * Get the cached binary path if it exists.
+ * Get the cached binary path if it exists and was recorded at the pinned release. The slot is shared
+ * with the OmO Native edition and carries no version in its name, so an unrecorded or older binary is
+ * left for the downloader to replace (#8850).
  */
 export function getCachedBinaryPath(): string | null {
-  return getCachedBinaryPathShared(getCacheDir(), getBinaryName())
+  const cacheDir = getCacheDir()
+  const cached = getCachedBinaryPathShared(cacheDir, getBinaryName())
+  return cached !== null && isCachedCommentCheckerCurrent(cacheDir) ? cached : null
 }
 
 /**
@@ -62,36 +68,36 @@ export function getCachedBinaryPath(): string | null {
  */
 export async function downloadCommentChecker(): Promise<string | null> {
   const asset = resolveCommentCheckerReleaseAsset(process.platform, process.arch)
-  
+
   if (!asset) {
     debugLog(`Unsupported platform: ${process.platform}-${process.arch}`)
     return null
   }
-  
+
   const cacheDir = getCacheDir()
   const binaryName = getBinaryName()
   const binaryPath = join(cacheDir, binaryName)
-  
-  // Already exists in cache
-  if (existsSync(binaryPath)) {
+
+  // Already cached at the pinned release
+  if (existsSync(binaryPath) && isCachedCommentCheckerCurrent(cacheDir)) {
     debugLog("Binary already cached at:", binaryPath)
     return binaryPath
   }
-  
+
   const { assetName, url: downloadUrl, ext } = asset
-  
+
   debugLog(`Downloading from: ${downloadUrl}`)
   log(`[${PUBLISHED_PACKAGE_NAME}] Downloading comment-checker binary...`)
-  
+
   try {
     // Ensure cache directory exists
     ensureCacheDir(cacheDir)
-    
+
     const archivePath = join(cacheDir, assetName)
     await downloadArchive(downloadUrl, archivePath)
-    
+
     debugLog(`Downloaded archive to: ${archivePath}`)
-    
+
     // Extract based on file type
     if (ext === "tar.gz") {
       debugLog("Extracting tar.gz:", archivePath, "to", cacheDir)
@@ -99,18 +105,18 @@ export async function downloadCommentChecker(): Promise<string | null> {
     } else {
       await extractZipArchive(archivePath, cacheDir)
     }
-    
+
     // Clean up archive
     cleanupArchive(archivePath)
-    
+
     // Set execute permission on Unix
     ensureExecutable(binaryPath)
-    
+    recordCachedCommentCheckerRelease(cacheDir)
+
     debugLog(`Successfully downloaded binary to: ${binaryPath}`)
     log(`[${PUBLISHED_PACKAGE_NAME}] comment-checker binary ready.`)
-    
+
     return binaryPath
-    
   } catch (err) {
     debugLog(`Failed to download: ${err}`)
     log(`[${PUBLISHED_PACKAGE_NAME}] Failed to download comment-checker: ${err instanceof Error ? err.message : err}`)
@@ -131,7 +137,7 @@ export async function ensureCommentCheckerBinary(): Promise<string | null> {
     debugLog("Using cached binary:", cachedPath)
     return cachedPath
   }
-  
+
   // Download if not cached
   return downloadCommentChecker()
 }

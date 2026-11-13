@@ -1,6 +1,8 @@
+[English](README.md) | [简体中文](README.zh-cn.md) | [日本語](README.ja.md) | [Русский](README.ru.md) | [한국어](README.ko.md) | [Español](README.es.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Português (Brasil)](README.pt-br.md) | [Italiano](README.it.md)
+
 > [!NOTE]
 > **OmO 5.0: OmO ❤️ Pi**
-> Install it with `bun add -g omo-ai`. Memory system, CodeMode, Anthropic subscriptions, all covered.
+> Install it with `curl -fsSL https://get.omo.dev/install.sh | bash`. Memory system, CodeMode, Anthropic subscriptions, all covered.
 > [![OmO Herdr DAG - live OmO workflow DAGs in a Herdr side pane](./.github/assets/omo-herdr-dag.png)](https://github.com/jc01rho/omo-herdr-dag)
 > *Just type "mass ulw" with your prompt - now you are the master of graph engineering. Multi-model ultracode, together with a better memory system. (The right panel is [omo-herdr-dag](https://github.com/jc01rho/omo-herdr-dag).)*
 
@@ -9,11 +11,6 @@
 > | [<img alt="OpenGateway" src="./.github/assets/opengateway-logo.svg" width="156px" />](https://opengateway.ai/) | **[OpenGateway](https://opengateway.ai/)** sponsors OmO. An OpenAI-compatible gateway that puts many model providers behind one API. Thank you for backing open source. |
 > | :-----| :----- |
 
-
-> [!NOTE]
->
-> [![Sisyphus Labs - Meet Dori. Not a demo. Subscribes to everything.](./.github/assets/sisyphuslabs.png?v=4)](https://sisyphuslabs.ai)
-> > **OmO is maintained by Jobdori, the AI assistant shown above. Meet your own Jobdori, Dori. <br />Join the waitlist [here](https://sisyphuslabs.ai).**
 
 > [!TIP]
 > Be with us!
@@ -34,13 +31,12 @@
 **Your tool for real work. But it's an agent.**
 
 [![GitHub Release](https://img.shields.io/github/v/release/code-yeongyu/oh-my-openagent?color=369eff&labelColor=black&logo=github&style=flat-square)](https://github.com/code-yeongyu/oh-my-openagent/releases)
-[![npm downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fomo.dev%2Fapi%2Fnpm-downloads&style=flat-square)](https://www.npmjs.com/package/omo-ai)
+[![downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fomo.dev%2Fapi%2Fdownloads&style=flat-square)](https://omo.dev)
 [![GitHub Contributors](https://img.shields.io/github/contributors/code-yeongyu/oh-my-openagent?color=c4f042&labelColor=black&style=flat-square)](https://github.com/code-yeongyu/oh-my-openagent/graphs/contributors)
 [![GitHub Stars](https://img.shields.io/github/stars/code-yeongyu/oh-my-openagent?color=ffcb47&labelColor=black&style=flat-square)](https://github.com/code-yeongyu/oh-my-openagent/stargazers)
 [![License](https://img.shields.io/badge/license-SUL--1.0-white?labelColor=black&style=flat-square)](https://github.com/code-yeongyu/oh-my-openagent/blob/dev/LICENSE.md)
 [![Docs](https://img.shields.io/badge/docs-omo.dev-369eff?labelColor=black&logo=readthedocs&logoColor=white&style=flat-square)](https://omo.dev/docs)
 
-[English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-cn.md) | [Русский](README.ru.md)
 
 </div>
 
@@ -51,17 +47,21 @@ OmO is one `omo` command that turns your tokens into finished work: research acr
 ## Install
 
 ```bash
-bun add -g omo-ai
+curl -fsSL https://get.omo.dev/install.sh | bash
 omo
 ```
 
-No bun? `npm i -g omo-ai` works too. The package is `omo-ai`; the unrelated `omo` package on npm is someone else's.
+On Windows, in PowerShell: `irm https://get.omo.dev/install.ps1 | iex`. The script installs the native `omo` binary for your OS and CPU into `~/.local/bin`, checks it against the release checksums, and falls back to GitHub Releases when the mirror is unreachable. Add `-s -- beta` (or a version such as `-s -- 5.1.1`) after `bash` to pick another channel. Windows CMD, fixing your `PATH`, updating and uninstalling are covered at [omo.dev/docs/install](https://omo.dev/docs/install).
+
+Prefer a package manager? `bun add -g omo-ai` (or `npm i -g omo-ai`) installs the same OmO. The package is `omo-ai`; the unrelated `omo` package on npm is someone else's.
 
 Open your project, run `omo`, describe the job. That's the whole setup.
 
-Coming from the OpenCode edition or LazyCodex? Run `omo setup` once. It carries your provider keys, custom providers, MCP servers, skills and model picks across. `omo doctor` then shows which task categories your providers can run and what the old install left behind. The full walkthrough is [Migrating from OpenCode](docs/guide/migrating-from-opencode.md).
+In a session, `/thinking <level>` sets how hard the model thinks (`/thinking` alone opens a picker), `Shift+Tab` cycles through the levels, and `/efforts <level>` sets the reasoning effort directly on models with effort grades. To pick up earlier work, `/resume` (or `/sessions`) opens your past sessions; from the shell, `omo -c` continues the last one and `omo -r` opens the picker. `/help` lists everything else.
 
-`omo update` updates in place. `bun remove -g omo-ai` (or `npm uninstall -g omo-ai`) removes it.
+Coming from the OpenCode edition or LazyCodex? Run `omo setup` once. It carries your provider keys, custom providers, MCP servers, skills and model picks across. `omo doctor` then shows which task categories your providers can run and what the old install left behind, and `omo doctor --models` shows which model each category and agent runs and in what order (keep one out everywhere with [`exclude_models`](docs/reference/omo-json.md#exclude_models-native-harness)). The full walkthrough is [Migrating from OpenCode](docs/guide/migrating-from-opencode.md).
+
+To update, run the install line again (a package-manager install updates with `omo update`). `rm ~/.local/bin/omo` removes the binary install; `bun remove -g omo-ai` (or `npm uninstall -g omo-ai`) removes the package install.
 
 ## Why OmO
 
@@ -87,8 +87,12 @@ Opinionated defaults, adjustable if you insist. Your settings live in `~/.omo/om
 - [Migrating from OpenCode](docs/guide/migrating-from-opencode.md)
 - [Configuration reference](docs/reference/configuration.md)
 - [Features](docs/reference/features.md)
-- [Computer use](docs/guide/computer-use.md)
+- [Computer use](docs/guide/computer-use.md) (experimental)
 - [Ultrawork Manifesto](docs/manifesto.md)
+
+## Reporting a bug
+
+The fastest way to report a bug is `/bug` inside a session (available in the omo app). It lists what it includes and lets you see the exact report before you send it, then sends it to the OmO team: the recent engine log, your environment and config with secrets blanked, the session transcript, and identity lines - your device name and, when telemetry is on, an install id and a session hash, plus your account details (email, name, account, user and device ids, plan, device name) when you report from the desktop app, so we can reply. Everything but the identity lines goes through the upload redactor. GitHub issues stay open for anyone who cannot use the in-app report.
 
 ## Reviews
 

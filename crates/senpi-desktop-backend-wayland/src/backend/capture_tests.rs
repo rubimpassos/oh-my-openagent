@@ -36,7 +36,7 @@ fn backend() -> WaylandBackend {
 
 fn capture(backend: &mut WaylandBackend) -> Result<(u32, u32), DesktopError> {
     backend
-        .capture(&Target::Desktop, &CaptureCaps::default())
+        .capture(&Target::Desktop, &CaptureCaps::default(), &[])
         .map(|(image, _)| image.dimensions())
 }
 
@@ -88,16 +88,20 @@ fn a_portal_screenshot_arrives_as_rgba_and_its_file_is_removed() {
 
     // When
     let (image, frame) = backend
-        .capture(&Target::Desktop, &CaptureCaps::default())
+        .capture(&Target::Desktop, &CaptureCaps::default(), &[])
         .expect("portal screenshot");
 
-    // Then: the PNG decoded to RGBA as one scale-1 display, non-interactively
+    // Then: the PNG decoded to RGBA non-interactively, and the frame refuses
+    // coordinate input because the portal reports no scale or layout (#8957)
     assert_eq!(image.dimensions(), (64, 48));
     assert_eq!(*image.get_pixel(0, 0), CORNER);
-    assert_eq!(frame.map_point(63.0, 47.0, None), Ok((63.0, 47.0)));
+    assert_eq!(
+        frame.map_point(63.0, 47.0, None).map_err(|e| e.code),
+        Err(ErrorCode::InvalidCoordinateFrame)
+    );
     assert!(
         frame.map_point(64.0, 0.0, None).is_err(),
-        "the frame is the image"
+        "no point maps through a pixels-only frame"
     );
     let displays = backend.displays().expect("displays");
     let display = displays.first().expect("the portal display");
@@ -149,7 +153,7 @@ fn a_window_target_without_screencast_is_refused_because_the_screenshot_portal_h
     let mut backend = backend_without_services();
 
     let error = backend
-        .capture(&Target::Window("w1".to_owned()), &CaptureCaps::default())
+        .capture(&Target::Window("w1".to_owned()), &CaptureCaps::default(), &[])
         .expect_err("no window capture");
 
     assert_eq!(error.code, ErrorCode::CaptureFailed);

@@ -3,6 +3,7 @@ import { chmodSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 
 import { createTempCwd } from "./comment-checker.test-support"
+import { testBudgetSignal, useTestTimeout } from "../../../../../test-support/test-deadline"
 
 const RUNNER_URL = new URL("./runner.ts", import.meta.url).href
 const PAYLOAD_SIZES = [1_000, 1_000_000]
@@ -17,7 +18,19 @@ function writeShellChecker(name: string, body: string): string {
 
 // The checker runs in its own process so an unhandled stdin 'error' event ends that process
 // (exit code 1, "Unhandled 'error' event") instead of the test runner.
-async function runCheckerRounds(binaryPath: string): Promise<{ exitCode: number; results: unknown[]; stderr: string }> {
+// Windows has no shebang scripts, so the dead checker is Bun itself: the runner spawns
+// `<binary> check`, and Bun resolves `check` to this file in the host's cwd, which exits
+// without reading stdin.
+function createWindowsDeadCheckerCwd(): string {
+  const cwd = createTempCwd()
+  writeFileSync(join(cwd, "check.js"), "process.exit(0)\n")
+  return cwd
+}
+
+async function runCheckerRounds(
+  binaryPath: string,
+  cwd?: string,
+): Promise<{ exitCode: number; results: unknown[]; stderr: string }> {
   const program = `
     const { defaultRunCommentChecker } = await import(${JSON.stringify(RUNNER_URL)})
     const results = []
@@ -39,9 +52,10 @@ async function runCheckerRounds(binaryPath: string): Promise<{ exitCode: number;
     console.log(JSON.stringify(results))
   `
   const child = Bun.spawn([process.execPath, "-e", program], {
+    ...(cwd === undefined ? {} : { cwd }),
     stdout: "pipe",
     stderr: "pipe",
-    signal: AbortSignal.timeout(30_000),
+    signal: testBudgetSignal("the comment-checker child to exit"),
   })
   const [exitCode, stdout, stderr] = await Promise.all([
     child.exited,
@@ -52,15 +66,21 @@ async function runCheckerRounds(binaryPath: string): Promise<{ exitCode: number;
   return { exitCode, results: lastLine.startsWith("[") ? JSON.parse(lastLine) : [], stderr }
 }
 
-const EMPTY_ROUNDS = Array.from({ length: PAYLOAD_SIZES.length * ROUNDS_PER_SIZE }, () => ({ hasComments: false, message: "" }))
+const EMPTY_ROUNDS = Array.from({ length: PAYLOAD_SIZES.length * ROUNDS_PER_SIZE }, () => ({
+  hasComments: false,
+  message: "",
+}))
 
 describe("comment-checker child stdin (#6396)", () => {
   it("#given a checker binary that exits without reading stdin #when edits of any size are checked #then the host survives and every check is empty", async () => {
+    useTestTimeout(60_000)
     // given
-    const binaryPath = process.platform === "win32" ? process.execPath : writeShellChecker("dead-checker", "exit 0")
+    const onWindows = process.platform === "win32"
+    const binaryPath = onWindows ? process.execPath : writeShellChecker("dead-checker", "exit 0")
+    const cwd = onWindows ? createWindowsDeadCheckerCwd() : undefined
 
     // when
-    const { exitCode, results, stderr } = await runCheckerRounds(binaryPath)
+    const { exitCode, results, stderr } = await runCheckerRounds(binaryPath, cwd)
 
     // then
     expect({ exitCode, results, stderr: stderr.includes("EPIPE") || stderr.includes("EOF") ? stderr : "" }).toEqual({
@@ -73,8 +93,12 @@ describe("comment-checker child stdin (#6396)", () => {
   it.skipIf(process.platform === "win32")(
     "#given a checker that reads all of stdin and reports comments #when edits of any size are checked #then exit-code-2 feedback still arrives",
     async () => {
+      useTestTimeout(60_000)
       // given
-      const binaryPath = writeShellChecker("reporting-checker", "cat >/dev/null\necho 'COMMENT/DOCSTRING DETECTED' >&2\nexit 2")
+      const binaryPath = writeShellChecker(
+        "reporting-checker",
+        "cat >/dev/null\necho 'COMMENT/DOCSTRING DETECTED' >&2\nexit 2",
+      )
 
       // when
       const { exitCode, results } = await runCheckerRounds(binaryPath)

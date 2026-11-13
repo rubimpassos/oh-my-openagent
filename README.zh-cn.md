@@ -1,6 +1,8 @@
+[English](README.md) | [简体中文](README.zh-cn.md) | [日本語](README.ja.md) | [Русский](README.ru.md) | [한국어](README.ko.md) | [Español](README.es.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Português (Brasil)](README.pt-br.md) | [Italiano](README.it.md)
+
 > [!NOTE]
 > **OmO 测试版: OmO ❤️ Pi**
-> 使用 `bun add -g omo-ai` 安装。记忆系统、CodeMode、Anthropic 订阅,全部支持。
+> 使用 `curl -fsSL https://get.omo.dev/install.sh | bash` 安装。记忆系统、CodeMode、Anthropic 订阅,全部支持。
 > [![OmO Herdr DAG - live OmO workflow DAGs in a Herdr side pane](./.github/assets/omo-herdr-dag.png)](https://github.com/jc01rho/omo-herdr-dag)
 > *只需在提示词中输入 "mass ulw" - 你就是图工程的大师。多模型 ultracode,搭配更出色的记忆系统。(右侧面板是 [omo-herdr-dag](https://github.com/jc01rho/omo-herdr-dag))*
 
@@ -10,11 +12,6 @@
 > | [<img alt="OpenGateway" src="./.github/assets/opengateway-logo.svg" width="156px" />](https://opengateway.ai/) | **[OpenGateway](https://opengateway.ai/)** 赞助了 OmO。它是一个兼容 OpenAI 的网关,通过一个 API 即可使用多家模型提供商。感谢对开源的支持。 |
 > | :-----| :----- |
 
-
-> [!NOTE]
->
-> [![Sisyphus Labs - Meet Dori. Not a demo. Subscribes to everything.](./.github/assets/sisyphuslabs.png?v=4)](https://sisyphuslabs.ai)
-> > **OmO 由上述的 Jobdori 进行维护。认识你专属的 Jobdori, Dori。<br />[在此处](https://sisyphuslabs.ai)加入等待名单。**
 
 > [!TIP]
 > 加入我们！
@@ -35,13 +32,12 @@
 **Your tool for real work. But it's an agent.**
 
 [![GitHub Release](https://img.shields.io/github/v/release/code-yeongyu/oh-my-openagent?color=369eff&labelColor=black&logo=github&style=flat-square)](https://github.com/code-yeongyu/oh-my-openagent/releases)
-[![npm downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fomo.dev%2Fapi%2Fnpm-downloads&style=flat-square)](https://www.npmjs.com/package/omo-ai)
+[![downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fomo.dev%2Fapi%2Fdownloads&style=flat-square)](https://omo.dev)
 [![GitHub Contributors](https://img.shields.io/github/contributors/code-yeongyu/oh-my-openagent?color=c4f042&labelColor=black&style=flat-square)](https://github.com/code-yeongyu/oh-my-openagent/graphs/contributors)
 [![GitHub Stars](https://img.shields.io/github/stars/code-yeongyu/oh-my-openagent?color=ffcb47&labelColor=black&style=flat-square)](https://github.com/code-yeongyu/oh-my-openagent/stargazers)
 [![License](https://img.shields.io/badge/license-SUL--1.0-white?labelColor=black&style=flat-square)](https://github.com/code-yeongyu/oh-my-openagent/blob/dev/LICENSE.md)
 [![Docs](https://img.shields.io/badge/docs-omo.dev-369eff?labelColor=black&logo=readthedocs&logoColor=white&style=flat-square)](https://omo.dev/docs)
 
-[English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-cn.md) | [Русский](README.ru.md)
 
 </div>
 
@@ -52,13 +48,15 @@ OmO 就是一个 `omo` 命令，把你的 token 变成真正完成的工作：�
 ## 安装
 
 ```bash
-bun add -g omo-ai
+curl -fsSL https://get.omo.dev/install.sh | bash
 omo
 ```
 
-没有 bun？用 `npm i -g omo-ai` 也可以。包名是 `omo-ai`；npm 上那个无关的 `omo` 包属于别人。
+Windows 请在 PowerShell 中运行 `irm https://get.omo.dev/install.ps1 | iex`。脚本会为你的系统和 CPU 安装原生 `omo` 到 `~/.local/bin`，并用发布的校验和验证。想用包管理器的话，`bun add -g omo-ai`(或 `npm i -g omo-ai`)安装的是同一个 OmO。包名是 `omo-ai`；npm 上那个无关的 `omo` 包属于别人。Windows CMD、`PATH` 修复、更新和卸载见 [omo.dev/docs/install](https://omo.dev/docs/install)。
 
 打开项目，运行 `omo`，说出要做的事。设置就这么多。
+
+在会话里，`/thinking <level>` 设置模型思考的深度（只输入 `/thinking` 会打开选择器），`Shift+Tab` 依次切换级别，`/efforts <level>` 在有强度分级的模型上直接设置推理强度。想接着之前的工作，用 `/resume`（或 `/sessions`）打开过去的会话；在 shell 里，`omo -c` 继续上一个会话，`omo -r` 打开会话列表。其余命令都在 `/help` 里。
 
 从 OpenCode 版或 LazyCodex 迁移过来？运行一次 `omo setup`。它会把你的提供商密钥、自定义提供商、MCP 服务器、技能和模型选择一并带过来。
 
@@ -104,7 +102,7 @@ OmO 把缺失的知识做成技能，包括浏览器操作，只加载当前任�
 - [从 OpenCode 迁移](docs/guide/migrating-from-opencode.md)
 - [配置参考](docs/reference/configuration.md)
 - [功能](docs/reference/features.md)
-- [电脑操作](docs/guide/computer-use.md)
+- [电脑操作](docs/guide/computer-use.md)（实验性功能）
 - [Ultrawork 宣言](docs/manifesto.md)
 
 ## 评价

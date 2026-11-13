@@ -5,12 +5,17 @@
 //! `BackgroundUnavailable`, never retried in the foreground.
 
 mod connection;
+mod connection_events;
+mod connection_pointer;
 mod focus;
 mod held;
+mod holds;
 mod keys;
 mod send_event;
 mod server;
+mod settle;
 mod toolkit_filter;
+mod transitions;
 mod xtest;
 
 #[cfg(test)]
@@ -21,6 +26,8 @@ pub(crate) mod fake;
 mod live_tests;
 #[cfg(test)]
 mod release_tests;
+#[cfg(test)]
+mod settle_tests;
 #[cfg(test)]
 mod table_tests;
 #[cfg(test)]
@@ -33,15 +40,16 @@ use senpi_desktop_core::types::{DesktopPoint, Target};
 use x11rb::protocol::xproto::Window;
 
 pub use connection::X11InputConnection;
-use held::{Held, HeldButton, HeldKey, Route};
+use held::{Held, Route};
 use keys::Stroke;
 pub use keys::{keysym_variants, Keymap};
 pub use server::InputServer;
-use server::{FakeInput, SentEvent, Spot};
+use server::Spot;
 
 pub struct X11Input<S = X11InputConnection> {
     server: S,
     held: Held,
+    last_pointer_motion: Option<DesktopPoint>,
 }
 
 impl X11Input<X11InputConnection> {
@@ -57,6 +65,7 @@ impl<S: InputServer> X11Input<S> {
         Self {
             server,
             held: Held::default(),
+            last_pointer_motion: None,
         }
     }
 
@@ -69,16 +78,19 @@ impl<S: InputServer> X11Input<S> {
     /// `WindowNotFound` for a malformed id, `BackgroundUnavailable` for a
     /// filtering toolkit, `InputFailed` when a request fails.
     pub fn pointer(&mut self, target: &Target, event: &PointerEvent, mode: DeliveryMode) -> CoreResult<()> {
+        self.last_pointer_motion = None;
         match (target, mode) {
-            (Target::Desktop, _) => self.pointer_xtest(event),
-            (Target::Window(id), DeliveryMode::Foreground) => {
-                self.with_foreground(parse_window(id)?, |this| this.pointer_xtest(event))
-            }
+            (Target::Desktop | Target::Display(_), _) => self.pointer_xtest(event, None),
+            (Target::Window(id), DeliveryMode::Foreground) => self.pointer_foreground(parse_window(id)?, event),
             (Target::Window(id), DeliveryMode::Background) => {
                 let window = self.background_window(id, send_event::event_kind(event))?;
                 self.pointer_send_event(window, event)
             }
         }
+    }
+
+    pub(crate) const fn last_pointer_motion(&self) -> Option<DesktopPoint> {
+        self.last_pointer_motion
     }
 
     /// # Errors
@@ -96,9 +108,10 @@ impl<S: InputServer> X11Input<S> {
         check_stop: &dyn Fn() -> CoreResult<()>,
         delivered: &mut dyn FnMut(),
     ) -> CoreResult<()> {
+        let keymap = self.server.keymap()?;
         let strokes = text
             .chars()
-            .map(|ch| self.server.keymap().strokes(KeyName::Char(ch)))
+            .map(|ch| keymap.strokes(KeyName::Char(ch)))
             .collect::<CoreResult<Vec<_>>>()?;
         self.deliver_keys(target, mode, "text", |this, route| {
             for chord in &strokes {
@@ -113,9 +126,10 @@ impl<S: InputServer> X11Input<S> {
     /// # Errors
     /// As [`Self::type_text`].
     pub fn key_chord(&mut self, target: &Target, keys: &[KeyName], mode: DeliveryMode) -> CoreResult<()> {
+        let keymap = self.server.keymap()?;
         let mut strokes = Vec::with_capacity(keys.len());
         for &key in keys {
-            strokes.extend(self.server.keymap().strokes(key)?);
+            strokes.extend(keymap.strokes(key)?);
         }
         self.deliver_keys(target, mode, "key", |this, route| this.chord(route, &strokes))
     }
@@ -185,7 +199,7 @@ impl<S: InputServer> X11Input<S> {
         deliver: impl FnOnce(&mut Self, Route) -> CoreResult<()>,
     ) -> CoreResult<()> {
         let result = match (target, mode) {
-            (Target::Desktop, _) => deliver(self, Route::Xtest),
+            (Target::Desktop | Target::Display(_), _) => deliver(self, Route::Xtest),
             (Target::Window(id), DeliveryMode::Foreground) => {
                 self.with_foreground(parse_window(id)?, |this| deliver(this, Route::Xtest))
             }
@@ -230,60 +244,6 @@ impl<S: InputServer> X11Input<S> {
             state &= !stroke.mask;
         }
         first_error.map_or(Ok(()), Err)
-    }
-
-    /// The single key-event emitter: a press is recorded as held before it
-    /// is sent, a release forgotten only once it was sent.
-    fn key(&mut self, route: Route, stroke: Stroke, press: bool, state: u16) -> CoreResult<()> {
-        let held = HeldKey {
-            route,
-            code: stroke.code,
-        };
-        if press {
-            self.held.key_down(held);
-        }
-        match route {
-            Route::Xtest => self.server.fake(FakeInput::Key {
-                code: stroke.code,
-                press,
-            }),
-            Route::Window(window) => self.server.send(
-                window,
-                SentEvent::Key {
-                    code: stroke.code,
-                    press,
-                    state,
-                },
-            ),
-        }?;
-        if !press {
-            self.held.key_up(held);
-        }
-        Ok(())
-    }
-
-    /// The single button-event emitter, with the same held-state rules.
-    fn button(&mut self, button: HeldButton, press: bool, state: u16) -> CoreResult<()> {
-        if press {
-            self.held.button_down(button);
-        }
-        let HeldButton { route, detail, at } = button;
-        match route {
-            Route::Xtest => self.server.fake(FakeInput::Button { detail, press }),
-            Route::Window(window) => self.server.send(
-                window,
-                SentEvent::Button {
-                    detail,
-                    press,
-                    at,
-                    state,
-                },
-            ),
-        }?;
-        if !press {
-            self.held.button_up(route, detail);
-        }
-        Ok(())
     }
 }
 

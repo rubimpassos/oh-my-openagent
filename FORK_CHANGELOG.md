@@ -10,6 +10,28 @@ Releases of [rubimpassos/oh-my-openagent](https://github.com/rubimpassos/oh-my-o
 
 To release: add a `## [<version>] - YYYY-MM-DD` section here on `main` (with the `Fork-Patch: v2-support` trailer), then run the **Fork release** workflow with that version.
 
+## [5.1.69-fork.14] - 2026-11-13
+
+### Updates
+
+- Integrates upstream `dev` through `2353fa52bddbba8cfa50f51f5b9d8271b1e476fc`, including the 5.1.69 release and subsequent merged updates. The fork keeps its functional OpenCode V2 runtime instead of upstream's load-only entry and migration notice.
+- Retains the fork's session-scoped goals, pause and resume controls, todos and plans that follow moved sessions, exact plan selection, external browser provider and domain-language planning.
+- Uses the current upstream build graph and plugin SDK while retaining the built Git release installation path. The release workflow uses Bun 1.4.4.
+- Scheduled synchronization now merges both upstream and open V2 PR updates onto the validated fork history and proposes a reviewable PR instead of rebuilding and force-pushing `main` from the old PR base.
+
+### Fixes
+
+- Configuration migration with `OMO_CONFIG_DIR` now returns the complete current migration result, including its empty target-backup list.
+- Internal session HTTP requests honor OpenCode V2's `OPENCODE_PASSWORD`, with the V2 username and precedence, while retaining legacy authentication. This fixes unauthorized session listing and metadata requests when the V2 password variable is used.
+- Codex cleanup does not attempt to prune `/runtime` when its configured home resolves to a filesystem root.
+- Goal continuation tests clean up their temporary project directories, as required by the current upstream isolation checks.
+
+### Validation and known limitations
+
+- The functional V2 port passed 687 focused regressions, complete build/typecheck and real isolated OpenCode tool/hook execution. Codex unit and live-hook checks also passed.
+- The complete Senpi run observed 8408 pass, 8 skip and 10 fail. Five migration-fixture failures were corrected without changing assertions; the predecessor and complete startup test scope then passed 29 tests. The other five failures reproduce unchanged on pinned upstream in this hardened VPS. No aggregate post-fix full-suite result is claimed, and neither the full Senpi gate nor the global upstream suite is green.
+- In nested user namespaces without root attestation, upstream Senpi reflection/memory can refuse execution with `trust-userns-unattested`. With restricted process visibility, some local telemetry queues can remain when owner identity cannot be verified. Security protections and failing assertions were not relaxed for this release.
+
 ## [5.0.1-fork.13] - 2026-10-31
 
 ### Fixes

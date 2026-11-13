@@ -5,13 +5,14 @@
 use std::thread;
 use std::time::Duration;
 
-use core_graphics::event::{CGEvent, CGEventFlags, CGEventType, CGMouseButton, ScrollEventUnit};
+use core_graphics::event::{CGEventFlags, CGEventType, CGMouseButton};
 use core_graphics::event_source::CGEventSource;
 use core_graphics::geometry::CGPoint;
-use senpi_desktop_core::error::{CoreResult, DesktopError};
+use senpi_desktop_core::error::CoreResult;
+use senpi_desktop_core::intervention::check_press;
 use senpi_desktop_core::types::DesktopWindow;
 
-use super::cgevent::{click_group_id, finite_i32};
+use super::cgevent::{click_group_id, is_press, mouse_event, quartz_wheel, scroll_event};
 use crate::skylight;
 
 /// The window-local point of a stamped event; `(-1, -1)` marks the synthetic
@@ -56,17 +57,17 @@ pub(super) fn scroll(target: ScrollTarget<'_>, x: f64, y: f64, dx: f64, dy: f64)
         CGEventFlags::CGEventFlagNull,
     )?;
     thread::sleep(Duration::from_millis(15));
-    let wheel_x = finite_i32(dx, "horizontal scroll delta")?;
-    let wheel_y = finite_i32(dy, "vertical scroll delta")?;
-    let event = CGEvent::new_scroll_event(source.clone(), ScrollEventUnit::PIXEL, 2, wheel_y, wheel_x, 0)
-        .map_err(|()| DesktopError::input_failed("failed to create a Quartz scroll event"))?;
+    let (wheel_y, wheel_x) = quartz_wheel(dx, dy)?;
+    let event = scroll_event(source, wheel_y, wheel_x)?;
     event.set_location(CGPoint::new(x, y));
     skylight::stamp_event(&event, pid, wid, local_point(window, x, y), 3, 0, 0, group)?;
-    skylight::post_dual(pid, &event)
+    // A wheel event is a delta: posted through both routes, AppKit and WebKit
+    // apply it twice (#9097), so it takes the SkyLight route alone.
+    skylight::post_routed(pid, &event)
 }
 
 /// Posts one stamped pointer event to `(pid, wid)` through SkyLight and the
-/// public per-pid queue.
+/// public per-pid queue; a press or move runs the press check first.
 #[expect(
     clippy::too_many_arguments,
     reason = "the parameters are the native CGEvent fields stamped together"
@@ -86,8 +87,10 @@ pub(super) fn post_mouse(
     click_group: i64,
     flags: CGEventFlags,
 ) -> CoreResult<()> {
-    let event = CGEvent::new_mouse_event(source.clone(), event_type, CGPoint::new(x, y), button)
-        .map_err(|()| DesktopError::input_failed("failed to create a Quartz pointer event"))?;
+    if is_press(event_type) {
+        check_press()?;
+    }
+    let event = mouse_event(source, event_type, CGPoint::new(x, y), button)?;
     // Flags are exactly the caller-requested modifier set; no background bypass
     // modifier is injected.
     event.set_flags(flags);

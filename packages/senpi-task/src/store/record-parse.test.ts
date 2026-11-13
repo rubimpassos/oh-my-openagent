@@ -22,8 +22,25 @@ function persisted(fields: Record<string, unknown>): Record<string, unknown> {
 }
 
 describe("record-parse launch evidence", () => {
+  test.each(["resolved_model", "effective_model"] as const)("service tier on %s survives JSON roundtrip", (field) => {
+    const model = {
+      provider: "vendor",
+      model_id: "luna-fast",
+      display: "Luna",
+      source: "explicit",
+      service_tier: "priority",
+    } as const
+    const stored = JSON.parse(JSON.stringify(persisted({ [field]: model })))
+    expect(parseTaskRecord(stored, "record.json")[field]).toEqual(model)
+  })
   test("isolation and v1 isolation preserve Windows paths through JSON", () => {
-    const isolation = { backend: "rcopy", merged_dir: "C:\\clone\\child", base_dir: "C:\\base\\repo", mode: "branch", apply: false } as const
+    const isolation = {
+      backend: "rcopy",
+      merged_dir: "C:\\clone\\child",
+      base_dir: "C:\\base\\repo",
+      mode: "branch",
+      apply: false,
+    } as const
     const spawnSpec = { version: 1, cwd: "C:\\clone\\child", prompt: "Inspect", isolation } as const
     const stored = persisted({
       isolation,
@@ -38,22 +55,72 @@ describe("record-parse launch evidence", () => {
     expect(parseTaskRecord(persisted({}), "record.json")).not.toHaveProperty("isolation")
   })
 
-  test("settled isolation merge results round-trip without changing artifact paths", () => {
-    const isolation = {
-      backend: "apfs", merged_dir: "/clone", base_dir: "/base", mode: "patch", apply: true,
-      merge_result: { kind: "not-applied", changesApplied: false, duration_ms: 13, patchPath: "C:\\artifacts\\root.patch", error: "conflict" },
-    } as const
-    expect(parseTaskRecord(JSON.parse(JSON.stringify(persisted({ isolation }))), "record.json").isolation)
-      .toEqual(isolation)
+  test("awaiting_input survives JSON roundtrip (senpi#3266)", () => {
+    const awaiting = { reason: "resumed_turn_aborted", since: "2026-10-14T00:00:00.000Z" } as const
+    const stored = JSON.parse(JSON.stringify(persisted({ awaiting_input: awaiting })))
+    expect(parseTaskRecord(stored, "record.json").awaiting_input).toEqual(awaiting)
   })
 
+  test.each([{ reason: "resumed_turn_unfinished", since: "2026-10-14T00:00:00.000Z" }])(
+    "awaiting_input reason %o survives JSON roundtrip",
+    (awaiting) => {
+      const stored = JSON.parse(JSON.stringify(persisted({ awaiting_input: awaiting })))
+      expect(parseTaskRecord(stored, "record.json").awaiting_input).toEqual(awaiting)
+    },
+  )
+
   test.each([
-    { backend: "projfs" }, { apply: "yes" }, { mode: "squash" }, { merged_dir: 123 },
-  ])("malformed isolation is rejected", (override) => {
-    const isolation = { backend: "rcopy", merged_dir: "/clone", base_dir: "/base", mode: "patch", apply: true, ...override }
-    expect(() => parseTaskRecord(persisted({ isolation }), "record.json")).toThrow()
-    expect(() => parseTaskRecord(persisted({ spawn_spec: { version: 1, cwd: "/clone", prompt: "Inspect", isolation } }), "record.json")).toThrow()
+    { awaiting_input: { reason: "resumed_turn_confused", since: "2026-10-14T00:00:00.000Z" } },
+    { awaiting_input: { reason: "resumed_turn_aborted" } },
+    { awaiting_input: "resumed_turn_aborted" },
+  ])("malformed awaiting_input is rejected", (override) => {
+    expect(() => parseTaskRecord(persisted(override), "record.json")).toThrow()
   })
+
+  test("legacy records omit awaiting_input", () => {
+    expect(parseTaskRecord(persisted({}), "record.json")).not.toHaveProperty("awaiting_input")
+  })
+
+  test("settled isolation merge results round-trip without changing artifact paths", () => {
+    const isolation = {
+      backend: "apfs",
+      merged_dir: "/clone",
+      base_dir: "/base",
+      mode: "patch",
+      apply: true,
+      merge_result: {
+        kind: "not-applied",
+        changesApplied: false,
+        duration_ms: 13,
+        patchPath: "C:\\artifacts\\root.patch",
+        error: "conflict",
+      },
+    } as const
+    expect(parseTaskRecord(JSON.parse(JSON.stringify(persisted({ isolation }))), "record.json").isolation).toEqual(
+      isolation,
+    )
+  })
+
+  test.each([{ backend: "projfs" }, { apply: "yes" }, { mode: "squash" }, { merged_dir: 123 }])(
+    "malformed isolation is rejected",
+    (override) => {
+      const isolation = {
+        backend: "rcopy",
+        merged_dir: "/clone",
+        base_dir: "/base",
+        mode: "patch",
+        apply: true,
+        ...override,
+      }
+      expect(() => parseTaskRecord(persisted({ isolation }), "record.json")).toThrow()
+      expect(() =>
+        parseTaskRecord(
+          persisted({ spawn_spec: { version: 1, cwd: "/clone", prompt: "Inspect", isolation } }),
+          "record.json",
+        ),
+      ).toThrow()
+    },
+  )
 
   test("#given a lost record with started_at #when persisted JSON is parsed #then the task-level launch evidence round-trips", () => {
     const startedAt = "2026-08-21T00:00:01.000Z"
@@ -62,15 +129,21 @@ describe("record-parse launch evidence", () => {
     expect(parsed).toMatchObject({ status: "lost", started_at: startedAt })
   })
 
-  test.each(["pending", "running", "lost"])("#given a legacy %s record without started_at #when parsed #then it stays readable without inventing launch evidence", (status) => {
-    const parsed = parseTaskRecord(persisted({ status }), "record.json")
-    expect(parsed.status).toBe(status)
-    expect(parsed).not.toHaveProperty("started_at")
-  })
+  test.each(["pending", "running", "lost"])(
+    "#given a legacy %s record without started_at #when parsed #then it stays readable without inventing launch evidence",
+    (status) => {
+      const parsed = parseTaskRecord(persisted({ status }), "record.json")
+      expect(parsed.status).toBe(status)
+      expect(parsed).not.toHaveProperty("started_at")
+    },
+  )
 
-  test.each([123, null])("#given malformed started_at %s #when parsed #then the persisted record is rejected", (startedAt) => {
-    expect(() => parseTaskRecord(persisted({ started_at: startedAt }), "record.json")).toThrow(/started_at/)
-  })
+  test.each([123, null])(
+    "#given malformed started_at %s #when parsed #then the persisted record is rejected",
+    (startedAt) => {
+      expect(() => parseTaskRecord(persisted({ started_at: startedAt }), "record.json")).toThrow(/started_at/)
+    },
+  )
 })
 
 describe("record-parse run_stats token totals", () => {

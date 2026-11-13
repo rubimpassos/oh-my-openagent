@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it } from "bun:test"
 import { realpathSync } from "node:fs"
-import { mkdtemp, readFile, readdir, rm, stat, utimes, writeFile } from "node:fs/promises"
+import { mkdtemp, readFile, readdir, stat, utimes, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { PendingNudges, validateNudges } from "./gate"
+import { removeTree } from "../../../../test-support/remove-tree"
 
 const tempDirs: string[] = []
 
@@ -14,9 +15,7 @@ async function createPendingDir(): Promise<string> {
 }
 
 afterEach(async () => {
-  await Promise.all(
-    tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })),
-  )
+  await Promise.all(tempDirs.splice(0).map((dir) => removeTree(dir, { maxRetries: 10, retryDelay: 200 })))
 })
 
 describe("validateNudges", () => {
@@ -38,10 +37,11 @@ describe("validateNudges", () => {
 
   it("#given an already surfaced path #when validated #then it is rejected", () => {
     // given / when
-    const accepted = validateNudges(
-      [{ path: "notes/b.md", hint: "beta" }],
-      { candidates, surfaced: new Set(["notes/b.md"]), maxItems: 5 },
-    )
+    const accepted = validateNudges([{ path: "notes/b.md", hint: "beta" }], {
+      candidates,
+      surfaced: new Set(["notes/b.md"]),
+      maxItems: 5,
+    })
 
     // then
     expect(accepted).toEqual([])
@@ -99,6 +99,17 @@ describe("validateNudges", () => {
 })
 
 describe("PendingNudges", () => {
+  it("#given a project nudge with a readable source #when restored from disk #then its source and qualified ledger key survive", async () => {
+    const dir = await createPendingDir()
+    const source = join(dir, "project", "reference", "deploy.md")
+    const nudge = { path: "@project/child-1234abcd/reference/deploy.md", hint: "Nightly deployment.", source }
+    await new PendingNudges(dir).write("project-session", [nudge])
+
+    const restored = await new PendingNudges(dir).take("project-session")
+
+    expect(restored).toEqual([nudge])
+  })
+
   it("#given written nudges #when taken #then they return once and the file is gone", async () => {
     // given
     const dir = await createPendingDir()
@@ -207,9 +218,17 @@ describe("PendingNudges", () => {
     const stalePath = join(dir, "old-session.json")
     const orphanPath = join(dir, "session-9.json.tmp-4242")
     const freshPath = join(dir, "fresh-session.json")
-    await writeFile(stalePath, JSON.stringify({ version: 1, sessionId: "old-session", writtenAt: "x", nudges: [] }), "utf8")
+    await writeFile(
+      stalePath,
+      JSON.stringify({ version: 1, sessionId: "old-session", writtenAt: "x", nudges: [] }),
+      "utf8",
+    )
     await writeFile(orphanPath, "{}", "utf8")
-    await writeFile(freshPath, JSON.stringify({ version: 1, sessionId: "fresh-session", writtenAt: "y", nudges: [] }), "utf8")
+    await writeFile(
+      freshPath,
+      JSON.stringify({ version: 1, sessionId: "fresh-session", writtenAt: "y", nudges: [] }),
+      "utf8",
+    )
     const old = new Date(Date.now() - 25 * 60 * 60_000)
     await utimes(stalePath, old, old)
     await utimes(orphanPath, old, old)

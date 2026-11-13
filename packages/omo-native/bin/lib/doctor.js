@@ -3,59 +3,30 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
 import { homedir } from "node:os"
 import { join, resolve } from "node:path"
 import { canonicalAgentDir } from "./agent-dir.js"
-import { packageManifest, packageRoot, readJson, releaseChannel, resolveSenpi, updateTarget } from "./package-paths.js"
+import { fetchNpmDistTagsSync } from "./npm-dist-tags.js"
+import {
+  channelDistTagVersion,
+  packageManifest,
+  packageRoot,
+  readJson,
+  releaseChannel,
+  resolveSenpi,
+  updateTarget,
+} from "./package-paths.js"
 import { daemonReportLines } from "./daemon.js"
 import { migrationReport } from "./doctor-migration.js"
+import { launchSpecDoctorLines } from "./launch-spec-mode.js"
+import { piConfigReport } from "./doctor-pi-config.js"
 import { needsSetupSuggestion } from "./setup-detect.js"
-
-const NPM_DIST_TAGS_URL = "https://registry.npmjs.org/-/package/omo-ai/dist-tags"
-const NPM_FETCH_TIMEOUT_MS = 5000
-
-// Doctor is called without await from the launcher and the compiled entry, so the
-// registry lookup has to finish before we print. A bounded child fetch keeps that
-// synchronous and turns any network failure into "could not check".
+import { keychainHelperDoctorLines } from "./keychain-helper-doctor.js"
+import { sameVersion } from "./same-version.js"
 
 export function installedDistTag(version) {
   return releaseChannel(version)
 }
 
 export function latestFromDistTags(distTags, version) {
-  if (distTags === null || distTags === undefined || typeof distTags !== "object") return "could not check"
-  const value = distTags[installedDistTag(version)]
-  return typeof value === "string" && value.length > 0 ? value : "could not check"
-}
-
-function distTagsFetchScript(url, timeoutMs) {
-  return `
-const url = ${JSON.stringify(url)};
-const timeout = ${Number(timeoutMs)};
-const ac = new AbortController();
-const timer = setTimeout(() => ac.abort(), timeout);
-fetch(url, { signal: ac.signal, headers: { accept: "application/json" } })
-  .then((res) => { if (!res.ok) throw new Error(String(res.status)); return res.text(); })
-  .then((text) => { JSON.parse(text); process.stdout.write(text); })
-  .catch(() => { process.exitCode = 1; })
-  .finally(() => { clearTimeout(timer); });
-`
-}
-
-export function fetchNpmDistTagsSync(options = {}) {
-  const spawn = options.spawn ?? spawnSync
-  const url = options.url ?? NPM_DIST_TAGS_URL
-  const timeoutMs = options.timeoutMs ?? NPM_FETCH_TIMEOUT_MS
-  try {
-    const result = spawn(process.execPath, ["-e", distTagsFetchScript(url, timeoutMs)], {
-      encoding: "utf8",
-      timeout: timeoutMs + 500,
-      windowsHide: true,
-      env: process.env,
-    })
-    if (result.error || result.status !== 0 || typeof result.stdout !== "string" || result.stdout.trim() === "") return null
-    const parsed = JSON.parse(result.stdout)
-    return parsed !== null && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null
-  } catch {
-    return null
-  }
+  return channelDistTagVersion(distTags, version) ?? "could not check"
 }
 
 function readDistTags(options) {
@@ -81,7 +52,7 @@ function fail(lines, message) {
   lines.push(`FAIL ${message}`)
 }
 
-function warningsForSettings() {
+export function warningsForSettings() {
   const agentDir = canonicalAgentDir()
   const settingsPath = join(agentDir, "settings.json")
   if (!existsSync(settingsPath)) return []
@@ -99,7 +70,9 @@ function warningsForSettings() {
     return entry !== null && typeof entry === "object" && entry.source === "@code-yeongyu/omo-senpi"
   })
   return duplicate
-    ? ["WARN duplicate @code-yeongyu/omo-senpi package entry; remove it from the packages array because omo loads the packaged extension"]
+    ? [
+        "WARN duplicate @code-yeongyu/omo-senpi package entry; remove it from the packages array because omo loads the packaged extension",
+      ]
     : []
 }
 
@@ -128,9 +101,10 @@ const MANAGED_MODE_FLAG = "--mode"
  * it can never be a reason for diagnostics to fail, so an unavailable or unparsable listing is an
  * empty list.
  */
-function listProcesses() {
+export function listProcesses() {
   if (process.platform === "win32") return []
-  const listed = spawnSync("ps", ["-axo", "pid=,ppid=,etime=,tty=,args="], { encoding: "utf8" })
+  // -ww: an unlimited width, so `args` is never cut at the terminal width (BSD/macOS `ps` truncates).
+  const listed = spawnSync("ps", ["-ww", "-axo", "pid=,ppid=,etime=,tty=,args="], { encoding: "utf8" })
   if (listed.status !== 0 || typeof listed.stdout !== "string") return []
   const entries = []
   for (const line of listed.stdout.split("\n")) {
@@ -147,8 +121,48 @@ function listProcesses() {
   return entries
 }
 
+// A standalone binary runs its engine as the provisioned runtime executable itself. The same
+// executable also serves omo's own commands, internal hosts and bundled scripts, so only a bare launch
+// or engine flags count; those other roles are never engines.
+const BINARY_RUNTIME_EXECUTABLE = String.raw`[\\/]binary-runtime[\\/][^\\/\s]+[\\/]omo(?:\.exe)?`
+const BINARY_ENGINE = new RegExp(String.raw`${BINARY_RUNTIME_EXECUTABLE}(?=\s|$)\s*(\S*)`)
+const BINARY_NON_ENGINE_COMMANDS = new Set([
+  "doctor",
+  "setup",
+  "daemon",
+  "update",
+  "upgrade",
+  "host",
+  "install",
+  "remove",
+  "list",
+  "config",
+  "auth",
+  "ulw-loop",
+  "--version",
+  "-v",
+])
+
+function isBinaryEngine(command) {
+  const match = BINARY_ENGINE.exec(command)
+  if (!match) return false
+  const first = match[1] ?? ""
+  if (first.startsWith("--internal-") || /\.(?:m?js|cjs|ts)$/.test(first)) return false
+  return !BINARY_NON_ENGINE_COMMANDS.has(first)
+}
+
 function isEngine(entry) {
-  return ENGINE_MARKERS.some((marker) => entry.command.includes(marker))
+  return ENGINE_MARKERS.some((marker) => entry.command.includes(marker)) || isBinaryEngine(entry.command)
+}
+
+// A daemon started by an older engine as `... app-server` keeps running after an upgrade. It has no
+// `--mode` and is reparented to init, so it would otherwise read as an orphaned session.
+const RETIRED_APP_SERVER = new RegExp(
+  String.raw`(?:senpi[\\/]dist[\\/](?:bundle[\\/])?cli\.js|${BINARY_RUNTIME_EXECUTABLE})\s+app-server(?=\s|$)`,
+)
+
+function isRetiredAppServer(entry) {
+  return RETIRED_APP_SERVER.test(entry.command)
 }
 
 function isInteractive(entry) {
@@ -159,7 +173,7 @@ function isInteractive(entry) {
  * Splits every engine process this machine is running into the three groups that matter:
  *   - stale:   interactive engines reparented to init, i.e. their launcher died underneath them
  *   - attached: interactive engines still owned by a live parent (somebody's session)
- *   - managed:  rpc / app-server engines, which are owned by whatever embeds them
+ *   - managed:  `--mode` engines such as rpc, which are owned by whatever embeds them
  * Only the first group is ever reportable, and even then only as a report.
  */
 export function classifyEngineProcesses(entries) {
@@ -169,7 +183,7 @@ export function classifyEngineProcesses(entries) {
   for (const entry of entries) {
     if (!isEngine(entry)) continue
     if (!isInteractive(entry)) managed.push(entry)
-    else if (entry.ppid === 1) stale.push(entry)
+    else if (entry.ppid === 1) stale.push(isRetiredAppServer(entry) ? { ...entry, retiredAppServer: true } : entry)
     else attached.push(entry)
   }
   return { stale, attached, managed }
@@ -178,7 +192,9 @@ export function classifyEngineProcesses(entries) {
 export function formatStaleEngineLines(stale) {
   if (stale.length === 0) return []
   const lines = stale.map((entry) =>
-    `WARN stale engine pid ${entry.pid} (age ${entry.elapsed}, tty ${entry.tty}) has no launcher; it was orphaned by a signaled launcher`
+    entry.retiredAppServer
+      ? `WARN stale engine pid ${entry.pid} (age ${entry.elapsed}, tty ${entry.tty}) is an app-server daemon started by an older version; that command was removed, so stop it`
+      : `WARN stale engine pid ${entry.pid} (age ${entry.elapsed}, tty ${entry.tty}) has no launcher; it was orphaned by a signaled launcher`,
   )
   lines.push(`INFO reap them explicitly by pid: omo doctor --reap ${stale.map((entry) => entry.pid).join(" ")}`)
   return lines
@@ -222,10 +238,13 @@ export function classifyRetiredPayloadEngines(entries, input) {
 
 export function formatRetiredPayloadLines(retired) {
   if (retired.length === 0) return []
-  const lines = retired.map((entry) =>
-    `WARN engine pid ${entry.pid} (age ${entry.elapsed}, tty ${entry.tty}) started before this payload was installed; it still runs the previous plugin copy`
+  const lines = retired.map(
+    (entry) =>
+      `WARN engine pid ${entry.pid} (age ${entry.elapsed}, tty ${entry.tty}) started before this payload was installed; it still runs the previous plugin copy`,
   )
-  lines.push("INFO restart those sessions to pick up the installed payload; a running engine is never rewritten in place")
+  lines.push(
+    "INFO restart those sessions to pick up the installed payload; a running engine is never rewritten in place",
+  )
   return lines
 }
 
@@ -270,7 +289,9 @@ export function reapStaleEngines(args, options = {}) {
       continue
     }
     if (!isInteractive(entry)) {
-      lines.push(`FAIL refusing pid ${pid}: it is a managed engine (${MANAGED_MODE_FLAG}), owned by whatever started it`)
+      lines.push(
+        `FAIL refusing pid ${pid}: it is a managed engine (${MANAGED_MODE_FLAG}), owned by whatever started it`,
+      )
       failed = true
       continue
     }
@@ -291,7 +312,7 @@ export function reapStaleEngines(args, options = {}) {
   return { lines, failed, reaped }
 }
 
-function staleEngineReport(options) {
+export function staleEngineReport(options) {
   const list = options.list ?? listProcesses
   return formatStaleEngineLines(classifyEngineProcesses(list()).stale)
 }
@@ -346,26 +367,30 @@ export function formatTransientMemoryLines(counts) {
   ]
 }
 
-function transientMemoryReport(options) {
+export function transientMemoryReport(options) {
   const root = memoryRoot(options.env ?? process.env)
-  return formatTransientMemoryLines(countTransientMemoryIdentities({
-    agentsRoot: join(root, MEMORY_AGENTS_DIRNAME),
-    transientRoot: join(root, MEMORY_TRANSIENT_DIRNAME),
-    listDirs: options.listDirs ?? listSubdirectories,
-    hasRepo: options.hasRepo ?? ((identityRoot) => existsSync(join(identityRoot, MEMORY_REPO_DIRNAME))),
-  }))
+  return formatTransientMemoryLines(
+    countTransientMemoryIdentities({
+      agentsRoot: join(root, MEMORY_AGENTS_DIRNAME),
+      transientRoot: join(root, MEMORY_TRANSIENT_DIRNAME),
+      listDirs: options.listDirs ?? listSubdirectories,
+      hasRepo: options.hasRepo ?? ((identityRoot) => existsSync(join(identityRoot, MEMORY_REPO_DIRNAME))),
+    }),
+  )
 }
 
 function retiredPayloadReport(options) {
   const list = options.list ?? listProcesses
   const now = options.now ?? Date.now
-  const payloadMtimeMs = options.payloadMtimeMs ?? ((payloadDir) => {
-    try {
-      return statSync(join(payloadDir, "extensions", "omo.js")).mtimeMs
-    } catch {
-      return undefined
-    }
-  })
+  const payloadMtimeMs =
+    options.payloadMtimeMs ??
+    ((payloadDir) => {
+      try {
+        return statSync(join(payloadDir, "extensions", "omo.js")).mtimeMs
+      } catch {
+        return undefined
+      }
+    })
   return formatRetiredPayloadLines(classifyRetiredPayloadEngines(list(), { payloadMtimeMs, nowMs: now() }))
 }
 
@@ -375,7 +400,11 @@ function daemonReport(options) {
   const engine = options.daemonEngine
   if (engine === undefined) return []
   return daemonReportLines({
-    engine, pluginRoot: join(packageRoot, "plugin"), agentDir: canonicalAgentDir(), env: process.env, platform: process.platform,
+    engine,
+    pluginRoot: join(packageRoot, "plugin"),
+    agentDir: canonicalAgentDir(),
+    env: process.env,
+    platform: process.platform,
   })
 }
 
@@ -413,7 +442,7 @@ export function runDoctor(inventory, args = [], options = {}) {
     try {
       const expected = packageManifest().dependencies["@code-yeongyu/senpi"]
       const installed = readJson(join(senpi.packageRoot, "package.json")).version
-      if (installed === expected) pass(lines, `senpi version ${installed}`)
+      if (sameVersion(installed, expected)) pass(lines, `senpi version ${installed}`)
       else {
         fail(lines, `senpi version: expected ${expected}, found ${installed}`)
         failed = true
@@ -426,13 +455,23 @@ export function runDoctor(inventory, args = [], options = {}) {
 
   const version = packageManifest().version
   const latest = latestFromDistTags(readDistTags(options), version)
-  lines.push(`INFO omo · Edition: Native · Installed: ${version} (engine: senpi ${engineVersionOrUnresolved(senpi)}) · Latest: ${latest}`)
+  lines.push(
+    `INFO omo · Edition: Native · Installed: ${version} (engine: senpi ${engineVersionOrUnresolved(senpi)}) · Latest: ${latest}`,
+  )
   lines.push(`INFO Update: ${updateTarget().command}`)
   lines.push(...migrationReport(options, updateTarget().command))
   lines.push(...warningsForSettings())
+  lines.push(...(options.configDiagnostics ?? []))
+  lines.push(...piConfigReport({ env: options.env, homeDir: options.homeDir }))
   lines.push(...staleEngineReport(options))
   lines.push(...retiredPayloadReport(options))
   lines.push(...transientMemoryReport(options))
+  lines.push(...(options.reflectionLock ?? []))
+  lines.push(...(options.memoryRuntime ?? []))
+  const launchSpec = launchSpecDoctorLines(options.pluginRoot ?? join(packageRoot, "plugin"), options.launchSpecIo)
+  if (launchSpec.some((line) => line.startsWith("FAIL "))) failed = true
+  lines.push(...launchSpec)
+  lines.push(...(options.keychainHelper ?? keychainHelperDoctorLines({ packageRoot })))
   lines.push(...daemonReport(options), ...(options.computerUse ?? []), ...(options.categoryCoverage ?? []))
   if ((options.computerUse ?? []).some((line) => line.startsWith("FAIL "))) failed = true
   if (needsSetupSuggestion(inventory)) {

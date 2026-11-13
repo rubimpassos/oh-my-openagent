@@ -135,6 +135,7 @@ export interface TaskTimerInput extends TaskSessionInput {
 export declare function readCurrentTopLevelTask(planPath: string): TopLevelTaskRef | null
 export declare function getPlanChecklist(planPath: string): PlanChecklist
 export declare function parsePlanChecklist(markdown: string): PlanChecklist
+export declare function isStructuredTaskRow(line: string, section: "todo" | "final-wave"): boolean
 export declare function addBoulderWork(directory: string, input: BoulderWorkInput): BoulderState | null
 export declare function appendSessionId(
   directory: string,
@@ -209,3 +210,29 @@ export declare function upsertTaskSessionStateForWork(
   input: TaskSessionInput,
 ): BoulderState | null
 export declare function writeBoulderState(directory: string, state: BoulderState): boolean
+
+export type MomusReviewVerdict = "okay" | "reject"
+
+export interface MomusReviewArtifactInput {
+  verdict: MomusReviewVerdict
+  reviewedAt: Date
+  model?: string
+  planHash?: string
+  durationMs?: number
+  sessionId?: string
+  reviewerOutput: string
+}
+
+export declare function getPlanReviewsDir(directory: string, planPath: string): string
+export declare function hashPlanContent(content: string): string
+export declare function isContainedPlanPath(directory: string, planPath: string): boolean
+export declare function formatMomusReviewArtifact(input: {
+  sequence: number
+  planPath: string
+  artifact: MomusReviewArtifactInput
+}): string
+export declare function writeMomusReviewArtifact(
+  directory: string,
+  planPath: string,
+  artifact: MomusReviewArtifactInput,
+): string | null

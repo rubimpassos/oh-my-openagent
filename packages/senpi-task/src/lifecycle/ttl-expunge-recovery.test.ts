@@ -4,13 +4,8 @@ import { afterEach, describe, expect, test } from "bun:test"
 
 import type { TaskRecordStore } from "../store"
 import { createTaskLifecycle } from "./create"
-import {
-  cleanupProjects,
-  FakeRegistry,
-  seedRecord,
-  settings,
-  tempStore,
-} from "./__fixtures__/lifecycle-fakes"
+import { cleanupProjects, FakeRegistry, seedRecord, settings, tempStore } from "./__fixtures__/lifecycle-fakes"
+import { NO_HOST_ENDPOINT } from "./host-session"
 
 afterEach(cleanupProjects)
 
@@ -58,6 +53,7 @@ describe("cleanupExpiredRecords tombstone recovery", () => {
     renameSync(recordPath(store, taskId), tombstonePath)
     const childDirExistedAtClose: boolean[] = []
     const lifecycle = createTaskLifecycle({
+      hostEndpoint: NO_HOST_ENDPOINT,
       store,
       registry: new FakeRegistry(),
       config: settings({ ttl_ms: TTL }),
@@ -65,6 +61,7 @@ describe("cleanupExpiredRecords tombstone recovery", () => {
       hostSessionProbe: {
         daemonAlive: () => Promise.resolve(true),
         sessionLive: () => Promise.resolve(true),
+        sessionLiveness: () => Promise.resolve("live" as const),
         refresh: () => {},
       },
       hostSessionClose: async () => {
@@ -99,6 +96,7 @@ describe("cleanupExpiredRecords tombstone recovery", () => {
     })
     renameSync(recordPath(store, validId), `${recordPath(store, validId)}.expunging`)
     const lifecycle = createTaskLifecycle({
+      hostEndpoint: NO_HOST_ENDPOINT,
       store,
       registry: new FakeRegistry(),
       config: settings({ ttl_ms: TTL }),
@@ -132,6 +130,7 @@ describe("cleanupExpiredRecords tombstone recovery", () => {
     renameSync(recordPath(store, taskId), `${recordPath(store, taskId)}.expunging`)
     const signals: string[] = []
     const lifecycle = createTaskLifecycle({
+      hostEndpoint: NO_HOST_ENDPOINT,
       store,
       registry: new FakeRegistry(),
       config: settings({ ttl_ms: TTL }),

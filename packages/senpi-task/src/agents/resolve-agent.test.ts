@@ -40,7 +40,9 @@ function roster(...definitions: readonly AgentDefinition[]): Readonly<Record<str
   return Object.fromEntries(definitions.map((definition) => [definition.name, definition]))
 }
 
-function expectResolved(result: ReturnType<typeof resolveAgent>): Extract<typeof result, { readonly kind: "resolved" }> {
+function expectResolved(
+  result: ReturnType<typeof resolveAgent>,
+): Extract<typeof result, { readonly kind: "resolved" }> {
   if (result.kind !== "resolved") throw new Error(`Expected resolved agent, got ${result.kind}`)
   return result
 }
@@ -124,10 +126,7 @@ describe("resolveAgent", () => {
       model: "local/primary",
       models: ["openai/secondary", "google/tertiary"],
     })
-    const models = registry([
-      model("openai", "secondary"),
-      model("google", "tertiary"),
-    ])
+    const models = registry([model("openai", "secondary"), model("google", "tertiary")])
 
     // when
     const result = expectResolved(resolveAgent("custom", agents, models))
@@ -204,10 +203,7 @@ describe("resolveAgent", () => {
 
   test("#given a disabled agent #when resolved #then it is hidden as not_found", () => {
     // given
-    const agents = roster(
-      { name: "explore", disable: true },
-      { name: "momus", model: "openai/momus" },
-    )
+    const agents = roster({ name: "explore", disable: true }, { name: "momus", model: "openai/momus" })
 
     // when
     const result = resolveAgent("explore", agents, registry([]))
@@ -218,10 +214,7 @@ describe("resolveAgent", () => {
 
   test("#given an unknown agent name #when resolved #then it returns the active sorted roster", () => {
     // given
-    const agents = roster(
-      { name: "momus", model: "openai/momus" },
-      { name: "explore", model: "openai/explore" },
-    )
+    const agents = roster({ name: "momus", model: "openai/momus" }, { name: "explore", model: "openai/explore" })
 
     // when
     const result = resolveAgent("missing", agents, registry([]))
@@ -251,20 +244,34 @@ describe("resolveAgent", () => {
   })
 
   test("#given curated tool rules #when resolved #then explicit denies become child exclusions while librarian keeps x_search", () => {
-    const explore = expectResolved(resolveAgent("explore", roster({
-      name: "explore",
-      tools: [
-        { pattern: "read", allow: true },
-        { pattern: "x_search", allow: false },
-      ],
-    }), undefined, { modelOverride: "openai/explicit" }))
-    const librarian = expectResolved(resolveAgent("librarian", roster({
-      name: "librarian",
-      tools: [
-        { pattern: "read", allow: true },
-        { pattern: "x_search", allow: true },
-      ],
-    }), undefined, { modelOverride: "openai/explicit" }))
+    const explore = expectResolved(
+      resolveAgent(
+        "explore",
+        roster({
+          name: "explore",
+          tools: [
+            { pattern: "read", allow: true },
+            { pattern: "x_search", allow: false },
+          ],
+        }),
+        undefined,
+        { modelOverride: "openai/explicit" },
+      ),
+    )
+    const librarian = expectResolved(
+      resolveAgent(
+        "librarian",
+        roster({
+          name: "librarian",
+          tools: [
+            { pattern: "read", allow: true },
+            { pattern: "x_search", allow: true },
+          ],
+        }),
+        undefined,
+        { modelOverride: "openai/explicit" },
+      ),
+    )
 
     expect(explore.toolAllowlist).toEqual(["read"])
     expect(explore.toolDenylist).toEqual(["x_search"])
@@ -317,12 +324,12 @@ describe("resolveAgent curated explore/librarian chain", () => {
     model("opencode-go", "minimax-m3"),
     model("minimax-coding-plan", "MiniMax-M3"),
     model("opencode-go", "minimax-m2.7"),
-    model("anthropic-subscription", "claude-haiku-4-5"),
+    model("anthropic-subscription", "claude-haiku-5-5"),
     model("chatgpt-subscription", "gpt-5.4-nano"),
   ])
 
   for (const agent of ["explore", "librarian"] as const) {
-    test(`#given every rung model is available #when ${agent} resolves #then it runs Kimi HighSpeed, Luna Fast, DeepSeek V4.1 Flash, Qwen 3.7 Plus, M2.7, then Haiku`, () => {
+    test(`#given every rung model is available #when ${agent} resolves #then it runs Kimi HighSpeed, Luna Fast, Haiku 5.5 medium, DeepSeek V4.1 Flash, Qwen 3.7 Plus, then M2.7`, () => {
       // when
       const result = expectResolved(resolveAgent(agent, BUILTIN_AGENTS, everyRungModel))
 
@@ -330,11 +337,12 @@ describe("resolveAgent curated explore/librarian chain", () => {
       expect(result.model).toBe("kimi-coding/kimi-for-coding-highspeed")
       expect(result.fallback_models?.map((record) => record.display)).toEqual([
         "chatgpt-subscription/gpt-6-luna-fast",
+        "anthropic-subscription/claude-haiku-5-5",
         "deepseek/deepseek-flash",
         "opencode-go/qwen3.7-plus",
         "opencode-go/minimax-m2.7",
-        "anthropic-subscription/claude-haiku-4-5",
       ])
+      expect(result.fallback_models?.[1]?.variant).toBe("medium")
     })
   }
 })

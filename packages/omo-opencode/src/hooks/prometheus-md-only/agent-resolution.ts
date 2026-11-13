@@ -17,10 +17,7 @@ function isCompactionAgent(agent: string): boolean {
   return agent.toLowerCase() === "compaction"
 }
 
-async function getAgentFromMessageFiles(
-  sessionID: string,
-  client?: OpencodeClient
-): Promise<string | undefined> {
+async function getAgentFromMessageFiles(sessionID: string, client?: OpencodeClient): Promise<string | undefined> {
   const currentAgent = await readCurrentSessionAgent(client, sessionID)
   if (currentAgent.kind === "agent") return isCompactionAgent(currentAgent.name) ? undefined : currentAgent.name
   if (currentAgent.kind === "default") return undefined
@@ -58,7 +55,7 @@ async function getAgentFromMessageFiles(
 export async function getAgentFromSession(
   sessionID: string,
   directory: string,
-  client?: OpencodeClient
+  client?: OpencodeClient,
 ): Promise<string | undefined> {
   // Check in-memory first (current session)
   const memoryAgent = getSessionAgent(sessionID)

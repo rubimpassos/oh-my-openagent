@@ -16,6 +16,7 @@ const expectedSkillNames = [
   "dag-library",
   "data-scientist",
   "debugging",
+  "eval-integrity",
   "frontend",
   "git-master",
   "give-me-tips",
@@ -35,6 +36,7 @@ const expectedSkillNames = [
   "ulw-plan",
   "ulw-research",
   "visual-qa",
+  "visualize",
 ] as const
 
 const CODEX_DERIVED_SKILL_NAMES: Record<string, true> = {}
@@ -50,6 +52,7 @@ const NATIVE_SENPI_SKILL_NAMES: Record<string, true> = {
   ultrawork: true,
   "ulw-loop": true,
   "ulw-research": true,
+  visualize: true,
 }
 const namePattern = /^[a-z0-9-]{1,64}$/
 const forbiddenTokenPattern = /\b(?:codex|multi_agent|spawn_agent|update_plan)\b/i
@@ -77,11 +80,7 @@ const retiredNameAllowedMarker = /<!-- retired-name-allowed -->\s*$/
 const pendingPersonaNameRetirements: readonly {
   readonly pathSuffix: string
   readonly linePattern: RegExp
-}[] = [
-  { pathSuffix: "coding-agent-sessions/references/opencode.md", linePattern: /`Sisyphus-Junior`/ },
-  { pathSuffix: "frontend/references/designpowers/lane-a-direction.md", linePattern: /\bPrometheus\b/ },
-  { pathSuffix: "frontend/references/designpowers/routing.md", linePattern: /\bPrometheus\b/ },
-]
+}[] = [{ pathSuffix: "coding-agent-sessions/references/opencode.md", linePattern: /`Sisyphus-Junior`/ }]
 
 function listDirectoryNames(path: string): string[] {
   if (!existsSync(path)) {
@@ -136,7 +135,7 @@ describe("OMO Senpi scoped skill sync", () => {
     expect([...telemetrySkillNames].sort()).toEqual(listDirectoryNames(skillsRoot))
   })
 
-  test("#given synced skill output #when inspected #then exactly 25 roots exist with valid names", () => {
+  test("#given synced skill output #when inspected #then exactly 27 roots exist with valid names", () => {
     const actualNames = listDirectoryNames(skillsRoot)
     expect(actualNames).toEqual([...expectedSkillNames].sort())
 
@@ -204,7 +203,10 @@ describe("OMO Senpi scoped skill sync", () => {
     const keep = createSkillSourceCopyFilter(sharedSkillRoot)
     const toRelative = (root: string) => (file: string) => relative(root, file).replaceAll("\\", "/")
 
-    const sharedScripts = listFiles(join(sharedSkillRoot, "scripts")).filter(keep).map(toRelative(sharedSkillRoot)).sort()
+    const sharedScripts = listFiles(join(sharedSkillRoot, "scripts"))
+      .filter(keep)
+      .map(toRelative(sharedSkillRoot))
+      .sort()
     const shippedScripts = listFiles(join(shippedSkillRoot, "scripts")).map(toRelative(shippedSkillRoot)).sort()
 
     expect(shippedScripts).toEqual(sharedScripts)
@@ -212,7 +214,9 @@ describe("OMO Senpi scoped skill sync", () => {
     expect(shippedScripts.filter((path) => path.endsWith(".test.ts") || path.startsWith("scripts/tests/"))).toEqual([])
 
     const { sources } = createNativeSkillSources(join(repoRoot, "packages"))
-    const sharedAssetFiles = (sources.find((source) => source.name === "ulw-research")?.sharedAssets ?? []).filter((asset) => asset !== "scripts")
+    const sharedAssetFiles = (sources.find((source) => source.name === "ulw-research")?.sharedAssets ?? []).filter(
+      (asset) => asset !== "scripts",
+    )
     expect(sharedAssetFiles.length).toBeGreaterThan(0)
     for (const relativePath of [...shippedScripts, ...sharedAssetFiles]) {
       const shipped = readFileSync(join(shippedSkillRoot, relativePath))
@@ -225,7 +229,9 @@ describe("OMO Senpi scoped skill sync", () => {
     const skillFile = join(skillsRoot, "ulw-research", "SKILL.md")
     const content = readFileSync(skillFile, "utf8")
 
-    expect(content.includes("X / social (`x_search`"), "ulw-research must ship the X / social lane role protocol").toBe(true)
+    expect(content.includes("X / social (`x_search`"), "ulw-research must ship the X / social lane role protocol").toBe(
+      true,
+    )
   })
 
   test("#given ulw-execute skill #when inspected #then session ids reference senpi, not codex", () => {
@@ -331,4 +337,16 @@ describe("OMO Senpi scoped skill sync", () => {
     const refsDir = join(skillsRoot, "frontend", "references", "design")
     expect(existsSync(refsDir), "frontend/references/design must exist after materialization").toBe(true)
   })
+})
+
+test("#given the Native execution skill #when shipped #then the absolute rule scopes the root and dispatch step assigns an executor", () => {
+  const skill = readFileSync(join(skillsRoot, "ulw-execute", "SKILL.md"), "utf8")
+  expect(skill).toContain("## ABSOLUTE RULE (root session): YOU ARE AN ORCHESTRATOR — NEVER THE IMPLEMENTER")
+  expect(skill).toContain(
+    "NO EXCEPTIONS for the root session that owns the Boulder work; a dispatched executor does its assigned unit itself and does not delegate it again.",
+  )
+  expect(skill).toContain(
+    "7. Give every dispatched sub-task its completion condition and its role: the brief names the unit, allowed files, acceptance evidence, and states that the worker is its executor, does it itself, and does not delegate it.",
+  )
+  expect(skill).not.toContain("## ABSOLUTE RULE:")
 })

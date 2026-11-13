@@ -1,9 +1,11 @@
 import { closeSync, lstatSync, openSync, readFileSync, readSync, realpathSync, statSync } from "node:fs"
 import { homedir } from "node:os"
-import { delimiter, dirname, isAbsolute, join, win32 } from "node:path"
+import { delimiter, dirname, isAbsolute, join, normalize, win32 } from "node:path"
 import { parseJsonc } from "./jsonc.js"
 import { releaseChannel } from "./package-paths.js"
 import { opencodeConfigSources } from "./setup-opencode-assets.js"
+import { openCodeRoutingGap, openCodeRoutingNotice, readEditionRouting } from "./setup-opencode-models.js"
+import { standaloneBinaryVersion } from "./standalone-binary.js"
 
 // Migration leftovers from the OpenCode edition, reported and never touched: another `omo` ahead of
 // omo-ai's on PATH, the legacy package still installed globally, and the OpenCode plugin still
@@ -22,6 +24,8 @@ function repairCommand() {
 }
 
 const CODEX_LIGHT_WRAPPER_MARKER = "# OMO_GENERATED_RUNTIME_WRAPPER"
+// The Windows `.cmd` wrapper writes `rem OMO_GENERATED_RUNTIME_WRAPPER` instead, so it never
+// matches this marker and broken detection does not run for `.cmd` files (pre-existing limit).
 const CODEX_LIGHT_CACHE_VERSION = /[\\/]plugins[\\/]cache[\\/]sisyphuslabs[\\/]omo[\\/]([^\\/"'\s]+)[\\/]/
 const WINDOWS_BIN_SUFFIXES = ["", ".cmd", ".ps1", ".exe"]
 const OWNER_WALK_UP_LIMIT = 6
@@ -40,8 +44,9 @@ export function resolveMigrationEnvironment({ env, platform, homeDir }) {
     .map((entry) => entry.trim())
     .filter((entry) => (isWindows ? win32.isAbsolute(entry) : isAbsolute(entry)))
     .filter((entry) => !/(?:^|[\\/])node_modules[\\/]\.bin[\\/]?$/.test(entry))
-  const npmPrefixes = [env.npm_config_prefix, env.NPM_CONFIG_PREFIX, npmrcPrefix(homeDir)]
-    .filter((prefix) => typeof prefix === "string" && prefix !== "")
+  const npmPrefixes = [env.npm_config_prefix, env.NPM_CONFIG_PREFIX, npmrcPrefix(homeDir)].filter(
+    (prefix) => typeof prefix === "string" && prefix !== "",
+  )
   // Global bins live in <prefix>/bin on POSIX and in <prefix> itself on Windows, so every global bin
   // dir on PATH also names a candidate prefix.
   for (const directory of pathDirectories) npmPrefixes.push(isWindows ? directory : dirname(directory))
@@ -51,7 +56,7 @@ export function resolveMigrationEnvironment({ env, platform, homeDir }) {
     ...opencode.files,
     ...opencode.directories.flatMap((directory) => TUI_CONFIG_FILES.map((name) => join(directory, name))),
   ]
-  return { isWindows, pathDirectories, npmPrefixes, bunRoot, opencodeConfigFiles }
+  return { isWindows, homeDir, pathDirectories, npmPrefixes, bunRoot, opencodeConfigFiles }
 }
 
 function npmrcPrefix(homeDir) {
@@ -72,15 +77,31 @@ export function scanOmoBins(environment) {
     const binPath = suffixes.map((suffix) => join(directory, `omo${suffix}`)).find(pathExists)
     if (binPath === undefined) continue
     const owner = resolveOwner(binPath)
-    entries.push({ binPath, directory, owner, kind: classify(owner) })
+    const kind = classify(owner)
+    const standalone =
+      kind === "foreign" ? standaloneBinaryVersion(binPath, environment.homeDir, environment.isWindows) : null
+    const broken = standalone === null ? brokenLaunchTarget(binPath, owner, environment.homeDir) : undefined
+    entries.push(
+      standalone === null
+        ? { binPath, directory, owner, kind, ...(broken === undefined ? {} : { broken }) }
+        : { binPath, directory, owner: { name: STANDALONE_LABEL, version: standalone }, kind: "standalone" },
+    )
   }
   return entries
 }
 
-/** The entries a typed `omo` reaches before omo-ai's own; all of them when omo-ai is not on PATH. */
+const STANDALONE_LABEL = "standalone omo binary"
+const isOmoInstall = (entry) => entry.kind === "native" || entry.kind === "standalone"
+
+/** The entries a typed `omo` reaches before OmO's own (omo-ai or a standalone binary); all of them when neither is on PATH. */
 export function shadowingOmoBins(entries) {
-  const nativeIndex = entries.findIndex((entry) => entry.kind === "native")
-  return (nativeIndex < 0 ? entries : entries.slice(0, nativeIndex)).filter((entry) => entry.kind !== "native")
+  const firstOmo = entries.findIndex(isOmoInstall)
+  return (firstOmo < 0 ? entries : entries.slice(0, firstOmo)).filter((entry) => !isOmoInstall(entry))
+}
+
+/** omo-ai and standalone binaries on PATH, in PATH order; only the first one runs. */
+export function omoInstallsOnPath(entries) {
+  return entries.filter(isOmoInstall)
 }
 
 function classify(owner) {
@@ -100,18 +121,53 @@ function pathExists(path) {
   }
 }
 
+// A Codex Light wrapper launches a cached CLI through bun, with a node fallback when no bun
+// is found; the cache path it names must exist, or the wrapper can never run. Returns the
+// missing target, or undefined when the wrapper launches something that exists (or names no
+// resolvable target).
+function brokenLaunchTarget(binPath, owner, homeDir) {
+  if (owner === null || owner.name !== "lazycodex") return undefined
+  const shim = readFileHead(binPath, SHIM_READ_LIMIT)
+  const target = shim === undefined ? null : codexLightCacheTarget(shim, homeDir)
+  if (target === null) return undefined
+  // The POSIX wrapper writes its target with forward slashes (toPosixPath), so
+  // normalize the separators before reporting it: on Windows the broken line must
+  // use backslashes like every other path in the report, or it never matches the
+  // platform form the caller compares against (CI run 42027565394).
+  const normalized = normalize(target)
+  return pathExists(normalized) ? undefined : normalized
+}
+
+// The runtime target the Light generator writes into the wrapper: the `exec "$BUN_BINARY" ...`
+// line (POSIX) or `"%BUN_BINARY%" ... %*` (Windows), the file the wrapper actually runs — the
+// same lines packages/omo-opencode/src/cli/doctor/checks/codex-runtime-wrapper.ts already
+// parses. The first quoted cache path in the file is the optional node fallback
+// (dist/cli-node/index.js), not the runtime target, so reading it would flag a working wrapper
+// broken and miss a wrapper that really fails. `~` and `$HOME` resolve against the home dir;
+// anything else must already be absolute to be resolvable.
+function codexLightCacheTarget(shim, homeDir) {
+  const posix = shim.match(/exec "\$BUN_BINARY" "([^"]+)" "\$@"/)
+  const windows = posix === null ? shim.match(/"%+BUN_BINARY%+"\s+"([^"]+)"\s+%+\*/) : null
+  const raw = posix?.[1] ?? windows?.[1]
+  if (raw === undefined) return null
+  if (!/[\\/]plugins[\\/]cache[\\/]sisyphuslabs[\\/]omo[\\/]/.test(raw)) return null
+  if (raw.startsWith("~/") || raw.startsWith("~\\")) return join(homeDir, raw.slice(2))
+  if (raw.startsWith("$HOME/") || raw.startsWith("$HOME\\")) return join(homeDir, raw.slice(6))
+  return isAbsolute(raw) || win32.isAbsolute(raw) ? raw : null
+}
+
 function resolveOwner(binPath) {
   const real = realPathOf(binPath)
   const fromLink = isInsideNodeModules(real) ? ownerOfFile(real) : null
   if (fromLink !== null) return fromLink
   const shim = readFileHead(binPath, SHIM_READ_LIMIT)
-  if (shim === undefined) return null
-  if (shim.includes(CODEX_LIGHT_WRAPPER_MARKER)) {
+  if (shim?.includes(CODEX_LIGHT_WRAPPER_MARKER)) {
     const version = shim.match(CODEX_LIGHT_CACHE_VERSION)?.[1]
     if (version !== undefined) return { name: "lazycodex", version }
   }
-  // Ownership comes from an installed package the shim really launches, never from its text alone.
-  for (const entry of shimEntryPaths(shim, dirname(binPath))) {
+  // Ownership comes from an installed package the shim or its Bun sidecar really launches, never text alone.
+  const entries = [...(shim === undefined ? [] : shimEntryPaths(shim, dirname(binPath))), ...bunxEntryPaths(binPath)]
+  for (const entry of entries) {
     if (!isInsideNodeModules(entry) || !pathExists(entry)) continue
     const owner = ownerOfFile(entry)
     if (owner !== null) return owner
@@ -130,6 +186,24 @@ function shimEntryPaths(shim, shimDirectory) {
     else if (isAbsolute(quoted)) paths.push(quoted)
   }
   return paths
+}
+
+// Bun's Windows bin is a copied `omo.exe` plus an `omo.bunx` sidecar: UTF-16LE, the target path up to
+// a `"` and a NUL. Bun writes that path relative to the bin dir's parent (`..\node_modules\...` or
+// `install\global\node_modules\...` from `~/.bun`), and its shim resolves it against that same dir.
+function bunxEntryPaths(binPath) {
+  if (!/\.exe$/i.test(binPath)) return []
+  const sidecar = `${binPath.slice(0, -4)}.bunx`
+  let contents
+  try {
+    if (!statSync(sidecar).isFile()) return []
+    contents = readFileSync(sidecar).toString("utf16le")
+  } catch {
+    return []
+  }
+  const end = contents.indexOf('"\0')
+  if (end <= 0) return []
+  return [join(dirname(dirname(binPath)), contents.slice(0, end).replace(/\\/g, "/"))]
 }
 
 function isInsideNodeModules(path) {
@@ -165,6 +239,18 @@ function realPathOf(path) {
     return realpathSync(path)
   } catch {
     return path
+  }
+}
+
+// Two paths name the same install when they resolve to the same file. A hardlink shares the
+// inode, and one npm prefix listed twice with different letter case on Windows is the same
+// directory; realpath collapses neither, so compare dev/ino and fall back to realpath.
+function fileIdentity(path) {
+  try {
+    const stats = statSync(path)
+    return `${stats.dev}:${stats.ino}`
+  } catch {
+    return realPathOf(path)
   }
 }
 
@@ -206,7 +292,7 @@ export function findLegacyPackages(environment) {
       const packageDir = join(modules, name)
       const owner = readManifest(join(packageDir, "package.json"))
       if (owner?.name !== name) continue
-      const key = realPathOf(packageDir)
+      const key = fileIdentity(packageDir)
       if (seen.has(key)) continue
       seen.add(key)
       found.push({ manager, name, version: owner.version, packageDir })
@@ -243,47 +329,133 @@ function isPluginEntryFor(entry, name) {
 
 function ownerLabel(owner) {
   if (owner === null) return "unknown owner"
+  if (owner.name === STANDALONE_LABEL) return `${owner.name} ${owner.version}`
   return owner.version === null ? owner.name : `${owner.name}@${owner.version}`
 }
 
-export function formatMigrationLines({ shadowing, nativeDirectory, legacyPackages, registrations, restoreCommand }) {
+function shellQuote(value) {
+  return `'${String(value).replaceAll("'", `'"'"'`)}'`
+}
+
+function omoInstallRemoval(entry, bunRoot) {
+  if (entry.kind === "standalone") return `rm -f -- ${shellQuote(entry.binPath)}`
+  const real = realPathOf(entry.binPath)
+  if (real.startsWith(realPathOf(bunRoot))) return `BUN_INSTALL=${shellQuote(bunRoot)} bun remove -g omo-ai`
+  const packageMarker = /[\\/]lib[\\/]node_modules[\\/]omo-ai[\\/]/.exec(real)
+  const prefix = packageMarker === null ? dirname(entry.directory) : real.slice(0, packageMarker.index)
+  return `npm uninstall -g omo-ai --prefix ${shellQuote(prefix)}`
+}
+
+export function formatMigrationLines({
+  shadowing,
+  nativeDirectory,
+  legacyPackages,
+  registrations,
+  restoreCommand,
+  omoInstalls = [],
+  bunRoot = "",
+  standalone = false,
+  broken = [],
+}) {
   const lines = []
+  const first = omoInstalls[0]
+  const target =
+    first?.kind === "standalone" || (first === undefined && standalone) ? "the standalone omo binary" : "omo-ai"
+  // A wrapper whose launch target is gone is broken wherever it sits on PATH, even
+  // behind the install that runs; it gets its own line and never the repair offer
+  // meant for a working older edition.
+  for (const entry of broken) {
+    lines.push(`WARN broken omo on PATH: ${entry.binPath} launches ${entry.broken}; remove it`)
+  }
   for (const entry of shadowing) {
-    const fix = entry.kind === "legacy"
-      ? `${repairCommand()} (repairs it), or remove that file.`
-      : nativeDirectory === null
-        ? "remove that file, or put omo-ai's bin dir ahead of it on PATH."
-        : `remove that file, or move ${nativeDirectory} ahead of ${entry.directory} on PATH.`
-    lines.push(`WARN another omo precedes omo-ai on PATH: ${entry.binPath} (${ownerLabel(entry.owner)}). Fix: ${fix}`)
+    if (entry.broken !== undefined) continue
+    const fix =
+      entry.kind === "legacy" && target === "omo-ai"
+        ? `${repairCommand()} (repairs it), or remove that file.`
+        : nativeDirectory === null
+          ? `remove that file, or put ${target === "omo-ai" ? "omo-ai's bin dir" : "the omo binary's directory"} ahead of it on PATH.`
+          : `remove that file, or move ${nativeDirectory} ahead of ${entry.directory} on PATH.`
+    lines.push(
+      `WARN another omo precedes ${target} on PATH: ${entry.binPath} (${ownerLabel(entry.owner)}). Fix: ${fix}`,
+    )
+  }
+  // Every further install is a second copy, whatever its kind: two omo-ai installs
+  // of different versions, or from different managers, are the same warning. The
+  // only exception is the same file reached through two PATH spellings.
+  const seenInstalls = new Set()
+  if (first !== undefined) seenInstalls.add(fileIdentity(first.binPath))
+  const shadowedOmo = omoInstalls.slice(1).filter((entry) => {
+    const key = fileIdentity(entry.binPath)
+    if (seenInstalls.has(key)) return false
+    seenInstalls.add(key)
+    return true
+  })
+  if (shadowedOmo.length > 0) {
+    const others = shadowedOmo.map((entry) => `${entry.binPath} (${ownerLabel(entry.owner)})`).join(", ")
+    const removals = shadowedOmo.map((entry) => omoInstallRemoval(entry, bunRoot)).join(" and ")
+    lines.push(
+      `WARN more than one OmO install is on PATH: ${first.binPath} (${ownerLabel(first.owner)}) runs when you type omo; ${others} never runs. Keep one: ${removals}, or ${omoInstallRemoval(first, bunRoot)} to use the other.`,
+    )
   }
   for (const found of legacyPackages) {
     const label = ownerLabel({ name: found.name, version: found.version })
-    const remove = found.manager === "npm"
-      ? `npm uninstall -g ${found.name}, then re-run ${restoreCommand} if omo disappears.`
-      : `bun remove -g ${found.name}`
-    lines.push(`WARN legacy package ${label} is still installed globally (${found.manager}: ${found.packageDir}). Remove: ${remove}`)
+    const remove =
+      found.manager === "npm"
+        ? restoreCommand === null
+          ? `npm uninstall -g ${found.name}`
+          : `npm uninstall -g ${found.name}, then re-run ${restoreCommand} if omo disappears.`
+        : `bun remove -g ${found.name}`
+    lines.push(
+      `WARN legacy package ${label} is still installed globally (${found.manager}: ${found.packageDir}). Remove: ${remove}`,
+    )
   }
   const byName = new Map()
   for (const { name, path } of registrations) byName.set(name, [...(byName.get(name) ?? []), path])
   for (const [name, paths] of byName) {
-    lines.push(`INFO OpenCode still loads the ${name} plugin (${paths.join(", ")}). Keep it if you still use OpenCode; otherwise remove the plugin entry.`)
+    lines.push(
+      `INFO OpenCode still loads the ${name} plugin (${paths.join(", ")}). Keep it if you still use OpenCode; otherwise remove the plugin entry.`,
+    )
   }
   return lines
 }
 
+// The OpenCode edition's model settings Native does not use: the same line Native's first start
+// prints (omo-senpi config-startup), for as long as the gap exists.
+export function openCodeRoutingReport({ env, homeDir }) {
+  const path = ["omo.jsonc", "omo.json"]
+    .map((name) => join(homeDir, ".omo", name))
+    .find((candidate) => readWholeFile(candidate) !== undefined)
+  let document = {}
+  if (path !== undefined) {
+    try {
+      document = parseJsonc(readWholeFile(path))
+    } catch {
+      return [] // The config loader reports an unreadable omo.jsonc itself.
+    }
+  }
+  const gap = openCodeRoutingGap(document, readEditionRouting({ home: homeDir, env }))
+  return gap.length === 0 ? [] : [`INFO ${openCodeRoutingNotice(gap)}`]
+}
+
 /** The doctor's migration section. `options.env` / `homeDir` / `platform` keep tests off the real machine. */
 export function migrationReport(options, restoreCommand) {
-  const environment = resolveMigrationEnvironment({
-    env: options.env ?? process.env,
-    platform: options.platform ?? process.platform,
-    homeDir: options.homeDir ?? homedir(),
-  })
+  const env = options.env ?? process.env
+  const homeDir = options.homeDir ?? homedir()
+  const environment = resolveMigrationEnvironment({ env, platform: options.platform ?? process.platform, homeDir })
   const bins = scanOmoBins(environment)
-  return formatMigrationLines({
-    shadowing: shadowingOmoBins(bins),
-    nativeDirectory: bins.find((entry) => entry.kind === "native")?.directory ?? null,
-    legacyPackages: findLegacyPackages(environment),
-    registrations: findOpenCodeRegistrations(environment.opencodeConfigFiles),
-    restoreCommand,
-  })
+  const omoInstalls = omoInstallsOnPath(bins)
+  return [
+    ...formatMigrationLines({
+      shadowing: shadowingOmoBins(bins),
+      nativeDirectory: omoInstalls[0]?.directory ?? null,
+      legacyPackages: findLegacyPackages(environment),
+      registrations: findOpenCodeRegistrations(environment.opencodeConfigFiles),
+      restoreCommand,
+      omoInstalls,
+      bunRoot: environment.bunRoot,
+      standalone: options.standalone === true,
+      broken: bins.filter((entry) => entry.broken !== undefined),
+    }),
+    ...openCodeRoutingReport({ env, homeDir }),
+  ]
 }

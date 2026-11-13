@@ -125,6 +125,28 @@ describe("tryFallbackRetry", () => {
   })
 
   describe("#given retryable error with fallback chain", () => {
+    test("includes the original task and latest continuation in a fresh-session retry", async () => {
+      // given
+      const args = createDefaultArgs({ prompt: "latest-continuation", originalPrompt: "original-task" })
+      // when
+      await tryFallbackRetry(args)
+      // then
+      const retry = [...args.queuesByKey.values()].flat()[0]
+      expect(retry.input.prompt).toContain("original-task")
+      expect(retry.input.prompt).toContain("latest-continuation")
+      expect(retry.input.prompt).toContain("[Note:")
+    })
+
+    test("leaves a never-resumed task's retry prompt without the retry note", async () => {
+      // given
+      const args = createDefaultArgs({ prompt: "test prompt" })
+      // when
+      await tryFallbackRetry(args)
+      // then
+      const retry = [...args.queuesByKey.values()].flat()[0]
+      expect(retry.input.prompt).toBe("test prompt")
+    })
+
     test("returns true and enqueues retry", async () => {
       const args = createDefaultArgs()
 
@@ -250,12 +272,10 @@ describe("tryFallbackRetry", () => {
       const args = createDefaultArgs({
         model: { providerID: "anthropic", modelID: "claude-opus-4-7" },
         concurrencyKey: "anthropic",
-        fallbackChain: [
-          { model: "claude-sonnet-4-6", providers: ["anthropic"], variant: undefined },
-        ],
+        fallbackChain: [{ model: "claude-sonnet-4-6", providers: ["anthropic"], variant: undefined }],
       })
       args.concurrencyManager.getConcurrencyKey = mock((model: string) =>
-        model.startsWith("anthropic/") ? "anthropic" : model
+        model.startsWith("anthropic/") ? "anthropic" : model,
       )
 
       await tryFallbackRetry(args)
@@ -505,9 +525,9 @@ describe("tryFallbackRetry", () => {
 
       // when / then: a bounded structured error must surface instead
       await expect(tryFallbackRetry(args)).rejects.toThrow(TeamModeFallbackError)
-      await expect(tryFallbackRetry(createDefaultArgs({ teamRunId: "team-run-abc", onSessionCreated: undefined }))).rejects.toThrow(
-        "team-mode fallback denied: cannot preserve team context",
-      )
+      await expect(
+        tryFallbackRetry(createDefaultArgs({ teamRunId: "team-run-abc", onSessionCreated: undefined })),
+      ).rejects.toThrow("team-mode fallback denied: cannot preserve team context")
     })
 
     test("proceeds normally when teamRunId and onSessionCreated are both present", async () => {

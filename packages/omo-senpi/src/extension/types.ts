@@ -1,4 +1,4 @@
-import type { ToolDefinition } from "@code-yeongyu/senpi"
+import type { EvalHandleHost, ToolDefinition } from "@code-yeongyu/senpi"
 
 import type { IdleInjectionCoordinator } from "./idle-injection-coordinator"
 import type { StartupWork } from "./startup-deferral"
@@ -14,7 +14,47 @@ export type ReadClassifier = (input: {
   readonly cwd: string
 }) => CompactReadClassification | undefined
 
+export interface BeforeAgentStartHandlerOptions {
+  previewSafe?: boolean
+  /** Stable omo subscriber name, retained in bundled settle diagnostics. */
+  hookLabel?: string
+  /** Required read-only status delivery before host settlement; never journal writes, reflection or recovery. */
+  settleDelivery?: boolean
+}
+
+export interface SettleObserver {
+  readonly signal: AbortSignal
+  /** Names the current await and refuses to begin another phase after retirement. */
+  phase(label: string): void
+}
+
+type DialogOptions = {
+  readonly signal?: AbortSignal
+  readonly timeout?: number
+  readonly toolCallId?: string
+  readonly parentToolCallId?: string
+}
+
+/** The prompting dialogs of senpi's ExtensionUIContext; `input`/`editor` are optional so narrow fakes still fit. */
+export interface DialogUi {
+  select(title: string, options: string[], opts?: DialogOptions): Promise<string | undefined>
+  confirm(title: string, message: string, opts?: DialogOptions): Promise<boolean>
+  input?(title: string, placeholder?: string, opts?: DialogOptions): Promise<string | undefined>
+  editor?(title: string, prefill?: string, opts?: DialogOptions): Promise<string | undefined>
+}
+
+/** Figures for one section of senpi's on-demand memory report. */
+export type MemoryReporter = () => Readonly<Record<string, number>>
+
+/** Structural transport capability; absent on internal calls and older hosts. */
+export interface ExtensionRpcRequestContext {
+  readonly ownerId: string
+  readonly disconnectSignal: AbortSignal
+  readonly admit: <T>(dispatch: () => T) => T
+}
+
 export interface SenpiExtensionAPI {
+  readonly sessionKind?: "interactive" | "worker"
   /**
    * Absolute cwd of the session this extension instance was loaded for. senpi builds one
    * ExtensionAPI per session and already knows the value at load time. Optional because hosts
@@ -28,16 +68,28 @@ export interface SenpiExtensionAPI {
    * added it report none, and consumers fall back to the per-child process env.
    */
   readonly sessionContext?: unknown
-  on(event: string, handler: (payload: unknown, ctx?: unknown) => unknown | Promise<unknown>): void
+  on(
+    event: string,
+    handler: (payload: unknown, ctx?: unknown, observer?: SettleObserver) => unknown | Promise<unknown>,
+    options?: BeforeAgentStartHandlerOptions,
+  ): void
   rpc?: {
     emit(name: string, data: unknown): void
-    handle?(name: string, handler: (data: unknown) => unknown | Promise<unknown>): void
+    handle?(
+      name: string,
+      handler: (data: unknown, context?: ExtensionRpcRequestContext) => unknown | Promise<unknown>,
+    ): void
   }
   events?: {
     emit(name: string, data: unknown): void
     on(name: string, handler: (payload: unknown) => void): () => void
   }
   registerTool(tool: Record<string, unknown>): void
+  /**
+   * Adds figures to senpi's on-demand memory report (`SENPI_MEMORY_REPORT=1`), read only when a report
+   * is taken. Optional: hosts older than the release that added the report do not have it.
+   */
+  registerMemoryReporter?(name: string, reporter: MemoryReporter): void
   registerCommand(name: string, options: Record<string, unknown>): void
   registerFlag(
     name: string,
@@ -48,14 +100,79 @@ export interface SenpiExtensionAPI {
     },
   ): void
   getFlag(name: string): boolean | string | undefined
+  /** The session's current name (`/name`, `set_session_name`); undefined when it has none. */
+  getSessionName?(): string | undefined
+  /** The permission preset senpi enforces for this session (senpi #3301); undefined without the permission system. */
+  getPermissionPreset?(): string | undefined
+  /** Dialogs every client attached to the session may answer (senpi#6204); absent on older engines. */
+  readonly sessionDialog?: DialogUi
   sendMessage(message: Record<string, unknown>, options?: Record<string, unknown>): void | Promise<void>
-  sendUserMessage(content: string | readonly Record<string, unknown>[], options?: { deliverAs?: "steer" | "followUp" }): void
+  sendUserMessage(
+    content: string | readonly Record<string, unknown>[],
+    options?: { deliverAs?: "steer" | "followUp" },
+  ): void
+  /** senpi's slash-command registry: extension commands, prompt templates, and `skill:<name>` entries. */
+  getCommands?(): readonly {
+    readonly name: string
+    readonly description?: string
+    readonly source: string
+    readonly sourceInfo?: { readonly path?: string }
+  }[]
   /** Feature-detected until the pinned Senpi runtime exports read classifiers. */
   registerReadClassifier?(classifier: ReadClassifier): () => void
   registerRemovedToolHint?(name: string, hint: string): void
+  /** Feature-detected: senpi runtimes before 2026.10.7 have no eval-handle capability slot. */
+  provideEvalHandleHost?(host: EvalHandleHost): void
   registerMessageRenderer?(customType: string, renderer: unknown): void
-  appendEntry?(customType: string, data?: unknown): void
+  /** `options.startupBookkeeping` (senpi#3329): older hosts ignore the third argument. */
+  appendEntry?(customType: string, data?: unknown, options?: { readonly startupBookkeeping?: boolean }): void
   registerMcpServer?(name: string, config: Record<string, unknown>): void
+  /**
+   * Every subscription account's latest limit windows, polled and kept by the engine (senpi#3684).
+   * Feature-detected: older hosts expose nothing, and the panel then shows no usage section.
+   */
+  getSubscriptionLimits?(): readonly SenpiAccountLimits[]
+  onSubscriptionLimits?(listener: (limits: SenpiAccountLimits) => void): () => void
+  /** The running senpi version (code-yeongyu/senpi#3674); hosts before it report none. */
+  readonly hostVersion?: string
+  /**
+   * senpi's one upload redactor (code-yeongyu/senpi#3674), the same path `/share` uses. Feature-detected: hosts older
+   * than the release that added it expose nothing, and nothing may be uploaded without it.
+   */
+  redactForUpload?(
+    text: string,
+    options?: { readonly extraLiterals?: readonly string[] },
+  ): { readonly text: string; readonly counts: Readonly<Record<string, number>> }
+  /**
+   * The engine's session lifecycle (senpi#3864). `markRunCompleted` tells it a workflow run finished inside the
+   * current epoch, so the epoch's `done` reads `completion.kind = "run"`. Feature-detected: hosts before senpi
+   * 2026.10.23-1 expose nothing.
+   */
+  readonly lifecycle?: {
+    markRunCompleted(run: { readonly runId: string }): void
+  }
+  /** Run a command. Feature-detected: hosts older than the release that added it expose nothing. */
+  exec?(
+    command: string,
+    args: string[],
+    options?: { cwd?: string; timeout?: number },
+  ): Promise<{ stdout: string; stderr: string; code: number }>
+}
+
+/** One account's record in senpi's subscription-limit store, as `get_subscription_limits` serves it. */
+export interface SenpiAccountLimits {
+  readonly provider: string
+  readonly account: string
+  readonly windows: readonly {
+    readonly id: string
+    readonly label: string
+    readonly windowMinutes?: number
+    readonly usedPercent: number
+    readonly resetsAt?: string
+  }[]
+  readonly reportedAt: string
+  readonly plan?: string
+  readonly error?: string
 }
 
 export interface ComponentLogger {

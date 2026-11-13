@@ -7,7 +7,7 @@ import {
   detectCompiledEngine,
   resolveSenpiLauncher as resolveTaskSenpiLauncher,
   type SenpiLauncher,
-} from "@oh-my-opencode/senpi-task"
+} from "@oh-my-opencode/senpi-task/rpc-spawn"
 
 const SENPI_PACKAGE_DIR = join("@code-yeongyu", "senpi")
 const CLI_RELATIVE = join("dist", "cli.js")
@@ -101,10 +101,7 @@ function isInside(root: string, target: string): boolean {
  * only while the launcher lives inside the root they name preserves the intended override for the
  * embedded engine and for a relocated install.
  */
-export function withoutForeignPackageDirEnv(
-  env: NodeJS.ProcessEnv,
-  launch: SenpiLauncher,
-): NodeJS.ProcessEnv {
+export function withoutForeignPackageDirEnv(env: NodeJS.ProcessEnv, launch: SenpiLauncher): NodeJS.ProcessEnv {
   const target = launch.prefixArgs[0] ?? launch.command
   const next = { ...env }
   for (const name of PACKAGE_DIR_ENV_NAMES) {

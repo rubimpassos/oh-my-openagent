@@ -29,10 +29,7 @@ configurePromptDispatchRouteResolver({
   markLiveRouteUnavailable,
 })
 
-export {
-  LIVE_ROUTE_DISPATCH_LOG,
-  LIVE_ROUTE_UNAVAILABLE_LOG,
-}
+export { LIVE_ROUTE_DISPATCH_LOG, LIVE_ROUTE_UNAVAILABLE_LOG }
 export * from "@oh-my-opencode/utils/prompt-async-gate"
 
 const GOAL_CONTINUATION_SOURCES = new Set(["todo-continuation-enforcer", "atlas", "goal:idle-continuation"])

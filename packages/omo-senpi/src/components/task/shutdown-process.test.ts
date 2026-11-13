@@ -3,8 +3,14 @@ import { spawn } from "node:child_process"
 import { once } from "node:events"
 
 import { loadOmoConfig } from "@oh-my-opencode/omo-config-core"
-import { createTaskLifecycle } from "@oh-my-opencode/senpi-task"
-import { cleanupProjects, FakeRegistry, seedRecord, settings, tempStore } from "../../../../senpi-task/src/lifecycle/__fixtures__/lifecycle-fakes"
+import { createTaskLifecycle, NO_HOST_ENDPOINT } from "@oh-my-opencode/senpi-task"
+import {
+  cleanupProjects,
+  FakeRegistry,
+  seedRecord,
+  settings,
+  tempStore,
+} from "../../../../senpi-task/src/lifecycle/__fixtures__/lifecycle-fakes"
 import { terminateRpcChild } from "../../../../senpi-task/src/runners/rpc/terminate"
 import { FakeExtensionAPI } from "../../../test-support/fake-extension-api"
 import { composeTaskEngine } from "./engine"
@@ -29,51 +35,79 @@ for (const path of ["park", "missing-session", "normal", "missing-session-runnin
     const base = composeTaskEngine({ pi, cwd, omoConfig: loadOmoConfig({ cwd }).config, sharedParentTools: () => [] })
     base.lifecycle.dispose?.()
     const lifecycle = createTaskLifecycle({
-      store, registry, config: settings(),
+      hostEndpoint: NO_HOST_ENDPOINT,
+      store,
+      registry,
+      config: settings(),
       now: () => Date.now() + 86_400_000,
     })
     try {
       await ready
       const record = seedRecord(store, {
-        task_id: "st_000000a7", parent_session_id: "parent-7",
-        execution_mode: "process", status: path === "missing-session-running" ? "running" : "completed",
-        host_pid: process.pid, pid: child.pid,
+        task_id: "st_000000a7",
+        parent_session_id: "parent-7",
+        execution_mode: "process",
+        status: path === "missing-session-running" ? "running" : "completed",
+        host_pid: process.pid,
+        pid: child.pid,
       })
       const sibling = seedRecord(store, {
-        task_id: "st_000000b7", parent_session_id: "sibling-7",
-        status: "running", host_pid: process.pid,
+        task_id: "st_000000b7",
+        parent_session_id: "sibling-7",
+        status: "running",
+        host_pid: process.pid,
       })
       registry.add({
-        task_id: record.task_id, kind: "rpc", pid: child.pid,
+        task_id: record.task_id,
+        kind: "rpc",
+        pid: child.pid,
         abort: async () => {},
         terminate: () => terminateRpcChild(child, { sigkillDelayMs: 100 }),
         dispose: async () => {},
       })
       const engine = {
-        ...base, lifecycle,
+        ...base,
+        lifecycle,
         manager: {
           ...base.manager,
-          residentTaskIds: () => registry.entries().map(handle => handle.task_id),
+          list: (scope: Parameters<typeof base.manager.list>[0]) => base.manager.list(scope),
+          residentTaskIds: () => registry.entries().map((handle) => handle.task_id),
           get: (id: string) => store.load(id) ?? undefined,
         },
       }
-      wireEventBridge(pi, {
-        logger: { info() {}, warn() {}, error() {} },
-        config: { getFlag: () => false },
-        getCapturedTools: () => [],
-      }, engine, { scheduleSync() {}, syncNow() {}, dispose() {} },
-      createSessionTransitionBridge({ runtime: engine.runtime, notifier: engine.notifier }), {
-        reconcileTeamMailbox: async () => {},
-        leadPollers: { tick: async () => {}, shutdown() {} },
-        resumptionChannels: { emitSessionStart: async () => {}, emitShutdown: async () => {} },
-      })
+      wireEventBridge(
+        pi,
+        {
+          logger: { info() {}, warn() {}, error() {} },
+          config: { getFlag: () => false },
+          getCapturedTools: () => [],
+        },
+        engine,
+        { scheduleSync() {}, syncNow() {}, observeRecord() {}, dispose() {} },
+        createSessionTransitionBridge({ runtime: engine.runtime, notifier: engine.notifier }),
+        {
+          reconcileTeamMailbox: async () => {},
+          leadPollers: { tick: async () => {}, shutdown() {} },
+          resumptionChannels: { emitSessionStart: async () => {}, emitShutdown: async () => {} },
+        },
+      )
       if (path === "park") {
         await lifecycle.reclaimIdleResidents?.()
       } else {
-        await pi.dispatch("session_shutdown", { reason: "quit" },
-          path === "normal" ? { sessionManager: { getSessionId: () => "parent-7" } } : {})
+        await pi.dispatch(
+          "session_shutdown",
+          { reason: "quit" },
+          path === "normal" ? { sessionManager: { getSessionId: () => "parent-7" } } : {},
+        )
       }
-      console.log(JSON.stringify({ path, pid: child.pid, alive: child.exitCode === null && child.signalCode === null, residency: store.load(record.task_id)?.residency_state }))
+      console.log(
+        JSON.stringify({
+          path,
+          pid: child.pid,
+          alive: child.exitCode === null && child.signalCode === null,
+          residency: store.load(record.task_id)?.residency_state,
+        }),
+      )
       expect(child.exitCode !== null || child.signalCode !== null).toBe(true)
       expect(store.load(record.task_id)?.status).toBe(record.status)
       expect(store.load(record.task_id)?.residency_state).toBe("rpc_detached")

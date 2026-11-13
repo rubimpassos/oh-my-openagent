@@ -2,8 +2,9 @@ import type { ReflectionRequest } from "./machine"
 
 // Circuit breaker for automatic reflection (#8304). A deterministic failure (missing model, boot
 // crash, refused sandbox) repeats identically on every retry, so three in a row park the identity;
-// a transient failure (rate limit, provider outage) gets twice the room before parking. While
-// parked, one half-open probe per interval keeps self-healing possible without hammering the host.
+// a transient failure (rate limit, provider outage) gets twice the room before parking, and a
+// definitive one (proven unfixable until the configuration changes) parks on its first occurrence.
+// While parked, one half-open probe per interval keeps self-healing possible without hammering the host.
 export const REFLECTION_PARK_NON_RETRYABLE_STREAK = 3
 export const REFLECTION_PARK_RETRYABLE_STREAK = 6
 export const REFLECTION_PARK_PROBE_INTERVAL_MS = 6 * 60 * 60_000
@@ -12,6 +13,7 @@ export const REFLECTION_PARK_DETAIL_MAX_CHARS = 512
 export interface ReflectionFailureSignal {
   readonly fingerprint: string
   readonly retryable: boolean
+  readonly definitive?: boolean
   readonly reason?: string
   readonly detail?: string
 }
@@ -31,9 +33,7 @@ export interface ReflectionParkState {
 }
 
 export type ReflectionParkGate =
-  | { readonly kind: "open" }
-  | { readonly kind: "probe" }
-  | { readonly kind: "parked"; readonly nextProbeAt: string }
+  { readonly kind: "open" } | { readonly kind: "probe" } | { readonly kind: "parked"; readonly nextProbeAt: string }
 
 export function emptyReflectionParkState(): ReflectionParkState {
   return { version: 1, streak: 0 }
@@ -54,7 +54,12 @@ export function applyReflectionParkFailure(
   failure: ReflectionParkFailure,
 ): ReflectionParkState {
   const streak = state.streak + 1
-  const threshold = failure.retryable ? REFLECTION_PARK_RETRYABLE_STREAK : REFLECTION_PARK_NON_RETRYABLE_STREAK
+  const threshold =
+    failure.definitive === true
+      ? 1
+      : failure.retryable
+        ? REFLECTION_PARK_RETRYABLE_STREAK
+        : REFLECTION_PARK_NON_RETRYABLE_STREAK
   const parkedAt = state.parkedAt ?? (streak >= threshold ? failure.at : undefined)
   const detail = failure.detail?.slice(0, REFLECTION_PARK_DETAIL_MAX_CHARS)
   return {
@@ -130,8 +135,10 @@ function parseParkFailure(value: unknown): ReflectionParkFailure {
   }
   const timestamp = optionalTimestamp(at, "at")
   if (timestamp === undefined) throw new ReflectionParkStateError("Invalid reflection park failure timestamp")
-  if (reason !== undefined && typeof reason !== "string") throw new ReflectionParkStateError("Invalid reflection park failure reason")
-  if (detail !== undefined && typeof detail !== "string") throw new ReflectionParkStateError("Invalid reflection park failure detail")
+  if (reason !== undefined && typeof reason !== "string")
+    throw new ReflectionParkStateError("Invalid reflection park failure reason")
+  if (detail !== undefined && typeof detail !== "string")
+    throw new ReflectionParkStateError("Invalid reflection park failure detail")
   return {
     runId,
     at: timestamp,

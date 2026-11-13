@@ -39,7 +39,10 @@ function chainPlanner(fallbacks: readonly ResolvedModelRecord[]): ChildPlanner {
 // A runner that refuses named models the way `createRpcModelAdmission` does - before any child
 // exists - and serves every other model normally.
 class AdmissionRefusingRunner extends FakeRunner {
-  constructor(private readonly refused: ReadonlySet<string>, private readonly kind: "model_unavailable" | "depth-exceeded" = "model_unavailable") {
+  constructor(
+    private readonly refused: ReadonlySet<string>,
+    private readonly kind: "model_unavailable" | "depth-exceeded" = "model_unavailable",
+  ) {
     super()
   }
 
@@ -93,12 +96,21 @@ describe("category chain fallback on a start-time admission refusal", () => {
 
   test("#given two refused models ahead of a servable one #when the task starts #then the chain is walked to the first servable entry", async () => {
     // given
-    const second: ResolvedModelRecord = { ...PACKAGE_MODEL, model_id: "glm-5.3-flash", display: "glm-zcode/glm-5.3-flash" }
+    const second: ResolvedModelRecord = {
+      ...PACKAGE_MODEL,
+      model_id: "glm-5.3-flash",
+      display: "glm-zcode/glm-5.3-flash",
+    }
     const runner = new AdmissionRefusingRunner(new Set([PACKAGE_MODEL.display, second.display]))
     const { manager, store } = makeManager({ planner: chainPlanner([second, BUILTIN_MODEL]), inProcess: runner })
 
     // when
-    const result = await manager.start({ prompt: "work", parent_session_id: "parent-1", depth: 1, category: "unspecified-high" })
+    const result = await manager.start({
+      prompt: "work",
+      parent_session_id: "parent-1",
+      depth: 1,
+      category: "unspecified-high",
+    })
 
     // then
     if (result.kind !== "started") throw new Error(`expected started, got ${JSON.stringify(result)}`)
@@ -110,20 +122,27 @@ describe("category chain fallback on a start-time admission refusal", () => {
     expect(store.load(result.task_id)?.model).toBe(BUILTIN_MODEL.display)
   })
 
-  test("#given every chain model is refused #when the task starts #then the task fails with the model-unavailable classification", async () => {
+  test("#given every chain model is refused #when the task starts #then the task fails typed as an exhausted chain listing each refused model", async () => {
     // given
     const runner = new AdmissionRefusingRunner(new Set([PACKAGE_MODEL.display, BUILTIN_MODEL.display]))
     const { manager } = makeManager({ planner: chainPlanner([BUILTIN_MODEL]), inProcess: runner })
 
     // when
-    const result = await manager.start({ prompt: "work", parent_session_id: "parent-1", depth: 1, category: "unspecified-high" })
+    const result = await manager.start({
+      prompt: "work",
+      parent_session_id: "parent-1",
+      depth: 1,
+      category: "unspecified-high",
+    })
 
     // then
     if (result.kind !== "start_failed") throw new Error("expected start_failed")
-    expect(result.failure_kind).toBe("model_unavailable")
-    expect(result.error_message).toBe(
+    expect(result.failure_kind).toBe("model_chain_exhausted")
+    expect(result.error_message.split("\n")[0]).toBe(
       "The task child cannot serve this model: its provider is not present in the child profile.",
     )
+    expect(result.error_message).toContain(`- ${PACKAGE_MODEL.display}: `)
+    expect(result.error_message).toContain(`- ${BUILTIN_MODEL.display}: `)
     expect(runner.startedSpecs.map((spec) => spec.model)).toEqual([PACKAGE_MODEL.display, BUILTIN_MODEL.display])
   })
 
@@ -134,7 +153,12 @@ describe("category chain fallback on a start-time admission refusal", () => {
     const { manager } = makeManager({ planner: chainPlanner([BUILTIN_MODEL]), inProcess: runner })
 
     // when
-    const result = await manager.start({ prompt: "work", parent_session_id: "parent-1", depth: 1, category: "unspecified-high" })
+    const result = await manager.start({
+      prompt: "work",
+      parent_session_id: "parent-1",
+      depth: 1,
+      category: "unspecified-high",
+    })
 
     // then
     if (result.kind !== "start_failed") throw new Error("expected start_failed")
@@ -148,7 +172,12 @@ describe("category chain fallback on a start-time admission refusal", () => {
     const { manager, store } = makeManager({ planner: chainPlanner([]), inProcess: runner })
 
     // when
-    const result = await manager.start({ prompt: "work", parent_session_id: "parent-1", depth: 1, category: "unspecified-high" })
+    const result = await manager.start({
+      prompt: "work",
+      parent_session_id: "parent-1",
+      depth: 1,
+      category: "unspecified-high",
+    })
 
     // then
     if (result.kind !== "start_failed") throw new Error("expected start_failed")
@@ -166,7 +195,12 @@ describe("category chain fallback on a start-time admission refusal", () => {
       inProcess: runner,
       config: settings({ default_concurrency: 1, max_depth: 1 }),
     })
-    const first = await manager.start({ prompt: "work", parent_session_id: "parent-1", depth: 1, category: "unspecified-high" })
+    const first = await manager.start({
+      prompt: "work",
+      parent_session_id: "parent-1",
+      depth: 1,
+      category: "unspecified-high",
+    })
     if (first.kind !== "started") throw new Error("expected the first task to start on the fallback model")
 
     // when: the fallback child finishes, which must release the lease it actually holds
@@ -174,7 +208,12 @@ describe("category chain fallback on a start-time admission refusal", () => {
     await flush()
     await flush()
 
-    const second = await manager.start({ prompt: "more", parent_session_id: "parent-1", depth: 1, category: "unspecified-high" })
+    const second = await manager.start({
+      prompt: "more",
+      parent_session_id: "parent-1",
+      depth: 1,
+      category: "unspecified-high",
+    })
 
     // then: it must have been LAUNCHED, not merely reported as running. A leaked lease parks the
     // second task in the lane queue, and the queued path reports "running" too, so only the
@@ -185,5 +224,51 @@ describe("category chain fallback on a start-time admission refusal", () => {
       runner.startedSpecs.some((spec) => spec.taskId === second.task_id && spec.model === BUILTIN_MODEL.display),
     ).toBe(true)
     expect(store.load(first.task_id)?.status).toBe("completed")
+  })
+})
+
+describe("a start-time fallback whose model lane is full (omo#9069)", () => {
+  test("#given the fallback model's lane is full #when the refused start walks the chain #then the task reports pending with its queue position and launches once the lane frees", async () => {
+    // given - one slot per model, and a task already holding the fallback model's slot
+    const runner = new AdmissionRefusingRunner(new Set([PACKAGE_MODEL.display]))
+    const { manager, store } = makeManager({
+      planner: chainPlanner([BUILTIN_MODEL]),
+      inProcess: runner,
+      config: settings({ default_concurrency: 1, max_depth: 1 }),
+    })
+    const holder = await manager.start({
+      prompt: "hold",
+      parent_session_id: "parent-1",
+      depth: 1,
+      model: BUILTIN_MODEL.display,
+    })
+    if (holder.kind !== "started") throw new Error("expected the holder to start")
+
+    // when
+    const result = await manager.start({
+      prompt: "work",
+      parent_session_id: "parent-1",
+      depth: 1,
+      category: "unspecified-high",
+    })
+
+    // then - not reported as running while no child exists
+    if (result.kind !== "started") throw new Error(`expected started, got ${JSON.stringify(result)}`)
+    expect(result.status).toBe("pending")
+    expect(result.queue_position).toBe(1)
+    const queued = store.load(result.task_id)
+    expect(queued?.start_queued?.model).toBe(BUILTIN_MODEL.display)
+    expect(runner.handles.has(result.task_id)).toBe(false)
+    const eventLog = readFileSync(join(store.stateDir, "logs", `${result.task_id}.jsonl`), "utf8")
+    expect(eventLog).toContain('"type":"task_start_queued"')
+
+    // when - the holder finishes and frees the lane
+    runner.handles.get(holder.task_id)?.settle({ status: "completed", finalResponse: "done" })
+    await flush()
+    await flush()
+
+    // then
+    expect(runner.handles.has(result.task_id)).toBe(true)
+    expect(store.load(result.task_id)?.start_queued).toBeUndefined()
   })
 })

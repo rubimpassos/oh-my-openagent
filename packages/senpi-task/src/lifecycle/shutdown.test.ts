@@ -11,6 +11,7 @@ import {
   tempStore,
   type CallLog,
 } from "./__fixtures__/lifecycle-fakes"
+import { NO_HOST_ENDPOINT } from "./host-session"
 
 afterEach(cleanupProjects)
 
@@ -34,7 +35,7 @@ describe("suspendOnSessionShutdown", () => {
     const order: CallLog = []
     const registry = new OrderRegistry(order)
     registry.add(fakeHandle("st_000000f0", "in-process", order))
-    const lifecycle = createTaskLifecycle({ store, registry, config: settings() })
+    const lifecycle = createTaskLifecycle({ hostEndpoint: NO_HOST_ENDPOINT, store, registry, config: settings() })
 
     // when
     const summary = await lifecycle.suspendOnSessionShutdown({ parentSessionId: "parent-1", reason: "quit" })
@@ -48,7 +49,13 @@ describe("suspendOnSessionShutdown", () => {
     expect(order.indexOf("forget:st_000000f0")).toBeLessThan(order.indexOf("abort:st_000000f0"))
     expect(order.indexOf("abort:st_000000f0")).toBeLessThan(order.indexOf("dispose:st_000000f0"))
     expect(readEvents(store, "st_000000f0").at(-1)).toBe("suspended")
-    expect(summary).toEqual({ suspended_in_process: 1, suspended_rpc: 0, suspended_pending: 0, disposed: 0, failures: [] })
+    expect(summary).toEqual({
+      suspended_in_process: 1,
+      suspended_rpc: 0,
+      suspended_pending: 0,
+      disposed: 0,
+      failures: [],
+    })
   })
 
   test("#given an rpc running resident #when its session shuts down #then it suspends rpc_detached retaining pid and clearing host_pid", async () => {
@@ -65,7 +72,7 @@ describe("suspendOnSessionShutdown", () => {
     const order: CallLog = []
     const registry = new OrderRegistry(order)
     registry.add(fakeHandle("st_000000f1", "rpc", order, { pid: 55 }))
-    const lifecycle = createTaskLifecycle({ store, registry, config: settings() })
+    const lifecycle = createTaskLifecycle({ hostEndpoint: NO_HOST_ENDPOINT, store, registry, config: settings() })
 
     // when
     const summary = await lifecycle.suspendOnSessionShutdown({ parentSessionId: "parent-1", reason: "reload" })
@@ -79,7 +86,13 @@ describe("suspendOnSessionShutdown", () => {
     expect(order.indexOf("abort:st_000000f1")).toBeLessThan(order.indexOf("terminate:st_000000f1"))
     expect(order.indexOf("terminate:st_000000f1")).toBeLessThan(order.indexOf("dispose:st_000000f1"))
     expect(readEvents(store, "st_000000f1").at(-1)).toBe("suspended")
-    expect(summary).toEqual({ suspended_in_process: 0, suspended_rpc: 1, suspended_pending: 0, disposed: 0, failures: [] })
+    expect(summary).toEqual({
+      suspended_in_process: 0,
+      suspended_rpc: 1,
+      suspended_pending: 0,
+      disposed: 0,
+      failures: [],
+    })
   })
 
   test("#given a resident of a different parent session #when this session shuts down #then it is untouched", async () => {
@@ -96,7 +109,7 @@ describe("suspendOnSessionShutdown", () => {
     const order: CallLog = []
     const registry = new OrderRegistry(order)
     registry.add(fakeHandle("st_000000f2", "in-process", order))
-    const lifecycle = createTaskLifecycle({ store, registry, config: settings() })
+    const lifecycle = createTaskLifecycle({ hostEndpoint: NO_HOST_ENDPOINT, store, registry, config: settings() })
 
     // when
     const summary = await lifecycle.suspendOnSessionShutdown({ parentSessionId: "parent-1", reason: "quit" })
@@ -108,7 +121,13 @@ describe("suspendOnSessionShutdown", () => {
     expect(registry.get("st_000000f2")).toBeDefined()
     expect(registry.forgotten).toEqual([])
     expect(readEvents(store, "st_000000f2")).toEqual([])
-    expect(summary).toEqual({ suspended_in_process: 0, suspended_rpc: 0, suspended_pending: 0, disposed: 0, failures: [] })
+    expect(summary).toEqual({
+      suspended_in_process: 0,
+      suspended_rpc: 0,
+      suspended_pending: 0,
+      disposed: 0,
+      failures: [],
+    })
   })
 
   test("#given a resident owned by a foreign host pid #when this session shuts down #then it is untouched", async () => {
@@ -124,7 +143,7 @@ describe("suspendOnSessionShutdown", () => {
     const order: CallLog = []
     const registry = new OrderRegistry(order)
     registry.add(fakeHandle("st_000000f3", "in-process", order))
-    const lifecycle = createTaskLifecycle({ store, registry, config: settings() })
+    const lifecycle = createTaskLifecycle({ hostEndpoint: NO_HOST_ENDPOINT, store, registry, config: settings() })
 
     // when
     const summary = await lifecycle.suspendOnSessionShutdown({ parentSessionId: "parent-1", reason: "quit" })
@@ -135,7 +154,13 @@ describe("suspendOnSessionShutdown", () => {
     expect(record?.host_pid).toBe(FOREIGN_PID)
     expect(registry.forgotten).toEqual([])
     expect(readEvents(store, "st_000000f3")).toEqual([])
-    expect(summary).toEqual({ suspended_in_process: 0, suspended_rpc: 0, suspended_pending: 0, disposed: 0, failures: [] })
+    expect(summary).toEqual({
+      suspended_in_process: 0,
+      suspended_rpc: 0,
+      suspended_pending: 0,
+      disposed: 0,
+      failures: [],
+    })
   })
 
   test("#given a completed resident #when its session shuts down #then it suspends persisted_only preserving the completed status", async () => {
@@ -151,7 +176,7 @@ describe("suspendOnSessionShutdown", () => {
     const order: CallLog = []
     const registry = new OrderRegistry(order)
     registry.add(fakeHandle("st_000000f5", "in-process", order))
-    const lifecycle = createTaskLifecycle({ store, registry, config: settings() })
+    const lifecycle = createTaskLifecycle({ hostEndpoint: NO_HOST_ENDPOINT, store, registry, config: settings() })
 
     // when
     const summary = await lifecycle.suspendOnSessionShutdown({ parentSessionId: "parent-1", reason: "quit" })
@@ -162,7 +187,13 @@ describe("suspendOnSessionShutdown", () => {
     expect(record?.residency_state).toBe("persisted_only")
     expect(record?.host_pid).toBeUndefined()
     expect(readEvents(store, "st_000000f5").at(-1)).toBe("suspended")
-    expect(summary).toEqual({ suspended_in_process: 1, suspended_rpc: 0, suspended_pending: 0, disposed: 0, failures: [] })
+    expect(summary).toEqual({
+      suspended_in_process: 1,
+      suspended_rpc: 0,
+      suspended_pending: 0,
+      disposed: 0,
+      failures: [],
+    })
   })
 
   test("#given a pending record of this session with no handle #when its session shuts down #then it is dequeued and suspended with host_pid cleared and run_epoch unchanged", async () => {
@@ -178,6 +209,7 @@ describe("suspendOnSessionShutdown", () => {
     })
     const dequeued: string[] = []
     const lifecycle = createTaskLifecycle({
+      hostEndpoint: NO_HOST_ENDPOINT,
       store,
       registry: new FakeRegistry(),
       config: settings(),
@@ -195,7 +227,13 @@ describe("suspendOnSessionShutdown", () => {
     expect(record?.notification.run_epoch).toBe(2)
     expect(dequeued).toEqual(["st_000000f6"])
     expect(readEvents(store, "st_000000f6").at(-1)).toBe("suspended")
-    expect(summary).toEqual({ suspended_in_process: 0, suspended_rpc: 0, suspended_pending: 1, disposed: 0, failures: [] })
+    expect(summary).toEqual({
+      suspended_in_process: 0,
+      suspended_rpc: 0,
+      suspended_pending: 1,
+      disposed: 0,
+      failures: [],
+    })
   })
 
   test("#given a pending record of another session #when this session shuts down #then it is untouched and never dequeued", async () => {
@@ -211,6 +249,7 @@ describe("suspendOnSessionShutdown", () => {
     })
     const dequeued: string[] = []
     const lifecycle = createTaskLifecycle({
+      hostEndpoint: NO_HOST_ENDPOINT,
       store,
       registry: new FakeRegistry(),
       config: settings(),
@@ -227,18 +266,35 @@ describe("suspendOnSessionShutdown", () => {
     expect(record?.host_pid).toBe(HOST)
     expect(dequeued).toEqual([])
     expect(readEvents(store, "st_000000f7")).toEqual([])
-    expect(summary).toEqual({ suspended_in_process: 0, suspended_rpc: 0, suspended_pending: 0, disposed: 0, failures: [] })
+    expect(summary).toEqual({
+      suspended_in_process: 0,
+      suspended_rpc: 0,
+      suspended_pending: 0,
+      disposed: 0,
+      failures: [],
+    })
   })
 
   test("#given no children at all #when the session shuts down #then the summary is all zeros without throwing", async () => {
     // given
     const store = tempStore()
-    const lifecycle = createTaskLifecycle({ store, registry: new FakeRegistry(), config: settings() })
+    const lifecycle = createTaskLifecycle({
+      hostEndpoint: NO_HOST_ENDPOINT,
+      store,
+      registry: new FakeRegistry(),
+      config: settings(),
+    })
 
     // when
     const summary = await lifecycle.suspendOnSessionShutdown({ parentSessionId: "parent-1", reason: "quit" })
 
     // then
-    expect(summary).toEqual({ suspended_in_process: 0, suspended_rpc: 0, suspended_pending: 0, disposed: 0, failures: [] })
+    expect(summary).toEqual({
+      suspended_in_process: 0,
+      suspended_rpc: 0,
+      suspended_pending: 0,
+      disposed: 0,
+      failures: [],
+    })
   })
 })

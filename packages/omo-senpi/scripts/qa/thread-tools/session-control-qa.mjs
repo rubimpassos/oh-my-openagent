@@ -17,7 +17,7 @@
  * happens to support all seven levels).
  */
 import { spawn } from "node:child_process"
-import { mkdirSync, writeFileSync } from "node:fs"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -31,6 +31,7 @@ import {
   startFakeModelServer,
   threadComponent,
   trackChild,
+  trackCloser,
   verifyCleanup,
 } from "./lib/harness.mjs"
 
@@ -48,14 +49,32 @@ async function startPinnedHost(scratch) {
   const socket = join(scratch.dir, "rpc.sock")
   const child = spawn(
     process.execPath,
-    [PINNED_CLI, "--mode", "rpc", "--multi-session", "--listen", `unix://${socket}`, "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-themes", "--provider", "mock", "--model", "mock-model"],
+    [
+      PINNED_CLI,
+      "--mode",
+      "rpc",
+      "--multi-session",
+      "--listen",
+      `unix://${socket}`,
+      "--no-extensions",
+      "--no-skills",
+      "--no-prompt-templates",
+      "--no-themes",
+      "--provider",
+      "mock",
+      "--model",
+      "mock-model",
+    ],
     { cwd: scratch.cwd, detached: shouldDetachChildren(), env: scratch.env, stdio: ["pipe", "pipe", "pipe"] },
   )
   trackChild(child)
   const needle = `rpc listening on unix://${socket}`
   let buffer = ""
   await new Promise((resolvePromise, rejectPromise) => {
-    const timer = setTimeout(() => rejectPromise(new Error(`host never printed readiness:\n${buffer.slice(-1500)}`)), 60_000)
+    const timer = setTimeout(
+      () => rejectPromise(new Error(`host never printed readiness:\n${buffer.slice(-1500)}`)),
+      60_000,
+    )
     const onChunk = (chunk) => {
       buffer += chunk.toString("utf8")
       if (!buffer.includes(needle)) return
@@ -102,19 +121,33 @@ async function call(tools, name, args, ectx) {
   return result.details.result
 }
 
-const errorCode = (result) => (result.kind === "error" ? result.error.code : `ok(${JSON.stringify(result).slice(0, 120)})`)
+const errorCode = (result) =>
+  result.kind === "error" ? result.error.code : `ok(${JSON.stringify(result).slice(0, 120)})`
 
 let scratchDir
 let socketPath
+// The thread tools take the gateway store from their caller, as the component passes its own.
+const stores = []
+// Part A's thread-tool state dir lives outside the scratch tree, so it is removed on its own.
+const liveStateDirectory = join(process.env.TMPDIR ?? "/tmp", `thread-qa-live-${STAMP}`)
+// Registered with the signal cleanup too: a SIGINT/SIGTERM run exits without reaching the `finally` below.
+trackCloser(() => rmSync(liveStateDirectory, { recursive: true, force: true }))
 try {
   const { createThreadTools } = await threadComponent("tools")
   const { createLiveThreadSurface, resolveThreadSocket } = await threadComponent("live-surface")
+  const { createGatewayStore } = await threadComponent("gateway/store")
+  const storeAt = (agentDir) => {
+    const store = createGatewayStore({ agentDir })
+    stores.push(store)
+    return store
+  }
 
   // ---------------------------------------------------------------- Part A: read-only live probe
   const defaultSocket = resolveThreadSocket(process.env)
   const liveTools = createThreadTools({
     host: createLiveThreadSurface({}, {}),
-    stateDirectory: join(process.env.TMPDIR ?? "/tmp", `thread-qa-live-${STAMP}`),
+    stateDirectory: liveStateDirectory,
+    store: storeAt(liveStateDirectory),
     callerSessionId: () => "unknown-caller",
     callerWorkspaceRoot: () => process.cwd(),
   })
@@ -166,6 +199,7 @@ try {
   const tools = createThreadTools({
     host: surface,
     stateDirectory: join(scratch.dir, "thread-state"),
+    store: storeAt(join(scratch.dir, "thread-state")),
     callerSessionId: () => callerId,
     callerWorkspaceRoot: () => scratch.cwd,
   })
@@ -210,12 +244,18 @@ try {
   record(
     5,
     "set-model-ambiguous",
-    ambiguous.kind === "error" && ambiguous.error.code === "model_ambiguous" && candidates.length >= 2 ? "pass" : "fail",
+    ambiguous.kind === "error" && ambiguous.error.code === "model_ambiguous" && candidates.length >= 2
+      ? "pass"
+      : "fail",
     `${errorCode(ambiguous)} candidates=${JSON.stringify(candidates)}`,
   )
 
   // 6. an unknown pattern names the available models instead of failing blind
-  const missing = await call(tools, "thread_set_model", { thread: threadA, model: "zzz-no-such-model", all_scope: true })
+  const missing = await call(tools, "thread_set_model", {
+    thread: threadA,
+    model: "zzz-no-such-model",
+    all_scope: true,
+  })
   const available = missing.kind === "error" ? (missing.error.details?.available ?? []) : []
   record(
     6,
@@ -225,11 +265,17 @@ try {
   )
 
   // 7. exact provider/id switches the thread and echoes the resolved model
-  const switched = await call(tools, "thread_set_model", { thread: threadA, model: "mock/mock-model-fast", all_scope: true })
+  const switched = await call(tools, "thread_set_model", {
+    thread: threadA,
+    model: "mock/mock-model-fast",
+    all_scope: true,
+  })
   record(
     7,
     "set-model-exact",
-    switched.kind === "ok" && switched.model.provider === "mock" && switched.model.id === "mock-model-fast" ? "pass" : "fail",
+    switched.kind === "ok" && switched.model.provider === "mock" && switched.model.id === "mock-model-fast"
+      ? "pass"
+      : "fail",
     switched.kind === "ok" ? JSON.stringify(switched.model) : errorCode(switched),
   )
 
@@ -237,19 +283,28 @@ try {
   // Turn scope is the VALIDATED path: the wire applies it to the active model immediately and
   // rejects a level that model cannot run. Session scope only records the remembered preference,
   // so it accepts levels the active model does not support - both steps below use turn scope.
-  const supported = await surface.getAvailableThinkingLevels(createdA.thread.sessionId ?? threadA).catch(() => undefined)
+  const supported = await surface
+    .getAvailableThinkingLevels(createdA.thread.sessionId ?? threadA)
+    .catch(() => undefined)
 
   // 8. a level the active model DOES support is accepted and echoed with its scope
   if (supported === undefined || supported.length === 0) {
     record(8, "set-reasoning-turn", "skip", "get_available_thinking_levels did not answer for this session")
   } else {
     const level = supported[0]
-    const turnScoped = await call(tools, "thread_set_reasoning", { thread: threadA, level, scope: "turn", all_scope: true })
+    const turnScoped = await call(tools, "thread_set_reasoning", {
+      thread: threadA,
+      level,
+      scope: "turn",
+      all_scope: true,
+    })
     record(
       8,
       "set-reasoning-turn",
       turnScoped.kind === "ok" && turnScoped.level === level && turnScoped.scope === "turn" ? "pass" : "fail",
-      turnScoped.kind === "ok" ? JSON.stringify({ level: turnScoped.level, scope: turnScoped.scope, host_supported: supported }) : `${errorCode(turnScoped)} host_supported=${JSON.stringify(supported)}`,
+      turnScoped.kind === "ok"
+        ? JSON.stringify({ level: turnScoped.level, scope: turnScoped.scope, host_supported: supported })
+        : `${errorCode(turnScoped)} host_supported=${JSON.stringify(supported)}`,
     )
   }
 
@@ -260,12 +315,21 @@ try {
   } else if (unsupported === undefined) {
     record(9, "set-reasoning-unsupported", "skip", `model supports all seven levels: ${JSON.stringify(supported)}`)
   } else {
-    const rejected = await call(tools, "thread_set_reasoning", { thread: threadA, level: unsupported, scope: "turn", all_scope: true })
+    const rejected = await call(tools, "thread_set_reasoning", {
+      thread: threadA,
+      level: unsupported,
+      scope: "turn",
+      all_scope: true,
+    })
     const detailSupported = rejected.kind === "error" ? (rejected.error.details?.supported ?? []) : []
     record(
       9,
       "set-reasoning-unsupported",
-      rejected.kind === "error" && rejected.error.code === "thinking_level_unsupported" && JSON.stringify(detailSupported) === JSON.stringify(supported) ? "pass" : "fail",
+      rejected.kind === "error" &&
+        rejected.error.code === "thinking_level_unsupported" &&
+        JSON.stringify(detailSupported) === JSON.stringify(supported)
+        ? "pass"
+        : "fail",
       `level=${unsupported} ${errorCode(rejected)} details.supported=${JSON.stringify(detailSupported)} host=${JSON.stringify(supported)}`,
     )
   }
@@ -288,10 +352,18 @@ try {
   report.assert("scenario-completed", false, error instanceof Error ? `${error.name}: ${error.message}` : String(error))
 } finally {
   // 12. teardown: host process, socket and scratch dir all gone
+  await Promise.all(stores.map((store) => store.dispose()))
   await cleanupAllAndWait()
+  rmSync(liveStateDirectory, { recursive: true, force: true })
   const cleanup = verifyCleanup(report, { scratchDir, socketPaths: socketPath === undefined ? [] : [socketPath] })
-  steps.push({ step: 12, name: "cleanup", status: cleanup.survivors.length === 0 && cleanup.holders.length === 0 && !cleanup.scratchLeft ? "pass" : "fail", detail: JSON.stringify(cleanup) })
-  if (cleanup.survivors.length === 0 && cleanup.holders.length === 0 && !cleanup.scratchLeft) report.log(`CLEANUP OK ${scratchDir ?? "(no scratch)"}`)
+  steps.push({
+    step: 12,
+    name: "cleanup",
+    status: cleanup.survivors.length === 0 && cleanup.holders.length === 0 && !cleanup.scratchLeft ? "pass" : "fail",
+    detail: JSON.stringify(cleanup),
+  })
+  if (cleanup.survivors.length === 0 && cleanup.holders.length === 0 && !cleanup.scratchLeft)
+    report.log(`CLEANUP OK ${scratchDir ?? "(no scratch)"}`)
 }
 
 const out = flag("--out")
@@ -299,7 +371,10 @@ report.write(out)
 const jsonOut = flag("--json")
 if (jsonOut !== undefined) {
   mkdirSync(join(jsonOut, ".."), { recursive: true })
-  writeFileSync(jsonOut, `${JSON.stringify({ scenario: "session-control", stamp: STAMP, failures: report.failures, skipped: report.skipped, steps }, null, 2)}\n`)
+  writeFileSync(
+    jsonOut,
+    `${JSON.stringify({ scenario: "session-control", stamp: STAMP, failures: report.failures, skipped: report.skipped, steps }, null, 2)}\n`,
+  )
 }
 report.log(`session-control failures=${report.failures} skipped=${report.skipped}`)
 process.exit(report.failures === 0 ? 0 : 1)

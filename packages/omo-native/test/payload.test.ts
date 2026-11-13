@@ -89,12 +89,19 @@ describe("build:omo-native staged payload", () => {
             join("runtime", "ast-grep-mcp", "cli.js"),
             join("runtime", "lsp-daemon", "dist", "cli.js"),
             join("runtime", "category-coverage", "index.js"),
+            join("runtime", "category-coverage", "assets.generated.json"),
+            join("runtime", "task-config", "index.js"),
             join("scripts", "install.mjs"),
             "package.json",
           ]
           for (const artifact of required) {
             expect(existsSync(join(outputDir, artifact))).toBe(true)
           }
+
+          // The doctor runtime and the computer-use extension read the same prelude assets (#9193).
+          expect(readFileSync(join(outputDir, "runtime", "category-coverage", "assets.generated.json"), "utf8")).toBe(
+            readFileSync(join(outputDir, "extensions", "assets.generated.json"), "utf8"),
+          )
 
           const manifest = JSON.parse(readFileSync(join(outputDir, "package.json"), "utf8")) as {
             name?: string
@@ -108,23 +115,17 @@ describe("build:omo-native staged payload", () => {
           const skillCount = readdirSync(join(outputDir, "skills"), {
             withFileTypes: true,
           }).filter(
-            (entry) =>
-              entry.isDirectory() && existsSync(join(outputDir, "skills", entry.name, "SKILL.md")),
+            (entry) => entry.isDirectory() && existsSync(join(outputDir, "skills", entry.name, "SKILL.md")),
           ).length
           expect(skillCount).toBeGreaterThanOrEqual(18)
 
           const files = listRelativeFiles(outputDir)
           expect(files.filter((file) => file.includes(".test."))).toEqual([])
           expect(files.filter((file) => file.split("/").includes("node_modules"))).toEqual([])
-          expect(files.filter((file) => file.startsWith("scripts/"))).toEqual([
-            "scripts/install.mjs",
-          ])
+          expect(files.filter((file) => file.startsWith("scripts/"))).toEqual(["scripts/install.mjs"])
 
           expect(
-            readFileSync(join(repoRoot, "packages", "omo-native", ".gitignore"), "utf8").replaceAll(
-              "\r\n",
-              "\n",
-            ),
+            readFileSync(join(repoRoot, "packages", "omo-native", ".gitignore"), "utf8").replaceAll("\r\n", "\n"),
           ).toBe("/plugin/\n")
 
           rmSync(join(outputDir, "extensions", "kibitzer-persona.md"))

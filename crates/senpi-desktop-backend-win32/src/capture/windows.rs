@@ -5,7 +5,7 @@
 use std::collections::HashSet;
 use std::ffi::c_void;
 
-use senpi_desktop_core::error::{CoreResult, DesktopError};
+use senpi_desktop_core::error::{CoreResult, DesktopError, ErrorCode};
 use senpi_desktop_core::types::{DesktopDisplay, DesktopWindow};
 use windows_sys::Win32::UI::WindowsAndMessaging::{GetWindowThreadProcessId, IsWindow};
 use xcap::Window;
@@ -47,6 +47,7 @@ pub(crate) fn enumerate(displays: &[DesktopDisplay], own: IntegrityRid) -> CoreR
         }
         let pid = process_id(id);
         result.push(DesktopWindow {
+            identity: None,
             id: id.to_string(),
             title,
             app,
@@ -56,6 +57,7 @@ pub(crate) fn enumerate(displays: &[DesktopDisplay], own: IntegrityRid) -> CoreR
             width,
             height,
             focused: window.is_focused().unwrap_or(false),
+            is_on_screen: None,
             elevated: pid.and_then(|pid| process_elevated(pid, own)),
         });
     }
@@ -80,6 +82,27 @@ pub(crate) fn find_native(id: &str) -> CoreResult<Window> {
         .into_iter()
         .find(|window| window.id().ok() == Some(hwnd))
         .ok_or_else(not_found)
+}
+
+/// Foreground geometry without the listed-window count or size filters.
+pub(crate) fn focused() -> CoreResult<Option<DesktopWindow>> {
+    let Some((id, pid)) = crate::input::foreground_window_id() else { return Ok(None) };
+    let window = match find_native(&id) {
+        Ok(window) => window,
+        Err(error) if error.code == ErrorCode::WindowNotFound => return Ok(None),
+        Err(error) => return Err(error),
+    };
+    let (Ok(x), Ok(y), Ok(width), Ok(height)) =
+        (window.x(), window.y(), window.width(), window.height())
+    else {
+        return Ok(None);
+    };
+    Ok(Some(DesktopWindow {
+        identity: None,
+        id, pid, x, y, width, height,
+        title: String::new(), app: String::new(), focused: true,
+        is_on_screen: None, elevated: None,
+    }))
 }
 
 /// xcap's window id is the HWND value; HWNDs are 32-bit significant on every

@@ -1,4 +1,5 @@
 import type { HostSessionIdentity, TaskRecord } from "../../state"
+import { NO_HOST_ENDPOINT } from "../host-session"
 import type { LifecycleDeps, ResidentHandle } from "../port"
 import type { TaskRecordStore } from "../../store"
 import { FakeRegistry, settings, type CallLog } from "./lifecycle-fakes"
@@ -81,6 +82,8 @@ export type HostLifecycleFixture = {
   readonly daemon: FakeDaemon
   readonly waits: number[]
   readonly respawned: Array<{ readonly task_id: string; readonly sessionPath: string | undefined }>
+  /** The probe wired into `deps`, so a test can override one method and keep the rest. */
+  readonly hostSessionProbe: NonNullable<LifecycleDeps["hostSessionProbe"]>
 }
 
 export type HostLifecycleInput = {
@@ -92,6 +95,11 @@ export type HostLifecycleInput = {
   readonly respawn?: LifecycleDeps["respawn"]
   readonly config?: Record<string, unknown>
   readonly maxDrainAttempts?: number
+  readonly deferredRetryBackoffMs?: readonly number[]
+  /** Runs inside every recorded wait, so a test can move the daemon between retries. */
+  readonly onWait?: (ms: number) => void
+  /** Holds each retry wait until the returned promise settles; tests use it to act between attempts. */
+  readonly gateWait?: (ms: number) => Promise<void>
 }
 
 /** Lifecycle deps wired to a fake daemon, a recorded signaller, and a recorded (never real) wait. */
@@ -107,7 +115,15 @@ export function hostLifecycleDeps(input: HostLifecycleInput): HostLifecycleFixtu
       ? { ok: false, disposition: "retryable", code: "respawn_failed", reason: "no respawn port" }
       : await input.respawn(record, sessionPath)
   }
+  const hostSessionProbe: HostLifecycleFixture["hostSessionProbe"] = {
+    daemonAlive: (identity) => daemon.daemonReachable(identity.socket),
+    sessionLive: async (identity) => (await daemon.liveSessionPaths(identity.socket)).includes(identity.session_path),
+    sessionLiveness: async (identity) =>
+      (await daemon.liveSessionPaths(identity.socket)).includes(identity.session_path) ? "live" : "gone",
+    refresh: () => undefined,
+  }
   const deps: LifecycleDeps = {
+    hostEndpoint: NO_HOST_ENDPOINT,
     store: input.store,
     registry,
     config: settings({ ttl_ms: 1_000, resident_idle_timeout_ms: 60_000, ...input.config }),
@@ -122,24 +138,21 @@ export function hostLifecycleDeps(input: HostLifecycleInput): HostLifecycleFixtu
     },
     respawn,
     reattach: () => Promise.resolve({ ok: true }),
-    hostSessionProbe: {
-      daemonAlive: (identity) => daemon.daemonReachable(identity.socket),
-      sessionLive: async (identity) =>
-        (await daemon.liveSessionPaths(identity.socket)).includes(identity.session_path),
-      refresh: () => undefined,
-    },
+    hostSessionProbe,
     hostSessionClose: (request) => daemon.close(request),
     hostRetry: {
       maxDrainAttempts: input.maxDrainAttempts ?? 10,
       defaultRetryAfterMs: 2_000,
       daemonLossBackoffMs: [1_000, 4_000, 16_000],
+      deferredRetryBackoffMs: input.deferredRetryBackoffMs ?? [],
       wait: (ms) => {
         waits.push(ms)
-        return Promise.resolve()
+        input.onWait?.(ms)
+        return input.gateWait?.(ms) ?? Promise.resolve()
       },
     },
   }
-  return { deps, registry, daemon, waits, respawned }
+  return { deps, registry, daemon, waits, respawned, hostSessionProbe }
 }
 
 export function hostSessionRecordInput(taskId: string, identity: HostSessionIdentity) {
