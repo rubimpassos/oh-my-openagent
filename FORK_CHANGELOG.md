@@ -26,6 +26,12 @@ To release: add a `## [<version>] - YYYY-MM-DD` section here on `main` (with the
 - Codex cleanup does not attempt to prune `/runtime` when its configured home resolves to a filesystem root.
 - Goal continuation tests clean up their temporary project directories, as required by the current upstream isolation checks.
 
+### Validation and known limitations
+
+- The functional V2 port passed 687 focused regressions, complete build/typecheck and real isolated OpenCode tool/hook execution. Codex unit and live-hook checks also passed.
+- The complete Senpi run observed 8408 pass, 8 skip and 10 fail. Five migration-fixture failures were corrected without changing assertions; the predecessor and complete startup test scope then passed 29 tests. The other five failures reproduce unchanged on pinned upstream in this hardened VPS. No aggregate post-fix full-suite result is claimed, and neither the full Senpi gate nor the global upstream suite is green.
+- In nested user namespaces without root attestation, upstream Senpi reflection/memory can refuse execution with `trust-userns-unattested`. With restricted process visibility, some local telemetry queues can remain when owner identity cannot be verified. Security protections and failing assertions were not relaxed for this release.
+
 ## [5.0.1-fork.13] - 2026-10-31
 
 ### Fixes
