@@ -14,9 +14,11 @@ describe("opencode-server-auth", () => {
 
   beforeEach(async () => {
     originalEnv = {
+      OPENCODE_PASSWORD: process.env.OPENCODE_PASSWORD,
       OPENCODE_SERVER_PASSWORD: process.env.OPENCODE_SERVER_PASSWORD,
       OPENCODE_SERVER_USERNAME: process.env.OPENCODE_SERVER_USERNAME,
     }
+    delete process.env.OPENCODE_PASSWORD
     ;({ getServerBasicAuthHeader, injectServerAuthIntoClient } = await importFreshOpencodeServerAuthModule())
   })
 
@@ -54,6 +56,31 @@ describe("opencode-server-auth", () => {
     const result = getServerBasicAuthHeader()
 
     expect(result).toBe("Basic ZGFuOnNlY3JldA==")
+  })
+
+  test("#given a V2 password #when building auth header #then authenticates as opencode", () => {
+    // given
+    process.env.OPENCODE_PASSWORD = "v2-test-password"
+    delete process.env.OPENCODE_SERVER_PASSWORD
+    process.env.OPENCODE_SERVER_USERNAME = "legacy-user"
+
+    // when
+    const result = getServerBasicAuthHeader()
+
+    // then
+    expect(result).toBe(`Basic ${Buffer.from("opencode:v2-test-password").toString("base64")}`)
+  })
+
+  test("#given both password variables #when building auth header #then V2 credentials take precedence", () => {
+    // given
+    process.env.OPENCODE_PASSWORD = "v2-test-password"
+    process.env.OPENCODE_SERVER_PASSWORD = "legacy-test-password"
+
+    // when
+    const result = getServerBasicAuthHeader()
+
+    // then
+    expect(result).toBe(`Basic ${Buffer.from("opencode:v2-test-password").toString("base64")}`)
   })
 
   test("#given server password #when injecting into client #then updates client headers", () => {
