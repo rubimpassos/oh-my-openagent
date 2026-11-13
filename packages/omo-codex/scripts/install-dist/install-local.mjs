@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// omo-codex-install:7b5f0e80829fb070bb331cf6119fa1f5ccf7f2ebce7bc8ece18e008525df3e4d:1c0b63eacee6ef99d1b0b4c1713231cd6a3509c2793a429ed1689c7dff1fe18b
+// omo-codex-install:5b40a6c9d9e7f3b7caf9cf56b222d17c2779f5299b703066d6f8012fd217e6dd:7972074cef9f0cd8326e0e79c631e3081ef2890484b41555c6a1ee1a77b3747e
 var __esm = (fn, res, err) => () => {
   if (fn)
     try {
@@ -21802,6 +21802,9 @@ function resolveHomeDir(env = process.env) {
   return homeDir.startsWith("/") ? posix.resolve(homeDir) : toPosixPath2(resolve7(homeDir));
 }
 function resolveUserOmoConfigDirectory(env = process.env) {
+  const override = env.OMO_CONFIG_DIR?.trim();
+  if (override)
+    return override.startsWith("/") ? posix.resolve(override) : toPosixPath2(resolve7(override));
   return join19(resolveHomeDir(env), ".omo");
 }
 function detectUserOmoJsonPath(env, fileSystem) {

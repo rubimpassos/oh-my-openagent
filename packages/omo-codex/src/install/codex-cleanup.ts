@@ -192,6 +192,7 @@ async function attemptRemove(path: string): Promise<boolean> {
 // empty: rmdir is non-recursive, so a runtime dir holding any other owner's
 // content stays untouched.
 async function pruneEmptyRuntimeDirBestEffort(codexHome: string): Promise<void> {
+  if (codexHomeResolvesToFilesystemRoot(codexHome)) return
   try {
     await rmdir(join(codexHome, "runtime"))
   } catch (error) {
