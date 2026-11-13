@@ -52,7 +52,7 @@ describe("config-startup migration gate", () => {
         argv,
         loadConfig: () => ({ config: {}, diagnostics: [], layers: [], sources: [] }),
         resolveCwd: () => home,
-        runMigration: ({ cwd }) => runSenpiStartupMigration({ cwd, environment, homeDir: home }),
+        runMigration: ({ cwd }) => runSenpiStartupMigration({ cwd, env: environment, environment, homeDir: home }),
       })
 
       // when
