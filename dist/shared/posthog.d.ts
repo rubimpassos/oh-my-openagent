@@ -13,7 +13,8 @@ export declare function __resetTransportFactoryForTesting(): void;
 export type PostHogSource = "cli" | "plugin";
 export type PostHogActivityReason = "run_started" | "plugin_loaded";
 export type PostHogClient = {
-    readonly trackActive: (distinctId: string, reason: PostHogActivityReason) => void;
+    readonly trackActive: (reason: PostHogActivityReason) => void;
+    readonly flush: () => Promise<void>;
     readonly shutdown: () => Promise<void>;
 };
 type CreatePostHogOptions = {
@@ -23,7 +24,6 @@ type RecordPluginTelemetryInput = {
     readonly configEnabled?: boolean;
 };
 export declare function shouldDisablePostHog(env: TelemetryEnv, configEnabled: boolean | undefined): boolean;
-export declare function getPostHogDistinctId(): string;
 export declare function createCliPostHog(options?: CreatePostHogOptions): PostHogClient;
 export declare function createPluginPostHog(options?: CreatePostHogOptions): PostHogClient;
 export declare function recordPluginTelemetry(input: RecordPluginTelemetryInput): void;

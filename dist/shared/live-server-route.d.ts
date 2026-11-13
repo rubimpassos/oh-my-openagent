@@ -1,5 +1,3 @@
-export declare const LIVE_ROUTE_DISPATCH_LOG = "[live-server-route] dispatch via live listener";
-export declare const LIVE_ROUTE_UNAVAILABLE_LOG = "[live-server-route] route unavailable; using in-process client";
 type RouteResult = {
     client: unknown;
     route: "live" | "in-process";

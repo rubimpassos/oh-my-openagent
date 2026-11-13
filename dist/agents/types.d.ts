@@ -1,6 +1,6 @@
 import type { AgentConfig } from "@opencode-ai/sdk";
-import { isClaudeFable5Model, isClaudeFableOrMythosModel, isClaudeOpus46Model, isClaudeOpus47Model, isClaudeOpus47OrLaterModel, isClaudeOpus48Model, isClaudeOpus5Model, isGeminiModel, isGlmModel, isGptModel, isGrok45Model, isGrok46Model, isKimiK2CodeModel, isKimiK2Model, isKimiK27Model, isKimiK28Model, isKimiK3Model, isMiniMaxModel } from "@oh-my-opencode/model-core";
-export { isClaudeFable5Model, isClaudeFableOrMythosModel, isClaudeOpus46Model, isClaudeOpus47Model, isClaudeOpus47OrLaterModel, isClaudeOpus48Model, isClaudeOpus5Model, isGeminiModel, isGlmModel, isGptModel, isGrok45Model, isGrok46Model, isKimiK2CodeModel, isKimiK2Model, isKimiK27Model, isKimiK28Model, isKimiK3Model, isMiniMaxModel, };
+import { isClaudeFableOrMythosModel, isClaudeOpus46Model, isClaudeOpus47OrLaterModel, isGeminiModel, isGlmModel, isGptModel, isGrok45Model, isGrok46Model, isKimiK2CodeModel, isKimiK2Model, isKimiK27Model, isKimiK28Model, isKimiK3Model, isMiniMaxModel } from "@oh-my-opencode/model-core";
+export { isClaudeFableOrMythosModel, isClaudeOpus46Model, isClaudeOpus47OrLaterModel, isGeminiModel, isGlmModel, isGptModel, isGrok45Model, isGrok46Model, isKimiK2CodeModel, isKimiK2Model, isKimiK27Model, isKimiK28Model, isKimiK3Model, isMiniMaxModel, };
 /**
  * Anthropic Opus 4.7+, Fable, and Mythos models reject thinking.type "enabled";
  * they require adaptive thinking plus an effort, which OpenCode core derives from

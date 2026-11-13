@@ -1,9 +1,12 @@
+import { getNativePromptSource } from "../native-model-prompt";
+export declare const getAtlasPromptSource: typeof getNativePromptSource;
+export type AtlasPromptSource = ReturnType<typeof getNativePromptSource>;
 /**
  * Atlas - Master Orchestrator Agent
  *
  * Orchestrates work via task() to complete ALL tasks in a todo list until fully done.
  *
- * Prompt routing (`getAtlasPromptSource`, evaluated by prompts-core variant order):
+ * Prompt routing (`getAtlasRoleSource`, evaluated by prompts-core variant order):
  * 1. Claude Opus 4.7       → opus-4-7.md   (literal-following + explicit fan-out push)
  * 2. GPT family            → gpt.md        (shared GPT-family calibration)
  * 3. Gemini family         → gemini.md
@@ -18,8 +21,6 @@ import type { AgentMode, AgentPromptMetadata } from "../types";
 import type { AvailableAgent, AvailableSkill } from "../dynamic-agent-prompt-builder";
 import type { CategoryConfig } from "../../config/schema";
 declare const MODE: AgentMode;
-export type AtlasPromptSource = "default" | "gpt" | "gemini" | "kimi" | "kimi-k3" | "kimi-k2-7" | "opus-4-7" | "glm";
-export declare function getAtlasPromptSource(model?: string): AtlasPromptSource;
 export interface OrchestratorContext {
     model?: string;
     availableAgents?: AvailableAgent[];

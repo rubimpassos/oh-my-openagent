@@ -7,5 +7,5 @@ interface RunLookAtSessionInput {
     goal: string;
     inputParts: LookAtInputPart[];
 }
-export declare function runLookAtSession({ ctx, toolContext, goal, inputParts, }: RunLookAtSessionInput): Promise<string>;
+export declare function runLookAtSession({ ctx, toolContext, goal, inputParts }: RunLookAtSessionInput): Promise<string>;
 export {};

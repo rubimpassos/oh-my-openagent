@@ -1,5 +1,6 @@
 import type { PluginInput } from "@opencode-ai/plugin";
-import type { AtlasHookOptions, SessionState } from "./types";
+import type { AtlasHookOptions, AtlasRetryScheduler, SessionState } from "./types";
+export declare const scheduleRetryWithTimer: AtlasRetryScheduler;
 export declare function hasRunningBackgroundTasks(sessionID: string, options?: AtlasHookOptions): boolean;
 export declare function injectContinuation(input: {
     ctx: PluginInput;

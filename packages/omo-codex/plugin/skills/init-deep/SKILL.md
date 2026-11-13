@@ -22,7 +22,7 @@ Codex exposes ONE of two subagent tool surfaces per session; check your own tool
 
 When translating `load_skills=[...]`, include the requested skill names in the spawned agent's `message`. If a code block below conflicts with this section, this section wins.
 
-Omit optional keys you do not set. Never send `items: []`, `message: ""`, `model: ""`, `reasoning_effort: ""`, or `service_tier: ""` — Codex rejects them (`Items can't be empty`, `reasoning_effort must not be empty`).
+Omit optional keys you do not set. Never send `items: []`, `message: ""`, `model: ""`, `reasoning_effort: ""`, or `service_tier: ""`. Codex rejects them (`Items can't be empty`, `reasoning_effort must not be empty`).
 
 For work likely to exceed one wait cycle, require the child to send `WORKING: <task> - <current phase>` before long passes and `BLOCKED: <reason>` only when progress stops. A `multi_agent_v1.wait_agent` timeout only means no new mailbox update arrived; back off between waits (double the timeout up to ~5 minutes) instead of spinning short cycles. Treat a running child as alive. Fallback only when the child is completed without the deliverable, ack-only after followup, explicitly `BLOCKED:`, or no longer running.
 
@@ -195,7 +195,7 @@ for each background task ID (`bg_...`): background_output(task_id="bg_...")
 ```
 AGENTS_LOCATIONS = [
   { path: ".", type: "root" },
-  { path: "src/hooks", score: 18, reason: "high complexity" },
+  { path: "src/hooks", score: 16, reason: "high complexity" },
   { path: "src/api", score: 12, reason: "distinct domain" }
 ]
 ```

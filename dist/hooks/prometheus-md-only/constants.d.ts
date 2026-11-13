@@ -3,6 +3,8 @@ export declare const PROMETHEUS_AGENT = "prometheus";
 export declare const ALLOWED_EXTENSIONS: string[];
 export declare const ALLOWED_PATH_PREFIX = ".omo";
 export declare const BLOCKED_TOOLS: string[];
+/** opencode swaps edit/write for apply_patch on gpt-* models; its paths live in the patch body (omo#11367). */
+export declare const PATCH_TOOLS: string[];
 /**
  * XML-tag wrapper used to mark the planning-context boundary in prompts
  * forwarded to external LLMs via task(). This format intentionally avoids

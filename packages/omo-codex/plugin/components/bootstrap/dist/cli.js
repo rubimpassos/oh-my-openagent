@@ -1,18 +1,4 @@
 #!/usr/bin/env node
-var __defProp = Object.defineProperty;
-var __returnValue = (v) => v;
-function __exportSetter(name, newValue) {
-  this[name] = __returnValue.bind(null, newValue);
-}
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, {
-      get: all[name],
-      enumerable: true,
-      configurable: true,
-      set: __exportSetter.bind(all, name)
-    });
-};
 
 // components/bootstrap/src/cli.ts
 import { realpathSync as realpathSync2 } from "node:fs";
@@ -359,7 +345,10 @@ async function bootstrapLocks(options) {
   };
 }
 function scanMarketplaceSource(configToml, marketplaceName) {
-  const expectedHeaders = new Set([`marketplaces.${marketplaceName}`, `marketplaces.${JSON.stringify(marketplaceName)}`]);
+  const expectedHeaders = new Set([
+    `marketplaces.${marketplaceName}`,
+    `marketplaces.${JSON.stringify(marketplaceName)}`
+  ]);
   let inMarketplaceSection = false;
   for (const line of configToml.split(`
 `)) {
@@ -452,9 +441,9 @@ async function readOptionalFile(path) {
 }
 
 // components/bootstrap/src/worker.ts
-import { appendFile as appendFile2, mkdir as mkdir8, readFile as readFile15 } from "node:fs/promises";
+import { appendFile as appendFile2, mkdir as mkdir8, readFile as readFile17 } from "node:fs/promises";
 import { homedir as homedir5 } from "node:os";
-import { dirname as dirname10, join as join24, resolve as resolve8 } from "node:path";
+import { dirname as dirname10, join as join25, resolve as resolve8 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 
 // components/bootstrap/src/provision.ts
@@ -724,7 +713,7 @@ function extractStandaloneSgBinary(zip, platform) {
   const entries = listZipEntries(zip);
   const preferredNames = [`ast-grep${suffix}`, `sg${suffix}`];
   for (const preferred of preferredNames) {
-    const entry = entries.find((candidate2) => zipEntryBaseName(candidate2.name) === preferred);
+    const entry = entries.find((candidate) => zipEntryBaseName(candidate.name) === preferred);
     if (entry !== undefined)
       return readZipEntryBytes(zip, entry);
   }
@@ -843,7 +832,7 @@ function cacheFingerprint(options, plan) {
   return JSON.stringify([
     options.platform ?? process.platform,
     options.arch ?? process.arch,
-    plan.beforePath.map((candidate2) => candidate2.path)
+    plan.beforePath.map((candidate) => candidate.path)
   ]);
 }
 function defaultFileExists(filePath) {
@@ -860,7 +849,8 @@ function defaultVersionProbe(binaryPath) {
   return String(execFileSync(binaryPath, ["--version"], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "ignore"],
-    timeout: SG_VERSION_PROBE_TIMEOUT_MS
+    timeout: SG_VERSION_PROBE_TIMEOUT_MS,
+    windowsHide: true
   }));
 }
 function probePasses(binaryPath, deps) {
@@ -874,9 +864,9 @@ function acceptsCandidate(binaryPath, deps) {
   return deps.fileExists(binaryPath) && probePasses(binaryPath, deps);
 }
 function firstAccepted(candidates, deps) {
-  for (const candidate2 of candidates) {
-    if (acceptsCandidate(candidate2.path, deps))
-      return { found: true, path: candidate2.path, tier: candidate2.tier };
+  for (const candidate of candidates) {
+    if (acceptsCandidate(candidate.path, deps))
+      return { found: true, path: candidate.path, tier: candidate.tier };
   }
   return null;
 }
@@ -1014,102 +1004,10 @@ async function defaultVersionProbe2(binaryPath) {
 }
 
 // components/bootstrap/src/setup.ts
-import { copyFile as copyFile2, mkdir as mkdir7, readFile as readFile14, readdir as readdir5, rm as rm11, stat as stat5 } from "node:fs/promises";
-import { join as join23 } from "node:path";
+import { copyFile as copyFile2, mkdir as mkdir7, readFile as readFile16, readdir as readdir5, rm as rm12, stat as stat5 } from "node:fs/promises";
+import { join as join24 } from "node:path";
 
-// ../../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/core/util.js
-var exports_util = {};
-__export(exports_util, {
-  unwrapMessage: () => unwrapMessage,
-  uint8ArrayToHex: () => uint8ArrayToHex,
-  uint8ArrayToBase64url: () => uint8ArrayToBase64url,
-  uint8ArrayToBase64: () => uint8ArrayToBase64,
-  toZod: () => toZod,
-  stringifyPrimitive: () => stringifyPrimitive,
-  slugify: () => slugify,
-  shallowClone: () => shallowClone,
-  safeExtend: () => safeExtend,
-  required: () => required,
-  rawShape: () => rawShape,
-  randomString: () => randomString,
-  propertyKeyTypes: () => propertyKeyTypes,
-  promiseAllObject: () => promiseAllObject,
-  primitiveTypes: () => primitiveTypes,
-  prefixIssues: () => prefixIssues,
-  pick: () => pick,
-  partial: () => partial,
-  parsedType: () => parsedType,
-  own: () => own,
-  optionalKeys: () => optionalKeys,
-  omit: () => omit,
-  objectClone: () => objectClone,
-  numKeys: () => numKeys,
-  nullish: () => nullish,
-  normalizeParams: () => normalizeParams,
-  mergeDefs: () => mergeDefs,
-  merge: () => merge,
-  members: () => members,
-  jsonStringifyReplacer: () => jsonStringifyReplacer,
-  joinValues: () => joinValues,
-  issue: () => issue,
-  isPlainObject: () => isPlainObject,
-  isObject: () => isObject,
-  installLazyProp: () => installLazyProp,
-  hide: () => hide,
-  hexToUint8Array: () => hexToUint8Array,
-  getSizableOrigin: () => getSizableOrigin,
-  getParsedType: () => getParsedType,
-  getLengthableOrigin: () => getLengthableOrigin,
-  getEnumValues: () => getEnumValues,
-  getElementAtPath: () => getElementAtPath,
-  floatSafeRemainder: () => floatSafeRemainder,
-  finalizeIssue: () => finalizeIssue,
-  extend: () => extend,
-  explicitlyAborted: () => explicitlyAborted,
-  escapeRegex: () => escapeRegex,
-  esc: () => esc,
-  derived: () => derived,
-  defineLazyInternal: () => defineLazyInternal,
-  defineLazy: () => defineLazy,
-  createTransparentProxy: () => createTransparentProxy,
-  constantCatch: () => constantCatch,
-  codePointLength: () => codePointLength,
-  cloneDef: () => cloneDef,
-  clone: () => clone,
-  cleanRegex: () => cleanRegex,
-  cleanEnum: () => cleanEnum,
-  captureStackTrace: () => captureStackTrace,
-  cached: () => cached,
-  base64urlToUint8Array: () => base64urlToUint8Array,
-  base64ToUint8Array: () => base64ToUint8Array,
-  attachSchema: () => attachSchema,
-  assignProp: () => assignProp,
-  assertNotEqual: () => assertNotEqual,
-  assertNever: () => assertNever,
-  assertIs: () => assertIs,
-  assertEqual: () => assertEqual,
-  assert: () => assert,
-  allowsEval: () => allowsEval,
-  aborted: () => aborted,
-  NUMBER_FORMAT_RANGES: () => NUMBER_FORMAT_RANGES,
-  Class: () => Class,
-  CONSTANT_CATCH: () => CONSTANT_CATCH,
-  BIGINT_FORMAT_RANGES: () => BIGINT_FORMAT_RANGES
-});
-function assertEqual(val) {
-  return val;
-}
-function assertNotEqual(val) {
-  return val;
-}
-function toZod() {
-  return (schema) => schema;
-}
-function assertIs(_arg) {}
-function assertNever(_x) {
-  throw new Error("Unexpected value in exhaustive check");
-}
-function assert(_) {}
+// ../../../node_modules/.bun/zod@4.6.7/node_modules/zod/v4/core/util.js
 function getEnumValues(entries) {
   const numericValues = Object.values(entries).filter((v) => typeof v === "number");
   const values = Object.entries(entries).filter(([k, _]) => numericValues.indexOf(+k) === -1).map(([_, v]) => v);
@@ -1156,31 +1054,6 @@ function floatSafeRemainder(val, step) {
   if (Math.abs(ratio - roundedRatio) < tolerance)
     return 0;
   return ratio - roundedRatio;
-}
-var EVALUATING = /* @__PURE__ */ Symbol("evaluating");
-function defineLazy(object, key, getter) {
-  let value = undefined;
-  Object.defineProperty(object, key, {
-    get() {
-      if (value === EVALUATING) {
-        return;
-      }
-      if (value === undefined) {
-        value = EVALUATING;
-        value = getter();
-      }
-      return value;
-    },
-    set(v) {
-      Object.defineProperty(object, key, {
-        value: v
-      });
-    },
-    configurable: true
-  });
-}
-function objectClone(obj) {
-  return Object.create(Object.getPrototypeOf(obj), Object.getOwnPropertyDescriptors(obj));
 }
 function assignProp(target, prop, value) {
   Object.defineProperty(target, prop, {
@@ -1248,33 +1121,6 @@ function mergeDefs(...defs) {
   }
   return Object.defineProperties({}, mergedDescriptors);
 }
-function cloneDef(schema) {
-  return mergeDefs(schema._zod.def);
-}
-function getElementAtPath(obj, path) {
-  if (!path)
-    return obj;
-  return path.reduce((acc, key) => acc?.[key], obj);
-}
-function promiseAllObject(promisesObj) {
-  const keys = Object.keys(promisesObj);
-  const promises = keys.map((key) => promisesObj[key]);
-  return Promise.all(promises).then((results) => {
-    const resolvedObj = {};
-    for (let i = 0;i < keys.length; i++) {
-      resolvedObj[keys[i]] = results[i];
-    }
-    return resolvedObj;
-  });
-}
-function randomString(length = 10) {
-  const chars = "abcdefghijklmnopqrstuvwxyz";
-  let str = "";
-  for (let i = 0;i < length; i++) {
-    str += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return str;
-}
 function esc(str) {
   return JSON.stringify(str);
 }
@@ -1327,68 +1173,7 @@ function shallowClone(o) {
     return new Set(o);
   return o;
 }
-function numKeys(data) {
-  let keyCount = 0;
-  for (const key in data) {
-    if (Object.prototype.hasOwnProperty.call(data, key)) {
-      keyCount++;
-    }
-  }
-  return keyCount;
-}
-var getParsedType = (data) => {
-  const t = typeof data;
-  switch (t) {
-    case "undefined":
-      return "undefined";
-    case "string":
-      return "string";
-    case "number":
-      return Number.isNaN(data) ? "nan" : "number";
-    case "boolean":
-      return "boolean";
-    case "function":
-      return "function";
-    case "bigint":
-      return "bigint";
-    case "symbol":
-      return "symbol";
-    case "object":
-      if (Array.isArray(data)) {
-        return "array";
-      }
-      if (data === null) {
-        return "null";
-      }
-      if (data.then && typeof data.then === "function" && data.catch && typeof data.catch === "function") {
-        return "promise";
-      }
-      if (typeof Map !== "undefined" && data instanceof Map) {
-        return "map";
-      }
-      if (typeof Set !== "undefined" && data instanceof Set) {
-        return "set";
-      }
-      if (typeof Date !== "undefined" && data instanceof Date) {
-        return "date";
-      }
-      if (typeof File !== "undefined" && data instanceof File) {
-        return "file";
-      }
-      return "object";
-    default:
-      throw new Error(`Unknown data type: ${t}`);
-  }
-};
 var propertyKeyTypes = /* @__PURE__ */ new Set(["string", "number", "symbol"]);
-var primitiveTypes = /* @__PURE__ */ new Set([
-  "string",
-  "number",
-  "bigint",
-  "boolean",
-  "symbol",
-  "undefined"
-]);
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -1413,39 +1198,6 @@ function normalizeParams(_params) {
   if (typeof params.error === "string")
     return { ...params, error: () => params.error };
   return params;
-}
-function createTransparentProxy(getter) {
-  let target;
-  return new Proxy({}, {
-    get(_, prop, receiver) {
-      target ?? (target = getter());
-      return Reflect.get(target, prop, receiver);
-    },
-    set(_, prop, value, receiver) {
-      target ?? (target = getter());
-      return Reflect.set(target, prop, value, receiver);
-    },
-    has(_, prop) {
-      target ?? (target = getter());
-      return Reflect.has(target, prop);
-    },
-    deleteProperty(_, prop) {
-      target ?? (target = getter());
-      return Reflect.deleteProperty(target, prop);
-    },
-    ownKeys(_) {
-      target ?? (target = getter());
-      return Reflect.ownKeys(target);
-    },
-    getOwnPropertyDescriptor(_, prop) {
-      target ?? (target = getter());
-      return Reflect.getOwnPropertyDescriptor(target, prop);
-    },
-    defineProperty(_, prop, descriptor) {
-      target ?? (target = getter());
-      return Reflect.defineProperty(target, prop, descriptor);
-    }
-  });
 }
 function stringifyPrimitive(value) {
   if (typeof value === "bigint")
@@ -1601,6 +1353,18 @@ function prefixIssues(path, issues) {
 function unwrapMessage(message) {
   return typeof message === "string" ? message : message?.message;
 }
+function sizeCaps(defChecks) {
+  const caps = [];
+  for (const ch of defChecks ?? []) {
+    const d = ch._zod.def;
+    if (!/_(length|size)$|_equals$/.test(d.check))
+      break;
+    const max = d.maximum ?? d.length ?? d.size;
+    if (max >= 0)
+      caps.push([max, ch]);
+  }
+  return caps;
+}
 function attachSchema(issues, start, inst) {
   var _a;
   for (let i = start;i < issues.length; i++) {
@@ -1630,15 +1394,6 @@ function finalizeIssue(iss, ctx, config) {
     full.input = iss.input;
   }
   return full;
-}
-function getSizableOrigin(input) {
-  if (input instanceof Set)
-    return "set";
-  if (input instanceof Map)
-    return "map";
-  if (input instanceof File)
-    return "file";
-  return "unknown";
 }
 var highSurrogate = /[\uD800-\uDBFF]/;
 function codePointLength(str) {
@@ -1693,52 +1448,6 @@ function issue(...args) {
     };
   }
   return { ...iss };
-}
-function cleanEnum(obj) {
-  return Object.entries(obj).filter(([k, _]) => {
-    return Number.isNaN(Number.parseInt(k, 10));
-  }).map((el) => el[1]);
-}
-function base64ToUint8Array(base64) {
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0;i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
-}
-function uint8ArrayToBase64(bytes) {
-  let binaryString = "";
-  for (let i = 0;i < bytes.length; i++) {
-    binaryString += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binaryString);
-}
-function base64urlToUint8Array(base64url) {
-  const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
-  const padding = "=".repeat((4 - base64.length % 4) % 4);
-  return base64ToUint8Array(base64 + padding);
-}
-function uint8ArrayToBase64url(bytes) {
-  return uint8ArrayToBase64(bytes).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-}
-function hexToUint8Array(hex) {
-  const cleanHex = hex.replace(/^0x/, "");
-  if (cleanHex.length % 2 !== 0) {
-    throw new Error("Invalid hex string length");
-  }
-  const bytes = new Uint8Array(cleanHex.length / 2);
-  for (let i = 0;i < cleanHex.length; i += 2) {
-    bytes[i / 2] = Number.parseInt(cleanHex.slice(i, i + 2), 16);
-  }
-  return bytes;
-}
-function uint8ArrayToHex(bytes) {
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-class Class {
-  constructor(..._args) {}
 }
 function members(proto, table) {
   for (const key in table) {
@@ -1853,7 +1562,7 @@ function constantCatch(value) {
   return fn;
 }
 
-// ../../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/core/core.js
+// ../../../node_modules/.bun/zod@4.6.7/node_modules/zod/v4/core/core.js
 var _a;
 var _zodDesc = { value: undefined, enumerable: false };
 var _E = "captureStackTrace" in Error ? Error : null;
@@ -1901,23 +1610,23 @@ function $constructor(name, initializer, proto, params) {
     inst._zod.traits.add(name);
     initializer(inst, def);
     if (initialized) {
-      const own2 = Object.getPrototypeOf(inst);
+      const own = Object.getPrototypeOf(inst);
       const ctorProto = inst._zod.constr.prototype;
-      let up = own2;
+      let up = own;
       while (up && up !== ctorProto)
         up = Object.getPrototypeOf(up);
-      const target = up ?? own2;
+      const target = up ?? own;
       if (!initialized.has(target)) {
         initialized.add(target);
         members(target, protoMembers);
       }
     }
-    const proto2 = _.prototype;
-    for (const k in proto2) {
-      if (!Object.prototype.hasOwnProperty.call(proto2, k))
+    const proto = _.prototype;
+    for (const k in proto) {
+      if (!Object.prototype.hasOwnProperty.call(proto, k))
         continue;
       if (!(k in inst)) {
-        inst[k] = proto2[k].bind(inst);
+        inst[k] = proto[k].bind(inst);
       }
     }
   }
@@ -1971,7 +1680,7 @@ function config(newConfig) {
     Object.assign(globalConfig, newConfig);
   return globalConfig;
 }
-// ../../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/core/errors.js
+// ../../../node_modules/.bun/zod@4.6.7/node_modules/zod/v4/core/errors.js
 function _getMessage() {
   const internals = this._zod;
   internals.message ?? (internals.message = JSON.stringify(internals.def, jsonStringifyReplacer, 2));
@@ -2025,7 +1734,7 @@ function node(obj, key, make) {
   }
   return obj[key];
 }
-function flattenError(error, mapper = (issue2) => issue2.message) {
+function flattenError(error, mapper = (issue) => issue.message) {
   const fieldErrors = {};
   const formErrors = [];
   for (const sub of error.issues) {
@@ -2037,20 +1746,20 @@ function flattenError(error, mapper = (issue2) => issue2.message) {
   }
   return { formErrors, fieldErrors };
 }
-function formatError(error, mapper = (issue2) => issue2.message) {
+function formatError(error, mapper = (issue) => issue.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error2, path = []) => {
-    for (const issue2 of error2.issues) {
-      if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path, ...issue2.path]));
-      } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path, ...issue2.path]);
-      } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path, ...issue2.path]);
+  const processError = (error, path = []) => {
+    for (const issue of error.issues) {
+      if (issue.code === "invalid_union" && issue.errors.length) {
+        issue.errors.map((issues) => processError({ issues }, [...path, ...issue.path]));
+      } else if (issue.code === "invalid_key") {
+        processError({ issues: issue.issues }, [...path, ...issue.path]);
+      } else if (issue.code === "invalid_element") {
+        processError({ issues: issue.issues }, [...path, ...issue.path]);
       } else {
-        const fullpath = [...path, ...issue2.path];
+        const fullpath = [...path, ...issue.path];
         if (fullpath.length === 0) {
-          fieldErrors._errors.push(mapper(issue2));
+          fieldErrors._errors.push(mapper(issue));
         } else {
           let curr = fieldErrors;
           let i = 0;
@@ -2059,7 +1768,7 @@ function formatError(error, mapper = (issue2) => issue2.message) {
             const terminal = i === fullpath.length - 1;
             if (el === "_errors") {
               if (terminal)
-                curr._errors.push(mapper(issue2));
+                curr._errors.push(mapper(issue));
               i++;
               continue;
             }
@@ -2071,11 +1780,11 @@ function formatError(error, mapper = (issue2) => issue2.message) {
                 configurable: true
               });
             }
-            const node2 = curr[el];
+            const node = curr[el];
             if (terminal) {
-              node2._errors.push(mapper(issue2));
+              node._errors.push(mapper(issue));
             }
-            curr = node2;
+            curr = node;
             i++;
           }
         }
@@ -2086,7 +1795,7 @@ function formatError(error, mapper = (issue2) => issue2.message) {
   return fieldErrors;
 }
 
-// ../../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/core/parse.js
+// ../../../node_modules/.bun/zod@4.6.7/node_modules/zod/v4/core/parse.js
 function finalizeParams(callee, params) {
   return { callee: params?.callee ?? callee, Err: params?.Err };
 }
@@ -2233,7 +1942,7 @@ var _safeEncodeAsync = (_Err) => async (schema, value, _ctx) => {
 var _safeDecodeAsync = (_Err) => async (schema, value, _ctx) => {
   return _safeParseAsync(_Err)(schema, value, _ctx);
 };
-// ../../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/core/regexes.js
+// ../../../node_modules/.bun/zod@4.6.7/node_modules/zod/v4/core/regexes.js
 var cuid = /^[cC][0-9a-z]{6,}$/;
 var cuid2 = /^[0-9a-z]+$/;
 var ulid = /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/;
@@ -2291,12 +2000,12 @@ var boolean = /^(?:true|false)$/i;
 var lowercase = /^[^A-Z]*$/;
 var uppercase = /^[^a-z]*$/;
 
-// ../../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/core/checks.js
+// ../../../node_modules/.bun/zod@4.6.7/node_modules/zod/v4/core/checks.js
 var $ZodCheck = /* @__PURE__ */ $constructor("$ZodCheck", (inst, def) => {
-  var _a2;
+  var _a;
   inst._zod ?? (inst._zod = {});
   inst._zod.def = def;
-  (_a2 = inst._zod).onattach ?? (_a2.onattach = []);
+  (_a = inst._zod).onattach ?? (_a.onattach = []);
 });
 var _whenHasLength = (payload) => {
   const val = payload.value;
@@ -2433,9 +2142,9 @@ var $ZodCheckNumberFormat = /* @__PURE__ */ $constructor("$ZodCheckNumberFormat"
   };
 });
 var $ZodCheckMaxLength = /* @__PURE__ */ $constructor("$ZodCheckMaxLength", (inst, def) => {
-  var _a2;
+  var _a;
   $ZodCheck.init(inst, def);
-  (_a2 = inst._zod.def).when ?? (_a2.when = _whenHasLength);
+  (_a = inst._zod.def).when ?? (_a.when = _whenHasLength);
   inst._zod.check = (payload) => {
     const input = payload.value;
     const units = input.length;
@@ -2455,9 +2164,9 @@ var $ZodCheckMaxLength = /* @__PURE__ */ $constructor("$ZodCheckMaxLength", (ins
   };
 });
 var $ZodCheckMinLength = /* @__PURE__ */ $constructor("$ZodCheckMinLength", (inst, def) => {
-  var _a2;
+  var _a;
   $ZodCheck.init(inst, def);
-  (_a2 = inst._zod.def).when ?? (_a2.when = _whenHasLength);
+  (_a = inst._zod.def).when ?? (_a.when = _whenHasLength);
   inst._zod.check = (payload) => {
     const input = payload.value;
     const units = input.length;
@@ -2477,9 +2186,9 @@ var $ZodCheckMinLength = /* @__PURE__ */ $constructor("$ZodCheckMinLength", (ins
   };
 });
 var $ZodCheckLengthEquals = /* @__PURE__ */ $constructor("$ZodCheckLengthEquals", (inst, def) => {
-  var _a2;
+  var _a;
   $ZodCheck.init(inst, def);
-  (_a2 = inst._zod.def).when ?? (_a2.when = _whenHasLength);
+  (_a = inst._zod.def).when ?? (_a.when = _whenHasLength);
   inst._zod.check = (payload) => {
     const input = payload.value;
     const units = input.length;
@@ -2500,10 +2209,10 @@ var $ZodCheckLengthEquals = /* @__PURE__ */ $constructor("$ZodCheckLengthEquals"
   };
 });
 var $ZodCheckStringFormat = /* @__PURE__ */ $constructor("$ZodCheckStringFormat", (inst, def) => {
-  var _a2, _b;
+  var _a, _b;
   $ZodCheck.init(inst, def);
   if (def.pattern)
-    (_a2 = inst._zod).check ?? (_a2.check = (payload) => {
+    (_a = inst._zod).check ?? (_a.check = (payload) => {
       def.pattern.lastIndex = 0;
       if (def.pattern.test(payload.value))
         return;
@@ -2607,7 +2316,7 @@ var $ZodCheckOverwrite = /* @__PURE__ */ $constructor("$ZodCheckOverwrite", (ins
   };
 });
 
-// ../../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/core/doc.js
+// ../../../node_modules/.bun/zod@4.6.7/node_modules/zod/v4/core/doc.js
 class Doc {
   constructor(args = [], closed = {}) {
     this.content = [];
@@ -2649,16 +2358,16 @@ ${content.join(`
   }
 }
 
-// ../../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/core/versions.js
+// ../../../node_modules/.bun/zod@4.6.7/node_modules/zod/v4/core/versions.js
 var version = {
   major: 4,
   minor: 6,
-  patch: 5
+  patch: 7
 };
 
-// ../../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/core/schemas.js
+// ../../../node_modules/.bun/zod@4.6.7/node_modules/zod/v4/core/schemas.js
 var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
-  var _a2;
+  var _a;
   inst ?? (inst = {});
   inst._zod.def = def;
   inst._zod.bag = inst._zod.bag || {};
@@ -2671,17 +2380,17 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
     }
   }
   if (checks.length === 0) {
-    (_a2 = inst._zod).deferred ?? (_a2.deferred = []);
+    (_a = inst._zod).deferred ?? (_a.deferred = []);
     inst._zod.deferred?.push(() => {
       inst._zod.run = inst._zod.parse;
     });
   } else {
-    const runChecks = (payload, checks2, ctx) => {
+    const runChecks = (payload, checks, ctx) => {
       if (payload.memo)
         return payload;
       let isAborted = aborted(payload);
       let asyncResult;
-      for (const ch of checks2) {
+      for (const ch of checks) {
         if (ch._zod.def.when) {
           if (explicitlyAborted(payload))
             continue;
@@ -2731,7 +2440,7 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
       if (checkResult instanceof Promise) {
         if (ctx.async === false)
           throw new $ZodAsyncError;
-        return checkResult.then((checkResult2) => inst._zod.parse(checkResult2, ctx));
+        return checkResult.then((checkResult) => inst._zod.parse(checkResult, ctx));
       }
       return inst._zod.parse(checkResult, ctx);
     };
@@ -2742,8 +2451,8 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
       if (ctx.direction === "backward") {
         const canary = inst._zod.parse({ value: payload.value, issues: [] }, { ...ctx, skipChecks: true });
         if (canary instanceof Promise) {
-          return canary.then((canary2) => {
-            return handleCanaryResult(canary2, payload, ctx);
+          return canary.then((canary) => {
+            return handleCanaryResult(canary, payload, ctx);
           });
         }
         return handleCanaryResult(canary, payload, ctx);
@@ -2752,7 +2461,7 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
       if (result instanceof Promise) {
         if (ctx.async === false)
           throw new $ZodAsyncError;
-        return result.then((result2) => runChecks(result2, checks, ctx));
+        return result.then((result) => runChecks(result, checks, ctx));
       }
       return runChecks(result, checks, ctx);
     };
@@ -2792,7 +2501,7 @@ var $ZodString = /* @__PURE__ */ $constructor("$ZodString", (inst, def) => {
     if (def.coerce)
       try {
         payload.value = String(payload.value);
-      } catch (_2) {}
+      } catch (_) {}
     if (typeof payload.value === "string")
       return payload;
     payload.issues.push({
@@ -3085,8 +2794,8 @@ var base64urlCharset = /^[A-Za-z0-9_-]*$/;
 function isValidBase64URL(data) {
   if (!base64urlCharset.test(data))
     return false;
-  const base642 = data.replace(/[-_]/g, (c) => c === "-" ? "+" : "/");
-  const padded = base642.padEnd(Math.ceil(base642.length / 4) * 4, "=");
+  const base64 = data.replace(/[-_]/g, (c) => c === "-" ? "+" : "/");
+  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
   return isValidBase64(padded);
 }
 var $ZodBase64URL = /* @__PURE__ */ $constructor("$ZodBase64URL", (inst, def) => {
@@ -3205,6 +2914,29 @@ var $ZodNever = /* @__PURE__ */ $constructor("$ZodNever", (inst, def) => {
     return payload;
   };
 });
+function capSize(inst, size) {
+  const caps = sizeCaps(inst._zod.def.checks);
+  if (!caps.length)
+    return;
+  const cap = Math.min(...caps.map((c) => c[0]));
+  const parse = inst._zod.parse;
+  inst._zod.parse = (payload, ctx) => {
+    const n = size(payload.value);
+    if (n > cap && !ctx?.skipChecks && ctx?.direction !== "backward") {
+      for (const [max, ch] of sizeCaps(inst._zod.def.checks)) {
+        if (n > max && ch._zod.def.when(payload)) {
+          const start = payload.issues.length;
+          ch._zod.check(payload);
+          payload.issues[start].continue = false;
+          attachSchema(payload.issues, start, inst);
+          return payload;
+        }
+      }
+    }
+    return parse(payload, ctx);
+  };
+}
+var arraySize = (input) => Array.isArray(input) ? input.length : -1;
 function handleArrayResult(result, final, index) {
   if (result.issues.length) {
     final.issues.push(...prefixIssues(index, result.issues));
@@ -3236,7 +2968,7 @@ var $ZodArray = /* @__PURE__ */ $constructor("$ZodArray", (inst, def) => {
         issues: []
       }, ctx);
       if (result instanceof Promise) {
-        proms.push(result.then((result2) => handleArrayResult(result2, payload, i)));
+        proms.push(result.then((result) => handleArrayResult(result, payload, i)));
       } else {
         handleArrayResult(result, payload, i);
         if (abortEarly && result.issues.length !== 0 && aborted(result))
@@ -3248,6 +2980,7 @@ var $ZodArray = /* @__PURE__ */ $constructor("$ZodArray", (inst, def) => {
     }
     return payload;
   };
+  capSize(inst, arraySize);
 });
 function handlePropertyResult(result, final, key, input, optin, optout) {
   const isPresent = key in input;
@@ -3328,7 +3061,7 @@ function handleCatchall(proms, input, payload, ctx, def, inst, abortEarly) {
     }
     const r = _catchall.run({ value: input[key], issues: [] }, ctx);
     if (r instanceof Promise) {
-      proms.push(r.then((r2) => handlePropertyResult(r2, payload, key, input, optin, optout)));
+      proms.push(r.then((r) => handlePropertyResult(r, payload, key, input, optin, optout)));
     } else {
       handlePropertyResult(r, payload, key, input, optin, optout);
     }
@@ -3415,7 +3148,7 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
       const optout = el._zod.optout;
       const r = el._zod.run({ value: input[key], issues: [] }, ctx);
       if (r instanceof Promise) {
-        proms.push(r.then((r2) => handlePropertyResult(r2, payload, key, input, optin, optout)));
+        proms.push(r.then((r) => handlePropertyResult(r, payload, key, input, optin, optout)));
       } else {
         handlePropertyResult(r, payload, key, input, optin, optout);
       }
@@ -3613,8 +3346,8 @@ var $ZodUnion = /* @__PURE__ */ $constructor("$ZodUnion", (inst, def) => {
     }
     if (!async)
       return handleUnionResults(results, payload, inst, ctx);
-    return Promise.all(results).then((results2) => {
-      return handleUnionResults(results2, payload, inst, ctx);
+    return Promise.all(results).then((results) => {
+      return handleUnionResults(results, payload, inst, ctx);
     });
   };
 });
@@ -3693,7 +3426,7 @@ var $ZodDiscriminatedUnion = /* @__PURE__ */ $constructor("$ZodDiscriminatedUnio
       errors: [],
       note: "No matching discriminator",
       discriminator: def.discriminator,
-      options: Array.from(disc.value.keys()).filter((value2) => disc.value.get(value2) !== null),
+      options: Array.from(disc.value.keys()).filter((value) => disc.value.get(value) !== null),
       input,
       path: [def.discriminator],
       inst
@@ -3709,8 +3442,8 @@ var $ZodIntersection = /* @__PURE__ */ $constructor("$ZodIntersection", (inst, d
     const right = def.right._zod.run({ value: input, issues: [] }, ctx);
     const async = left instanceof Promise || right instanceof Promise;
     if (async) {
-      return Promise.all([left, right]).then(([left2, right2]) => {
-        return handleIntersectionResults(payload, left2, right2);
+      return Promise.all([left, right]).then(([left, right]) => {
+        return handleIntersectionResults(payload, left, right);
       });
     }
     return handleIntersectionResults(payload, left, right);
@@ -3860,11 +3593,11 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
             continue;
           const result = def.valueType._zod.run({ value: input[key], issues: [] }, ctx);
           if (result instanceof Promise) {
-            proms.push(result.then((result2) => {
-              if (result2.issues.length) {
-                payload.issues.push(...prefixIssues(key, result2.issues));
+            proms.push(result.then((result) => {
+              if (result.issues.length) {
+                payload.issues.push(...prefixIssues(key, result.issues));
               }
-              payload.value[outKey] = result2.value;
+              payload.value[outKey] = result.value;
             }));
           } else {
             if (result.issues.length) {
@@ -3941,11 +3674,11 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
           continue;
         const result = def.valueType._zod.run({ value: input[key], issues: [] }, ctx);
         if (result instanceof Promise) {
-          proms.push(result.then((result2) => {
-            if (result2.issues.length) {
-              payload.issues.push(...prefixIssues(key, result2.issues));
+          proms.push(result.then((result) => {
+            if (result.issues.length) {
+              payload.issues.push(...prefixIssues(key, result.issues));
             }
-            payload.value[outKey] = result2.value;
+            payload.value[outKey] = result.value;
           }));
         } else {
           if (result.issues.length) {
@@ -4026,8 +3759,8 @@ var $ZodTransform = /* @__PURE__ */ $constructor("$ZodTransform", (inst, def) =>
     const _out = def.transform(payload.value, payload);
     if (ctx.async) {
       const output = _out instanceof Promise ? _out : Promise.resolve(_out);
-      return output.then((output2) => {
-        payload.value = output2;
+      return output.then((output) => {
+        payload.value = output;
         return payload;
       });
     }
@@ -4060,7 +3793,7 @@ var $ZodOptional = /* @__PURE__ */ $constructor("$ZodOptional", (inst, def) => {
         return payload;
       const result = def.innerType._zod.run({ value: payload.value, issues: [] }, ctx);
       if (result instanceof Promise)
-        return result.then((result2) => handleOptionalResult(payload, result2));
+        return result.then((result) => handleOptionalResult(payload, result));
       return handleOptionalResult(payload, result);
     }
     return def.innerType._zod.run(payload, ctx);
@@ -4105,7 +3838,7 @@ var $ZodDefault = /* @__PURE__ */ $constructor("$ZodDefault", (inst, def) => {
     }
     const result = def.innerType._zod.run(payload, ctx);
     if (result instanceof Promise) {
-      return result.then((result2) => handleDefaultResult(result2, def));
+      return result.then((result) => handleDefaultResult(result, def));
     }
     return handleDefaultResult(result, def);
   };
@@ -4139,7 +3872,7 @@ var $ZodNonOptional = /* @__PURE__ */ $constructor("$ZodNonOptional", (inst, def
   inst._zod.parse = (payload, ctx) => {
     const result = def.innerType._zod.run(payload, ctx);
     if (result instanceof Promise) {
-      return result.then((result2) => handleNonOptionalResult(result2, inst));
+      return result.then((result) => handleNonOptionalResult(result, inst));
     }
     return handleNonOptionalResult(result, inst);
   };
@@ -4183,7 +3916,7 @@ var $ZodCatch = /* @__PURE__ */ $constructor("$ZodCatch", (inst, def) => {
     }
     const result = def.innerType._zod.run({ value: payload.value, issues: [] }, ctx);
     if (result instanceof Promise) {
-      return result.then((result2) => handleCatchResult(payload, result2, def, ctx));
+      return result.then((result) => handleCatchResult(payload, result, def, ctx));
     }
     return handleCatchResult(payload, result, def, ctx);
   };
@@ -4198,13 +3931,13 @@ var $ZodPipe = /* @__PURE__ */ $constructor("$ZodPipe", (inst, def) => {
     if (ctx.direction === "backward") {
       const right = def.out._zod.run(payload, ctx);
       if (right instanceof Promise) {
-        return right.then((right2) => handlePipeResult(right2, def.in, ctx));
+        return right.then((right) => handlePipeResult(right, def.in, ctx));
       }
       return handlePipeResult(right, def.in, ctx);
     }
     const left = def.in._zod.run(payload, ctx);
     if (left instanceof Promise) {
-      return left.then((left2) => handlePipeResult(left2, def.out, ctx));
+      return left.then((left) => handlePipeResult(left, def.out, ctx));
     }
     return handlePipeResult(left, def.out, ctx);
   };
@@ -4251,7 +3984,7 @@ var $ZodCustom = /* @__PURE__ */ $constructor("$ZodCustom", (inst, def) => {
     const input = payload.value;
     const r = def.fn(input);
     if (r instanceof Promise) {
-      return r.then((r2) => handleRefineResult(r2, payload, input, inst));
+      return r.then((r) => handleRefineResult(r, payload, input, inst));
     }
     handleRefineResult(r, payload, input, inst);
     return;
@@ -4271,7 +4004,7 @@ function handleRefineResult(result, payload, input, inst) {
     payload.issues.push(issue(_iss));
   }
 }
-// ../../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/core/memoizer.js
+// ../../../node_modules/.bun/zod@4.6.7/node_modules/zod/v4/core/memoizer.js
 class $ZodCyclicError extends Error {
   constructor() {
     super(`Cannot parse a reference cycle that closes through a transform`);
@@ -4290,17 +4023,17 @@ var recursive = /* @__PURE__ */ new WeakMap;
 var NONE = 0;
 var ASSUMED = 1;
 var PROVEN = 2;
-function isRecursive(inst, stack, resolve3) {
-  const cached2 = recursive.get(inst);
-  if (cached2 !== undefined)
-    return cached2 ? PROVEN : NONE;
+function isRecursive(inst, stack, resolve) {
+  const cached = recursive.get(inst);
+  if (cached !== undefined)
+    return cached ? PROVEN : NONE;
   if (stack.has(inst))
     return PROVEN;
   stack.add(inst);
   let result = NONE;
   const check = (child) => {
     if (result !== PROVEN && child?._zod) {
-      const answer = isRecursive(child, stack, resolve3);
+      const answer = isRecursive(child, stack, resolve);
       if (answer > result)
         result = answer;
     }
@@ -4311,13 +4044,13 @@ function isRecursive(inst, stack, resolve3) {
       const desc = Object.getOwnPropertyDescriptor(sh, key);
       if (spread && !desc.enumerable)
         continue;
-      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve3) : NONE;
+      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve) : NONE;
       if (child > answer)
         answer = child;
     }
     return answer;
   };
-  const merge2 = (answer) => {
+  const merge = (answer) => {
     if (answer > result)
       result = answer;
   };
@@ -4326,7 +4059,7 @@ function isRecursive(inst, stack, resolve3) {
   switch (kind) {
     case "object": {
       const raw = rawShape(def);
-      merge2(raw ? shape(raw, true) : ASSUMED);
+      merge(raw ? shape(raw, true) : ASSUMED);
       check(def.catchall);
       break;
     }
@@ -4374,8 +4107,8 @@ function isRecursive(inst, stack, resolve3) {
       check(def.output);
       break;
     case "lazy": {
-      const inner = def._cachedInner ?? (resolve3 ? inst._zod.innerType : undefined);
-      merge2(inner ? isRecursive(inner, stack, false) : ASSUMED);
+      const inner = def._cachedInner ?? (resolve ? inst._zod.innerType : undefined);
+      merge(inner ? isRecursive(inner, stack, false) : ASSUMED);
       break;
     }
     case "template_literal":
@@ -4445,8 +4178,8 @@ var memo = {
     return empty;
   },
   guard(inst) {
-    var _a2;
-    (_a2 = inst._zod).deferred ?? (_a2.deferred = []);
+    var _a;
+    (_a = inst._zod).deferred ?? (_a.deferred = []);
     inst._zod.deferred.push(() => {
       const base = inst._zod.parse;
       const wrapped = (payload, ctx) => {
@@ -4460,12 +4193,12 @@ var memo = {
     });
   },
   attach(inst) {
-    var _a2;
+    var _a;
     let isRecursiveInst;
     let rechecked = false;
     let lastCtx;
     let lastBucket;
-    (_a2 = inst._zod).deferred ?? (_a2.deferred = []);
+    (_a = inst._zod).deferred ?? (_a.deferred = []);
     inst._zod.deferred.push(() => {
       const base = inst._zod.parse;
       const wrapped = (payload, ctx) => {
@@ -4540,7 +4273,7 @@ function isBackEdge(ctx, value) {
   const backEdges = ctx[STATE]?.backEdges;
   return backEdges !== undefined && isRef(value) && backEdges.has(value);
 }
-// ../../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/locales/en.js
+// ../../../node_modules/.bun/zod@4.6.7/node_modules/zod/v4/locales/en.js
 var error = () => {
   const Sizable = {
     string: { unit: "characters", verb: "to have" },
@@ -4595,35 +4328,35 @@ var error = () => {
     }
     return TypeDictionary[type] ?? type;
   }
-  return (issue2) => {
-    switch (issue2.code) {
+  return (issue) => {
+    switch (issue.code) {
       case "invalid_type": {
-        const expected = getTypeName(issue2.expected);
-        const receivedType = parsedType(issue2.input);
-        const received = getTypeName(receivedType, issue2.input);
+        const expected = getTypeName(issue.expected);
+        const receivedType = parsedType(issue.input);
+        const received = getTypeName(receivedType, issue.input);
         return `Invalid input: expected ${expected}, received ${received}`;
       }
       case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Invalid input: expected ${stringifyPrimitive(issue2.values[0])}`;
-        return `Invalid option: expected one of ${joinValues(issue2.values, "|")}`;
+        if (issue.values.length === 1)
+          return `Invalid input: expected ${stringifyPrimitive(issue.values[0])}`;
+        return `Invalid option: expected one of ${joinValues(issue.values, "|")}`;
       case "too_big": {
-        const adj = issue2.exact ? "exactly " : issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
+        const adj = issue.exact ? "exactly " : issue.inclusive ? "<=" : "<";
+        const sizing = getSizing(issue.origin);
         if (sizing)
-          return `Too big: expected ${issue2.origin ?? "value"} to have ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elements"}`;
-        return `Too big: expected ${issue2.origin ?? "value"} to be ${adj}${issue2.maximum.toString()}`;
+          return `Too big: expected ${issue.origin ?? "value"} to have ${adj}${issue.maximum.toString()} ${sizing.unit ?? "elements"}`;
+        return `Too big: expected ${issue.origin ?? "value"} to be ${adj}${issue.maximum.toString()}`;
       }
       case "too_small": {
-        const adj = issue2.exact ? "exactly " : issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
+        const adj = issue.exact ? "exactly " : issue.inclusive ? ">=" : ">";
+        const sizing = getSizing(issue.origin);
         if (sizing) {
-          return `Too small: expected ${issue2.origin} to have ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
+          return `Too small: expected ${issue.origin} to have ${adj}${issue.minimum.toString()} ${sizing.unit}`;
         }
-        return `Too small: expected ${issue2.origin} to be ${adj}${issue2.minimum.toString()}`;
+        return `Too small: expected ${issue.origin} to be ${adj}${issue.minimum.toString()}`;
       }
       case "invalid_format": {
-        const _issue = issue2;
+        const _issue = issue;
         if (_issue.format === "starts_with") {
           return `Invalid string: must start with "${_issue.prefix}"`;
         }
@@ -4633,25 +4366,25 @@ var error = () => {
           return `Invalid string: must include "${_issue.includes}"`;
         if (_issue.format === "regex")
           return `Invalid string: must match pattern ${_issue.pattern}`;
-        return `Invalid ${FormatDictionary[_issue.format] ?? issue2.format}`;
+        return `Invalid ${FormatDictionary[_issue.format] ?? issue.format}`;
       }
       case "not_multiple_of":
-        return `Invalid number: must be a multiple of ${issue2.divisor}`;
+        return `Invalid number: must be a multiple of ${issue.divisor}`;
       case "unrecognized_keys":
-        return `Unrecognized key${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
+        return `Unrecognized key${issue.keys.length > 1 ? "s" : ""}: ${joinValues(issue.keys, ", ")}`;
       case "invalid_key":
-        return `Invalid key in ${issue2.origin}`;
+        return `Invalid key in ${issue.origin}`;
       case "invalid_union":
-        if (issue2.options && Array.isArray(issue2.options) && issue2.options.length > 0) {
-          const opts = issue2.options.map((o) => `'${o}'`).join(" | ");
+        if (issue.options && Array.isArray(issue.options) && issue.options.length > 0) {
+          const opts = issue.options.map((o) => `'${o}'`).join(" | ");
           return `Invalid discriminator value. Expected ${opts}`;
         }
-        if (issue2.inclusive === false) {
+        if (issue.inclusive === false) {
           return "Invalid input: more than one option matched";
         }
         return "Invalid input";
       case "invalid_element":
-        return `Invalid value in ${issue2.origin}`;
+        return `Invalid value in ${issue.origin}`;
       default:
         return `Invalid input`;
     }
@@ -4662,7 +4395,7 @@ function en_default() {
     localeError: error()
   };
 }
-// ../../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/core/registries.js
+// ../../../node_modules/.bun/zod@4.6.7/node_modules/zod/v4/core/registries.js
 var _a2;
 class $ZodRegistry {
   constructor() {
@@ -4709,17 +4442,17 @@ function registry() {
 }
 (_a2 = globalThis).__zod_globalRegistry ?? (_a2.__zod_globalRegistry = registry());
 var globalRegistry = globalThis.__zod_globalRegistry;
-// ../../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/core/api.js
+// ../../../node_modules/.bun/zod@4.6.7/node_modules/zod/v4/core/api.js
 function snapshotChecks(def) {
   if (def.checks)
     def.checks = [...def.checks];
   return def;
 }
-function _string(Class2, params) {
-  return new Class2(snapshotChecks({ type: "string", ...normalizeParams(params) }));
+function _string(Class, params) {
+  return new Class(snapshotChecks({ type: "string", ...normalizeParams(params) }));
 }
-function _email(Class2, params) {
-  return new Class2({
+function _email(Class, params) {
+  return new Class({
     type: "string",
     format: "email",
     check: "string_format",
@@ -4727,8 +4460,8 @@ function _email(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _guid(Class2, params) {
-  return new Class2({
+function _guid(Class, params) {
+  return new Class({
     type: "string",
     format: "guid",
     check: "string_format",
@@ -4736,8 +4469,8 @@ function _guid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _uuid(Class2, params) {
-  return new Class2({
+function _uuid(Class, params) {
+  return new Class({
     type: "string",
     format: "uuid",
     check: "string_format",
@@ -4745,8 +4478,8 @@ function _uuid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _uuidv4(Class2, params) {
-  return new Class2({
+function _uuidv4(Class, params) {
+  return new Class({
     type: "string",
     format: "uuid",
     check: "string_format",
@@ -4755,8 +4488,8 @@ function _uuidv4(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _uuidv6(Class2, params) {
-  return new Class2({
+function _uuidv6(Class, params) {
+  return new Class({
     type: "string",
     format: "uuid",
     check: "string_format",
@@ -4765,8 +4498,8 @@ function _uuidv6(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _uuidv7(Class2, params) {
-  return new Class2({
+function _uuidv7(Class, params) {
+  return new Class({
     type: "string",
     format: "uuid",
     check: "string_format",
@@ -4775,8 +4508,8 @@ function _uuidv7(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _url(Class2, params) {
-  return new Class2({
+function _url(Class, params) {
+  return new Class({
     type: "string",
     format: "url",
     check: "string_format",
@@ -4784,8 +4517,8 @@ function _url(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _emoji2(Class2, params) {
-  return new Class2({
+function _emoji2(Class, params) {
+  return new Class({
     type: "string",
     format: "emoji",
     check: "string_format",
@@ -4793,8 +4526,8 @@ function _emoji2(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _nanoid(Class2, params) {
-  return new Class2({
+function _nanoid(Class, params) {
+  return new Class({
     type: "string",
     format: "nanoid",
     check: "string_format",
@@ -4802,8 +4535,8 @@ function _nanoid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _cuid(Class2, params) {
-  return new Class2({
+function _cuid(Class, params) {
+  return new Class({
     type: "string",
     format: "cuid",
     check: "string_format",
@@ -4811,8 +4544,8 @@ function _cuid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _cuid2(Class2, params) {
-  return new Class2({
+function _cuid2(Class, params) {
+  return new Class({
     type: "string",
     format: "cuid2",
     check: "string_format",
@@ -4820,8 +4553,8 @@ function _cuid2(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _ulid(Class2, params) {
-  return new Class2({
+function _ulid(Class, params) {
+  return new Class({
     type: "string",
     format: "ulid",
     check: "string_format",
@@ -4829,8 +4562,8 @@ function _ulid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _xid(Class2, params) {
-  return new Class2({
+function _xid(Class, params) {
+  return new Class({
     type: "string",
     format: "xid",
     check: "string_format",
@@ -4838,8 +4571,8 @@ function _xid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _ksuid(Class2, params) {
-  return new Class2({
+function _ksuid(Class, params) {
+  return new Class({
     type: "string",
     format: "ksuid",
     check: "string_format",
@@ -4847,8 +4580,8 @@ function _ksuid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _ipv4(Class2, params) {
-  return new Class2({
+function _ipv4(Class, params) {
+  return new Class({
     type: "string",
     format: "ipv4",
     check: "string_format",
@@ -4856,8 +4589,8 @@ function _ipv4(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _ipv6(Class2, params) {
-  return new Class2({
+function _ipv6(Class, params) {
+  return new Class({
     type: "string",
     format: "ipv6",
     check: "string_format",
@@ -4865,8 +4598,8 @@ function _ipv6(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _cidrv4(Class2, params) {
-  return new Class2({
+function _cidrv4(Class, params) {
+  return new Class({
     type: "string",
     format: "cidrv4",
     check: "string_format",
@@ -4874,8 +4607,8 @@ function _cidrv4(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _cidrv6(Class2, params) {
-  return new Class2({
+function _cidrv6(Class, params) {
+  return new Class({
     type: "string",
     format: "cidrv6",
     check: "string_format",
@@ -4883,8 +4616,8 @@ function _cidrv6(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _base64(Class2, params) {
-  return new Class2({
+function _base64(Class, params) {
+  return new Class({
     type: "string",
     format: "base64",
     check: "string_format",
@@ -4892,8 +4625,8 @@ function _base64(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _base64url(Class2, params) {
-  return new Class2({
+function _base64url(Class, params) {
+  return new Class({
     type: "string",
     format: "base64url",
     check: "string_format",
@@ -4901,8 +4634,8 @@ function _base64url(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _e164(Class2, params) {
-  return new Class2({
+function _e164(Class, params) {
+  return new Class({
     type: "string",
     format: "e164",
     check: "string_format",
@@ -4910,8 +4643,8 @@ function _e164(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _jwt(Class2, params) {
-  return new Class2({
+function _jwt(Class, params) {
+  return new Class({
     type: "string",
     format: "jwt",
     check: "string_format",
@@ -4919,8 +4652,8 @@ function _jwt(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _isoDateTime(Class2, params) {
-  return new Class2({
+function _isoDateTime(Class, params) {
+  return new Class({
     type: "string",
     format: "datetime",
     check: "string_format",
@@ -4930,16 +4663,16 @@ function _isoDateTime(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _isoDate(Class2, params) {
-  return new Class2({
+function _isoDate(Class, params) {
+  return new Class({
     type: "string",
     format: "date",
     check: "string_format",
     ...normalizeParams(params)
   });
 }
-function _isoTime(Class2, params) {
-  return new Class2({
+function _isoTime(Class, params) {
+  return new Class({
     type: "string",
     format: "time",
     check: "string_format",
@@ -4947,19 +4680,19 @@ function _isoTime(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _isoDuration(Class2, params) {
-  return new Class2({
+function _isoDuration(Class, params) {
+  return new Class({
     type: "string",
     format: "duration",
     check: "string_format",
     ...normalizeParams(params)
   });
 }
-function _number(Class2, params) {
-  return new Class2(snapshotChecks({ type: "number", checks: [], ...normalizeParams(params) }));
+function _number(Class, params) {
+  return new Class(snapshotChecks({ type: "number", checks: [], ...normalizeParams(params) }));
 }
-function _int(Class2, params) {
-  return new Class2({
+function _int(Class, params) {
+  return new Class({
     type: "number",
     check: "number_format",
     abort: false,
@@ -4967,19 +4700,19 @@ function _int(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _boolean(Class2, params) {
-  return new Class2({
+function _boolean(Class, params) {
+  return new Class({
     type: "boolean",
     ...normalizeParams(params)
   });
 }
-function _unknown(Class2) {
-  return new Class2({
+function _unknown(Class) {
+  return new Class({
     type: "unknown"
   });
 }
-function _never(Class2, params) {
-  return new Class2({
+function _never(Class, params) {
+  return new Class({
     type: "never",
     ...normalizeParams(params)
   });
@@ -5112,15 +4845,15 @@ function _toUpperCase() {
 function _slugify() {
   return _overwrite((input) => slugify(input));
 }
-function _array(Class2, element, params) {
-  return new Class2({
+function _array(Class, element, params) {
+  return new Class({
     type: "array",
     element,
     ...normalizeParams(params)
   });
 }
-function _refine(Class2, fn, _params) {
-  const schema = new Class2({
+function _refine(Class, fn, _params) {
+  const schema = new Class({
     type: "custom",
     check: "custom",
     fn,
@@ -5157,7 +4890,7 @@ function _check(fn, params) {
   ch._zod.check = fn;
   return ch;
 }
-// ../../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/core/to-json-schema.js
+// ../../../node_modules/.bun/zod@4.6.7/node_modules/zod/v4/core/to-json-schema.js
 function assignProps(target, ...sources) {
   for (const source of sources) {
     for (const key of Reflect.ownKeys(source)) {
@@ -5202,7 +4935,7 @@ function handleUnrepresentable(schema, ctx, json, params, message) {
   return true;
 }
 function processSchema(schema, ctx, _params = { path: [], schemaPath: [] }) {
-  var _a3;
+  var _a;
   const def = schema._zod.def;
   const seen = ctx.seen.get(schema);
   if (seen) {
@@ -5252,7 +4985,7 @@ function processSchema(schema, ctx, _params = { path: [], schemaPath: [] }) {
     delete result.schema.default;
   }
   if (ctx.io === "input" && "_prefault" in result.schema)
-    (_a3 = result.schema).default ?? (_a3.default = result.schema._prefault);
+    (_a = result.schema).default ?? (_a.default = result.schema._prefault);
   delete result.schema._prefault;
   const _result = ctx.seen.get(schema);
   return _result.schema;
@@ -5281,7 +5014,7 @@ function extractDefs(ctx, schema) {
     const defsSegment = ctx.target === "draft-2020-12" ? "$defs" : "definitions";
     if (ctx.external) {
       const externalId = ctx.external.registry.get(entry[0])?.id;
-      const uriGenerator = ctx.external.uri ?? ((id2) => id2);
+      const uriGenerator = ctx.external.uri ?? ((id) => id);
       if (externalId) {
         return { ref: uriGenerator(externalId) };
       }
@@ -5306,11 +5039,11 @@ function extractDefs(ctx, schema) {
     seen.def = { ...seen.schema };
     if (defId)
       seen.defId = defId;
-    const schema2 = seen.schema;
-    for (const key in schema2) {
-      delete schema2[key];
+    const schema = seen.schema;
+    for (const key in schema) {
+      delete schema[key];
     }
-    schema2.$ref = ref;
+    schema.$ref = ref;
   };
   if (ctx.cycles === "throw") {
     for (const entry of ctx.seen.entries()) {
@@ -5382,9 +5115,9 @@ function undeclaredConstraint(member) {
     return null;
   return Object.keys(extra).length ? extra : null;
 }
-function foldObjects(members2) {
+function foldObjects(members) {
   const objects = [];
-  for (const member of members2) {
+  for (const member of members) {
     if (typeof member !== "object" || member.type !== "object")
       return null;
     for (const key in member) {
@@ -5394,7 +5127,7 @@ function foldObjects(members2) {
     objects.push(member);
   }
   const properties = {};
-  const required2 = new Set;
+  const required = new Set;
   for (const object of objects) {
     for (const key in object.properties) {
       if (Object.prototype.hasOwnProperty.call(properties, key))
@@ -5411,11 +5144,11 @@ function foldObjects(members2) {
       assignProp(properties, key, merged);
     }
     for (const key of object.required ?? [])
-      required2.add(key);
+      required.add(key);
   }
   const folded = { type: "object", properties };
-  if (required2.size)
-    folded.required = [...required2];
+  if (required.size)
+    folded.required = [...required];
   if (objects.every((object) => object.additionalProperties === false)) {
     folded.additionalProperties = false;
   } else {
@@ -5467,8 +5200,8 @@ function finalize(ctx, schema) {
     const seen = ctx.seen.get(zodSchema);
     if (seen.ref === null)
       return;
-    const schema2 = seen.def ?? seen.schema;
-    const _cached = { ...schema2 };
+    const schema = seen.def ?? seen.schema;
+    const _cached = { ...schema };
     const ref = seen.ref;
     seen.ref = null;
     if (ref) {
@@ -5476,28 +5209,28 @@ function finalize(ctx, schema) {
       const refSeen = ctx.seen.get(ref);
       const refSchema = refSeen.schema;
       if (refSchema.$ref && (ctx.target === "draft-07" || ctx.target === "draft-04" || ctx.target === "openapi-3.0")) {
-        schema2.allOf = schema2.allOf ?? [];
-        schema2.allOf.push(refSchema);
+        schema.allOf = schema.allOf ?? [];
+        schema.allOf.push(refSchema);
       } else {
-        assignProps(schema2, refSchema);
+        assignProps(schema, refSchema);
       }
-      assignProps(schema2, _cached);
+      assignProps(schema, _cached);
       const isParentRef = zodSchema._zod.parent === ref;
       if (isParentRef) {
-        for (const key in schema2) {
+        for (const key in schema) {
           if (key === "$ref" || key === "allOf")
             continue;
           if (!(key in _cached)) {
-            delete schema2[key];
+            delete schema[key];
           }
         }
       }
       if (refSchema.$ref && refSeen.def) {
-        for (const key in schema2) {
+        for (const key in schema) {
           if (key === "$ref" || key === "allOf")
             continue;
-          if (key in refSeen.def && JSON.stringify(schema2[key]) === JSON.stringify(refSeen.def[key])) {
-            delete schema2[key];
+          if (key in refSeen.def && JSON.stringify(schema[key]) === JSON.stringify(refSeen.def[key])) {
+            delete schema[key];
           }
         }
       }
@@ -5507,13 +5240,13 @@ function finalize(ctx, schema) {
       flattenRef(parent);
       const parentSeen = ctx.seen.get(parent);
       if (parentSeen?.schema.$ref) {
-        schema2.$ref = parentSeen.schema.$ref;
+        schema.$ref = parentSeen.schema.$ref;
         if (parentSeen.def) {
-          for (const key in schema2) {
+          for (const key in schema) {
             if (key === "$ref" || key === "allOf")
               continue;
-            if (key in parentSeen.def && JSON.stringify(schema2[key]) === JSON.stringify(parentSeen.def[key])) {
-              delete schema2[key];
+            if (key in parentSeen.def && JSON.stringify(schema[key]) === JSON.stringify(parentSeen.def[key])) {
+              delete schema[key];
             }
           }
         }
@@ -5521,7 +5254,7 @@ function finalize(ctx, schema) {
     }
     ctx.override({
       zodSchema,
-      jsonSchema: schema2,
+      jsonSchema: schema,
       path: seen.path ?? []
     });
   };
@@ -5563,7 +5296,7 @@ function finalize(ctx, schema) {
     result.$schema = "http://json-schema.org/draft-07/schema#";
   } else if (ctx.target === "draft-04") {
     result.$schema = "http://json-schema.org/draft-04/schema#";
-  } else if (ctx.target === "openapi-3.0") {} else {}
+  } else if (ctx.target === "openapi-3.0") {}
   if (ctx.external?.uri) {
     const id = ctx.external.registry.get(schema)?.id;
     if (!id)
@@ -5680,7 +5413,7 @@ var createStandardJSONSchemaMethod = (schema, io, processors = {}) => (params) =
   extractDefs(ctx, schema);
   return finalize(ctx, schema);
 };
-// ../../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/core/json-schema-processors.js
+// ../../../node_modules/.bun/zod@4.6.7/node_modules/zod/v4/core/json-schema-processors.js
 var narrowMin = (agg, key, value) => {
   if (agg[key] === undefined || value > agg[key])
     agg[key] = value;
@@ -6205,7 +5938,7 @@ var optionalProcessor = (schema, ctx, _json, params) => {
   const seen = ctx.seen.get(schema);
   seen.ref = def.innerType;
 };
-// ../../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/classic/errors.js
+// ../../../node_modules/.bun/zod@4.6.7/node_modules/zod/v4/classic/errors.js
 var _installedErrorProtos = /* @__PURE__ */ new WeakSet([Object.prototype, Error.prototype]);
 function _lazyMethod(proto, key, make) {
   Object.defineProperty(proto, key, {
@@ -6230,12 +5963,12 @@ var initializer2 = (inst, issues) => {
   _installedErrorProtos.add(proto);
   _lazyMethod(proto, "format", (self) => (mapper) => formatError(self, mapper));
   _lazyMethod(proto, "flatten", (self) => (mapper) => flattenError(self, mapper));
-  _lazyMethod(proto, "addIssue", (self) => (issue2) => {
-    self.issues.push(issue2);
+  _lazyMethod(proto, "addIssue", (self) => (issue) => {
+    self.issues.push(issue);
     self.message = JSON.stringify(self.issues, jsonStringifyReplacer, 2);
   });
-  _lazyMethod(proto, "addIssues", (self) => (issues2) => {
-    self.issues.push(...issues2);
+  _lazyMethod(proto, "addIssues", (self) => (issues) => {
+    self.issues.push(...issues);
     self.message = JSON.stringify(self.issues, jsonStringifyReplacer, 2);
   });
   Object.defineProperty(proto, "isEmpty", {
@@ -6250,7 +5983,7 @@ var ZodRealError = /* @__PURE__ */ $constructor("ZodError", initializer2, undefi
   Parent: Error
 });
 
-// ../../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/classic/parse.js
+// ../../../node_modules/.bun/zod@4.6.7/node_modules/zod/v4/classic/parse.js
 var parse2 = /* @__PURE__ */ _parse(ZodRealError);
 var parseAsync = /* @__PURE__ */ _parseAsync(ZodRealError);
 var safeParse = /* @__PURE__ */ _safeParse(ZodRealError);
@@ -6264,7 +5997,7 @@ var safeDecode = /* @__PURE__ */ _safeDecode(ZodRealError);
 var safeEncodeAsync = /* @__PURE__ */ _safeEncodeAsync(ZodRealError);
 var safeDecodeAsync = /* @__PURE__ */ _safeDecodeAsync(ZodRealError);
 
-// ../../../node_modules/.bun/zod@4.6.5/node_modules/zod/v4/classic/schemas.js
+// ../../../node_modules/.bun/zod@4.6.7/node_modules/zod/v4/classic/schemas.js
 function _ensureDefaultLocale() {
   if (!globalConfig.localeError)
     config(en_default());
@@ -6282,7 +6015,7 @@ var ZodType = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
 }, {
   check(...chks) {
     const def = this.def;
-    return this.clone(exports_util.mergeDefs(def, {
+    return this.clone(mergeDefs(def, {
       checks: [
         ...def.checks ?? [],
         ...chks.map((ch) => typeof ch === "function" ? { _zod: { check: ch, def: { check: "custom" }, onattach: [] } } : ch)
@@ -6298,8 +6031,8 @@ var ZodType = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
   brand() {
     return this;
   },
-  register(reg, meta2) {
-    reg.add(this, meta2);
+  register(reg, meta) {
+    reg.add(this, meta);
     return this;
   },
   refine(check, params) {
@@ -6375,7 +6108,7 @@ var ZodType = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
     return args.length === 0 ? fn(this) : fn(this, ...args);
   },
   get "~standard"() {
-    return exports_util.hide(this, "~standard", {
+    return hide(this, "~standard", {
       ...standardProps(this),
       jsonSchema: {
         input: createStandardJSONSchemaMethod(this, "input"),
@@ -6384,13 +6117,13 @@ var ZodType = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
     });
   },
   set "~standard"(value) {
-    exports_util.own(this, "~standard", value);
+    own(this, "~standard", value);
   },
-  parse: function _parse2(data, params) {
-    return parse2(this, data, params, { callee: _parse2 });
+  parse: function _parse(data, params) {
+    return parse2(this, data, params, { callee: _parse });
   },
-  parseAsync: async function _parseAsync2(data, params) {
-    return await parseAsync(this, data, params, { callee: _parseAsync2 });
+  parseAsync: async function _parseAsync(data, params) {
+    return await parseAsync(this, data, params, { callee: _parseAsync });
   },
   safeParse(data, params) {
     return safeParse(this, data, params);
@@ -6402,7 +6135,7 @@ var ZodType = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
     return this?.safeParseAsync;
   },
   set spa(value) {
-    exports_util.own(this, "spa", value);
+    own(this, "spa", value);
   },
   validate(data, params) {
     return validate(this, data, params);
@@ -6410,17 +6143,17 @@ var ZodType = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
   validateAsync(data, params) {
     return validateAsync(this, data, params);
   },
-  encode: function _encode2(data, params) {
-    return encode(this, data, params, { callee: _encode2 });
+  encode: function _encode(data, params) {
+    return encode(this, data, params, { callee: _encode });
   },
-  decode: function _decode2(data, params) {
-    return decode(this, data, params, { callee: _decode2 });
+  decode: function _decode(data, params) {
+    return decode(this, data, params, { callee: _decode });
   },
-  encodeAsync: async function _encodeAsync2(data, params) {
-    return await encodeAsync(this, data, params, { callee: _encodeAsync2 });
+  encodeAsync: async function _encodeAsync(data, params) {
+    return await encodeAsync(this, data, params, { callee: _encodeAsync });
   },
-  decodeAsync: async function _decodeAsync2(data, params) {
-    return await decodeAsync(this, data, params, { callee: _decodeAsync2 });
+  decodeAsync: async function _decodeAsync(data, params) {
+    return await decodeAsync(this, data, params, { callee: _decodeAsync });
   },
   safeEncode(data, params) {
     return safeEncode(this, data, params);
@@ -6448,7 +6181,7 @@ var _ZodString = /* @__PURE__ */ $constructor("_ZodString", (inst, def) => {
   $ZodString.init(inst, def);
   ZodType.init(inst, def);
   inst._zod.processJSONSchema = (ctx, json, params) => stringProcessor(inst, ctx, json, params);
-}, /* @__PURE__ */ exports_util.derived({
+}, /* @__PURE__ */ derived({
   format: (inst) => aggregateChecks(inst).format ?? null,
   minLength: (inst) => aggregateChecks(inst).minimum ?? null,
   maxLength: (inst) => aggregateChecks(inst).maximum ?? null
@@ -6686,7 +6419,7 @@ var ZodNumber = /* @__PURE__ */ $constructor("ZodNumber", (inst, def) => {
   ZodType.init(inst, def);
   inst._zod.processJSONSchema = (ctx, json, params) => numberProcessor(inst, ctx, json, params);
   inst.isFinite = true;
-}, /* @__PURE__ */ exports_util.derived({
+}, /* @__PURE__ */ derived({
   minValue: (inst) => {
     const { minimum, exclusiveMinimum } = aggregateChecks(inst);
     return Math.max(minimum ?? Number.NEGATIVE_INFINITY, exclusiveMinimum ?? Number.NEGATIVE_INFINITY);
@@ -6812,56 +6545,56 @@ var ZodObject = /* @__PURE__ */ $constructor("ZodObject", (inst, def) => {
   $ZodObjectJIT.init(inst, def);
   ZodType.init(inst, def);
   inst._zod.processJSONSchema = (ctx, json, params) => objectProcessor(inst, ctx, json, params);
-  exports_util.installLazyProp(inst, "shape", (self) => self._zod.def.shape, false);
+  installLazyProp(inst, "shape", (self) => self._zod.def.shape, false);
 }, {
   keyof() {
     return _enum(Object.keys(this._zod.def.shape));
   },
   catchall(catchall) {
-    return this.clone(exports_util.mergeDefs(this._zod.def, { catchall }));
+    return this.clone(mergeDefs(this._zod.def, { catchall }));
   },
   passthrough() {
-    return this.clone(exports_util.mergeDefs(this._zod.def, { catchall: unknown() }));
+    return this.clone(mergeDefs(this._zod.def, { catchall: unknown() }));
   },
   loose() {
-    return this.clone(exports_util.mergeDefs(this._zod.def, { catchall: unknown() }));
+    return this.clone(mergeDefs(this._zod.def, { catchall: unknown() }));
   },
   strict() {
-    return this.clone(exports_util.mergeDefs(this._zod.def, { catchall: never() }));
+    return this.clone(mergeDefs(this._zod.def, { catchall: never() }));
   },
   strip() {
-    return this.clone(exports_util.mergeDefs(this._zod.def, { catchall: undefined }));
+    return this.clone(mergeDefs(this._zod.def, { catchall: undefined }));
   },
   extend(incoming) {
-    return exports_util.extend(this, incoming);
+    return extend(this, incoming);
   },
   safeExtend(incoming) {
-    return exports_util.safeExtend(this, incoming);
+    return safeExtend(this, incoming);
   },
   merge(other) {
-    return exports_util.merge(this, other);
+    return merge(this, other);
   },
   pick(mask) {
-    return exports_util.pick(this, mask);
+    return pick(this, mask);
   },
   omit(mask) {
-    return exports_util.omit(this, mask);
+    return omit(this, mask);
   },
   partial(...args) {
-    return exports_util.partial(ZodOptional, this, args[0]);
+    return partial(ZodOptional, this, args[0]);
   },
   exactPartial(...args) {
-    return exports_util.partial(ZodExactOptional, this, args[0], "exactPartial");
+    return partial(ZodExactOptional, this, args[0], "exactPartial");
   },
   required(...args) {
-    return exports_util.required(ZodNonOptional, this, args[0]);
+    return required(ZodNonOptional, this, args[0]);
   }
 });
 function object(shape, params) {
   const def = {
     type: "object",
     shape: shape ?? {},
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   };
   return new ZodObject(def);
 }
@@ -6875,7 +6608,7 @@ function union(options, params) {
   return new ZodUnion({
     type: "union",
     options,
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   });
 }
 var ZodDiscriminatedUnion = /* @__PURE__ */ $constructor("ZodDiscriminatedUnion", (inst, def) => {
@@ -6887,7 +6620,7 @@ function discriminatedUnion(discriminator, options, params) {
     type: "union",
     options,
     discriminator,
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   });
 }
 var ZodIntersection = /* @__PURE__ */ $constructor("ZodIntersection", (inst, def) => {
@@ -6916,14 +6649,14 @@ function record(keyType, valueType, params) {
       type: "record",
       keyType: string2(),
       valueType: keyType,
-      ...exports_util.normalizeParams(valueType)
+      ...normalizeParams(valueType)
     });
   }
   return new ZodRecord({
     type: "record",
     keyType,
     valueType,
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   });
 }
 var ZodEnum = /* @__PURE__ */ $constructor("ZodEnum", (inst, def) => {
@@ -6944,7 +6677,7 @@ var ZodEnum = /* @__PURE__ */ $constructor("ZodEnum", (inst, def) => {
     return new ZodEnum({
       ...def,
       checks: [],
-      ...exports_util.normalizeParams(params),
+      ...normalizeParams(params),
       entries: newEntries
     });
   };
@@ -6959,7 +6692,7 @@ var ZodEnum = /* @__PURE__ */ $constructor("ZodEnum", (inst, def) => {
     return new ZodEnum({
       ...def,
       checks: [],
-      ...exports_util.normalizeParams(params),
+      ...normalizeParams(params),
       entries: newEntries
     });
   };
@@ -6969,7 +6702,7 @@ function _enum(values, params) {
   return new ZodEnum({
     type: "enum",
     entries,
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   });
 }
 var ZodLiteral = /* @__PURE__ */ $constructor("ZodLiteral", (inst, def) => {
@@ -6990,7 +6723,7 @@ function literal(value, params) {
   return new ZodLiteral({
     type: "literal",
     values: Array.isArray(value) ? value : [value],
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   });
 }
 var ZodTransform = /* @__PURE__ */ $constructor("ZodTransform", (inst, def) => {
@@ -7004,7 +6737,7 @@ var ZodTransform = /* @__PURE__ */ $constructor("ZodTransform", (inst, def) => {
     }
     payload.addIssue = (issue2) => {
       if (typeof issue2 === "string") {
-        payload.issues.push(exports_util.issue(issue2, payload.value, def));
+        payload.issues.push(issue(issue2, payload.value, def));
       } else {
         const _issue = issue2;
         if (_issue.fatal)
@@ -7013,13 +6746,13 @@ var ZodTransform = /* @__PURE__ */ $constructor("ZodTransform", (inst, def) => {
         if (!("input" in _issue))
           _issue.input = payload.value;
         _issue.inst ?? (_issue.inst = inst);
-        payload.issues.push(exports_util.issue(_issue));
+        payload.issues.push(issue(_issue));
       }
     };
     const output = def.transform(payload.value, payload);
     if (output instanceof Promise) {
-      return output.then((output2) => {
-        payload.value = output2;
+      return output.then((output) => {
+        payload.value = output;
         return payload;
       });
     }
@@ -7081,7 +6814,7 @@ function _default(innerType, defaultValue) {
     type: "default",
     innerType,
     get defaultValue() {
-      return typeof defaultValue === "function" ? defaultValue() : exports_util.shallowClone(defaultValue);
+      return typeof defaultValue === "function" ? defaultValue() : shallowClone(defaultValue);
     }
   });
 }
@@ -7096,7 +6829,7 @@ function prefault(innerType, defaultValue) {
     type: "prefault",
     innerType,
     get defaultValue() {
-      return typeof defaultValue === "function" ? defaultValue() : exports_util.shallowClone(defaultValue);
+      return typeof defaultValue === "function" ? defaultValue() : shallowClone(defaultValue);
     }
   });
 }
@@ -7110,7 +6843,7 @@ function nonoptional(innerType, params) {
   return new ZodNonOptional({
     type: "nonoptional",
     innerType,
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   });
 }
 var ZodCatch = /* @__PURE__ */ $constructor("ZodCatch", (inst, def) => {
@@ -7124,7 +6857,7 @@ function _catch(innerType, catchValue) {
   return new ZodCatch({
     type: "catch",
     innerType,
-    catchValue: typeof catchValue === "function" ? catchValue : exports_util.constantCatch(catchValue)
+    catchValue: typeof catchValue === "function" ? catchValue : constantCatch(catchValue)
   });
 }
 var ZodPipe = /* @__PURE__ */ $constructor("ZodPipe", (inst, def) => {
@@ -7216,10 +6949,7 @@ function splitReasoningSuffix(model, options) {
 
 // ../../omo-config-core/src/schema/model-ref.ts
 var REASONING_LEVELS_OR_AUTO = [...REASONING_LEVELS, "auto"];
-var OmoReasoningSchema = union([
-  _enum(REASONING_LEVELS_OR_AUTO),
-  string2()
-]);
+var OmoReasoningSchema = union([_enum(REASONING_LEVELS_OR_AUTO), string2()]);
 var OmoModelRefObjectSchema = object({
   model: string2(),
   reasoning: OmoReasoningSchema.optional(),
@@ -7265,7 +6995,6 @@ function normalizeLegacyModelFields(entry) {
   delete normalized["reasoningEffort"];
   delete normalized["thinking"];
   delete normalized["textVerbosity"];
-  delete normalized["maxTokens"];
   delete normalized["providerOptions"];
   if (typeof entry["model"] === "string")
     normalized["model"] = canonicalModelString(entry["model"]);
@@ -7283,10 +7012,15 @@ function normalizeLegacyModelFields(entry) {
     providerOptions["textVerbosity"] = entry["textVerbosity"];
   if (Object.keys(providerOptions).length > 0)
     normalized["provider_options"] = providerOptions;
-  if (entry["max_tokens"] !== undefined)
+  if (entry["max_tokens"] !== undefined) {
     normalized["max_tokens"] = entry["max_tokens"];
-  else if (entry["maxTokens"] !== undefined)
+    if (entry["maxTokens"] === undefined || typeof entry["maxTokens"] === "number") {
+      delete normalized["maxTokens"];
+    }
+  } else if (typeof entry["maxTokens"] === "number") {
     normalized["max_tokens"] = entry["maxTokens"];
+    delete normalized["maxTokens"];
+  }
   return normalized;
 }
 var OmoLegacyFallbackModelObjectInputSchema = object({
@@ -7316,11 +7050,22 @@ function isRecord3(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 var OmoAgentModelEntrySchema = union([string2(), OmoFallbackModelObjectSchema]);
+var PermissionValueSchema = _enum(["ask", "allow", "deny"]);
+var BashPermissionSchema = union([PermissionValueSchema, record(string2(), PermissionValueSchema)]);
+var OmoAgentPermissionSchema = object({
+  edit: PermissionValueSchema.optional(),
+  bash: BashPermissionSchema.optional(),
+  webfetch: PermissionValueSchema.optional(),
+  task: PermissionValueSchema.optional(),
+  doom_loop: PermissionValueSchema.optional(),
+  external_directory: PermissionValueSchema.optional()
+}).catchall(PermissionValueSchema.optional());
 var OmoAgentDefInputSchema = object({
   description: string2().optional(),
   prompt: string2().optional(),
   model: string2().optional(),
   models: array(OmoAgentModelEntrySchema).optional(),
+  models_distribution: _enum(["sequential", "round_robin"]).optional(),
   reasoning: OmoReasoningSchema.optional(),
   variant: string2().optional(),
   reasoningEffort: OmoReasoningEffortSchema.optional(),
@@ -7332,7 +7077,9 @@ var OmoAgentDefInputSchema = object({
   disallowed_tools: array(string2()).optional(),
   max_turns: number2().int().nonnegative().optional(),
   temperature: number2().min(0).max(2).optional(),
-  disable: boolean2().optional()
+  disable: boolean2().optional(),
+  permission: OmoAgentPermissionSchema.optional(),
+  prompt_append: string2().optional()
 }).strict();
 var OmoAgentDefSchema = preprocess((value) => isRecord3(value) ? normalizeLegacyModelFields(value) : value, OmoAgentDefInputSchema);
 var OmoAgentsConfigSchema = record(string2(), OmoAgentDefSchema);
@@ -7345,6 +7092,7 @@ var OmoCategoryConfigObjectSchema = object({
   description: string2().optional(),
   model: string2().optional(),
   models: array(union([string2(), OmoFallbackModelObjectSchema])).optional(),
+  models_distribution: _enum(["sequential", "round_robin"]).optional(),
   reasoning: OmoReasoningSchema.optional(),
   temperature: number2().min(0).max(2).optional(),
   top_p: number2().min(0).max(1).optional(),
@@ -7363,15 +7111,20 @@ var OmoCategoryConfigObjectSchema = object({
   disable: boolean2().optional(),
   warn_unavailable: boolean2().optional()
 }).strict();
-var OmoCategoryConfigSchema = preprocess((value) => isRecord4(value) ? normalizeLegacyModelFields(value) : value, OmoCategoryConfigObjectSchema);
+function withoutRetiredCategoryKeys(entry) {
+  const { provider_lock: _retired, ...rest } = entry;
+  return rest;
+}
+var OmoCategoryConfigSchema = preprocess((value) => isRecord4(value) ? withoutRetiredCategoryKeys(normalizeLegacyModelFields(value)) : value, OmoCategoryConfigObjectSchema);
 var OmoCategoriesConfigSchema = record(string2(), OmoCategoryConfigSchema);
 
 // ../../omo-config-core/src/schema/computer.ts
 var positiveInteger = number2().int().positive();
 var nonNegativeInteger = number2().int().nonnegative();
 var OmoComputerSettingsLayerSchema = object({
-  enabled: boolean2(),
+  enabled: boolean2().describe("Experimental: register the computer tool in OmO Native sessions (default: on where the host is supported; false leaves it unregistered)"),
   display: string2().min(1),
+  showCursor: boolean2().describe("Show the display-only macOS cursor overlay (default: true; false hides it)"),
   max_width: positiveInteger,
   max_height: positiveInteger,
   screenshot_max_bytes: positiveInteger,
@@ -7381,19 +7134,29 @@ var OmoComputerSettingsLayerSchema = object({
   audit_log: object({ enabled: boolean2() }).partial().strict(),
   screenshot_gc: object({ enabled: boolean2(), stale_ms: nonNegativeInteger, scan_interval_ms: nonNegativeInteger }).partial().strict(),
   engine_path: string2().min(1),
-  cua_adapter: boolean2()
-}).partial().strict();
+  cua_adapter: boolean2(),
+  run_sandbox: _enum(["vm", "quickjs"]).describe("Where `run` code executes (default: vm; reserved: every run uses vm until the QuickJS cell lands)"),
+  intervention: _enum(["continue", "pause"]).describe("What a background action does while the user uses the target app (default: continue)"),
+  macos_key_priming: _enum(["on", "off"]).describe("macOS background keys first make the target window key (default: off)"),
+  trace: boolean2().describe("Per-request timing traces (default: false)")
+}).partial().strict().describe("Experimental computer use in OmO Native: screenshots, windows, accessibility trees and native mouse and keyboard input. Every key is optional; defaults depend on the host.");
 var OmoComputerSettingsSchema = OmoComputerSettingsLayerSchema;
 
 // ../../omo-config-core/src/schema/git-master.ts
+var GIT_ENV_ASSIGNMENT_PATTERN = /^(?:[A-Za-z_][A-Za-z0-9_]*=[A-Za-z0-9_-]*)(?: [A-Za-z_][A-Za-z0-9_]*=[A-Za-z0-9_-]*)*$/;
+var GitEnvPrefixSchema = string2().refine((value) => value === "" || GIT_ENV_ASSIGNMENT_PATTERN.test(value), {
+  message: 'git_env_prefix must be empty or use shell-safe env assignments like "GIT_MASTER=1"'
+});
 var OmoGitMasterSettingsShape = {
   commit_footer: union([boolean2(), string2()]),
-  include_co_authored_by: boolean2()
+  include_co_authored_by: boolean2(),
+  git_env_prefix: GitEnvPrefixSchema
 };
 var OmoGitMasterSettingsLayerSchema = object(OmoGitMasterSettingsShape).partial().strict();
 var OmoGitMasterSettingsSchema = OmoGitMasterSettingsLayerSchema.extend({
   commit_footer: union([boolean2(), string2()]).default(false),
-  include_co_authored_by: boolean2().default(false)
+  include_co_authored_by: boolean2().default(true),
+  git_env_prefix: GitEnvPrefixSchema.default("GIT_MASTER=1")
 }).strict();
 
 // ../../omo-config-core/src/schema/harness.ts
@@ -7402,6 +7165,19 @@ var OMO_CONFIG_HARNESS_IDS = ["opencode", "native", "codex"];
 var OmoHarnessIdSchema = _enum(OMO_CONFIG_HARNESS_IDS);
 var OMO_CONFIG_LEGACY_HARNESS_ALIASES = { senpi: "native" };
 var OMO_CONFIG_LEGACY_HARNESS_IDS = Object.keys(OMO_CONFIG_LEGACY_HARNESS_ALIASES);
+
+// ../../omo-config-core/src/schema/memory-agreements.ts
+var OMO_MEMORY_AGREEMENTS_DEFAULTS = { enabled: true, needs_human_threshold: 3, max_items: 64 };
+var OmoMemoryAgreementsSchema = object({
+  enabled: boolean2().default(OMO_MEMORY_AGREEMENTS_DEFAULTS.enabled),
+  needs_human_threshold: number2().int().min(1).default(OMO_MEMORY_AGREEMENTS_DEFAULTS.needs_human_threshold),
+  max_items: number2().int().min(8).max(256).default(OMO_MEMORY_AGREEMENTS_DEFAULTS.max_items)
+}).strict();
+var OmoMemoryAgreementsLayerSchema = object({
+  enabled: boolean2().optional(),
+  needs_human_threshold: number2().int().min(1).optional(),
+  max_items: number2().int().min(8).max(256).optional()
+}).strict();
 
 // ../../omo-config-core/src/schema/memory.ts
 var OmoMemoryReflectionTriggerSchema = object({
@@ -7414,6 +7190,7 @@ var OmoMemoryReflectionSchema = object({
   merge: _enum(["auto", "integration"]).default("auto"),
   category: string2().min(1).default("quick"),
   timeout_minutes: number2().int().positive().default(15),
+  max_concurrent_runs: number2().int().positive().default(1),
   sandbox: _enum(["auto", "required", "off"]).default("auto")
 }).strict();
 var OmoMemorySyncSchema = object({
@@ -7433,10 +7210,24 @@ var OmoMemoryRecallSchema = object({
   enabled: boolean2().default(true),
   max_items: number2().int().min(1).max(5).default(2),
   category: string2().min(1).default("quick"),
-  event_caps: OmoMemoryRecallEventCapsSchema.default({ tool_args: 400, result_head: 600, assistant: 1500, prompt: 4000 }),
+  event_caps: OmoMemoryRecallEventCapsSchema.default({
+    tool_args: 400,
+    result_head: 600,
+    assistant: 1500,
+    prompt: 4000
+  }),
   sidecar_max_tokens: number2().int().positive().default(48000),
   max_concurrent_wakes: number2().int().positive().default(2),
-  tool_budget: number2().int().positive().default(8)
+  tool_budget: number2().int().positive().default(8),
+  query_expansion: boolean2().default(false)
+}).strict();
+var OmoMemoryProjectScopeSchema = object({
+  nudge: boolean2().default(true),
+  recall: boolean2().default(true)
+}).strict();
+var OmoMemoryProjectScopeLayerSchema = object({
+  nudge: boolean2().optional(),
+  recall: boolean2().optional()
 }).strict();
 var OmoMemoryNudgeSchema = object({
   enabled: boolean2().default(true),
@@ -7444,7 +7235,8 @@ var OmoMemoryNudgeSchema = object({
 }).strict();
 var OmoMemoryFactsSchema = object({
   enabled: boolean2().default(true),
-  debounce_settles: number2().int().min(1).default(4)
+  debounce_settles: number2().int().min(1).default(4),
+  model: string2().min(1).optional()
 }).strict();
 var OmoMemoryDreamSchema = object({
   enabled: boolean2().default(true),
@@ -7475,6 +7267,7 @@ var OmoMemoryReflectionLayerSchema = object({
   merge: _enum(["auto", "integration"]).optional(),
   category: string2().min(1).optional(),
   timeout_minutes: number2().int().positive().optional(),
+  max_concurrent_runs: number2().int().positive().optional(),
   sandbox: _enum(["auto", "required", "off"]).optional()
 }).strict();
 var OmoMemorySyncLayerSchema = object({
@@ -7497,7 +7290,8 @@ var OmoMemoryRecallLayerSchema = object({
   event_caps: OmoMemoryRecallEventCapsLayerSchema.optional(),
   sidecar_max_tokens: number2().int().positive().optional(),
   max_concurrent_wakes: number2().int().positive().optional(),
-  tool_budget: number2().int().positive().optional()
+  tool_budget: number2().int().positive().optional(),
+  query_expansion: boolean2().optional()
 }).strict();
 var OmoMemoryNudgeLayerSchema = object({
   enabled: boolean2().optional(),
@@ -7505,7 +7299,8 @@ var OmoMemoryNudgeLayerSchema = object({
 }).strict();
 var OmoMemoryFactsLayerSchema = object({
   enabled: boolean2().optional(),
-  debounce_settles: number2().int().min(1).optional()
+  debounce_settles: number2().int().min(1).optional(),
+  model: string2().min(1).optional()
 }).strict();
 var OmoMemoryDreamLayerSchema = object({
   enabled: boolean2().optional(),
@@ -7526,30 +7321,60 @@ var OmoMemorySoulLayerSchema = object({
 var OmoMemoryWriteNoticeLayerSchema = object({
   enabled: boolean2().optional()
 }).strict();
+var OmoMemoryProjectionSchema = object({
+  max_entries_per_directory: number2().int().min(0).default(0),
+  max_bytes: number2().int().min(0).default(40960)
+}).strict();
+var OmoMemoryProjectionLayerSchema = object({
+  max_entries_per_directory: number2().int().min(0).optional(),
+  max_bytes: number2().int().min(0).optional()
+}).strict();
+var OmoMemoryRuntimeSchema = object({
+  retention_days: number2().int().min(1).default(7),
+  abandoned_journal_days: number2().int().min(1).default(14),
+  completions_days: number2().int().min(1).default(30),
+  pass_budget_ms: number2().int().min(1).default(60000),
+  discard_unreflected_journals: boolean2().default(false),
+  max_bytes: number2().int().min(0).default(2 * 1024 * 1024 * 1024)
+}).strict();
+var OmoMemoryRuntimeLayerSchema = object({
+  retention_days: number2().int().min(1).optional(),
+  abandoned_journal_days: number2().int().min(1).optional(),
+  completions_days: number2().int().min(1).optional(),
+  pass_budget_ms: number2().int().min(1).optional(),
+  discard_unreflected_journals: boolean2().optional(),
+  max_bytes: number2().int().min(0).optional()
+}).strict();
 var OmoMemoryAgentOverridesSchema = object({
   enabled: boolean2().optional(),
   agent: string2().min(1).optional(),
-  reflection: OmoMemoryReflectionLayerSchema.optional(),
+  reflection: OmoMemoryReflectionLayerSchema.omit({ max_concurrent_runs: true }).optional(),
   nudge: OmoMemoryNudgeLayerSchema.optional(),
   facts: OmoMemoryFactsLayerSchema.optional(),
   dream: OmoMemoryDreamLayerSchema.optional(),
   people: OmoMemoryPeopleLayerSchema.optional(),
+  agreements: OmoMemoryAgreementsLayerSchema.optional(),
   soul: OmoMemorySoulLayerSchema.optional(),
   write_notice: OmoMemoryWriteNoticeLayerSchema.optional(),
   sync: OmoMemorySyncLayerSchema.optional(),
   search: OmoMemorySearchLayerSchema.optional(),
   recall: OmoMemoryRecallLayerSchema.optional(),
+  projection: OmoMemoryProjectionLayerSchema.optional(),
+  runtime: OmoMemoryRuntimeLayerSchema.optional(),
   compile_warn_tokens: number2().int().positive().optional()
 }).strict();
+var OmoMemoryAutoIdentitySchema = _enum(["path", "git"]);
 var OmoMemorySettingsSchema = object({
   enabled: boolean2().default(true),
   agent: string2().min(1).default("auto"),
+  auto_identity: OmoMemoryAutoIdentitySchema.default("path"),
   reflection: OmoMemoryReflectionSchema.default({
     enabled: true,
     trigger: { step_count: 25, on_compaction: true },
     merge: "auto",
     category: "quick",
     timeout_minutes: 15,
+    max_concurrent_runs: 1,
     sandbox: "auto"
   }),
   nudge: OmoMemoryNudgeSchema.default({ enabled: true, every_user_turns: 10 }),
@@ -7563,6 +7388,7 @@ var OmoMemorySettingsSchema = object({
     auto_select_max_chars: 150000
   }),
   people: OmoMemoryPeopleSchema.default({ enabled: true, max_entries: 40, max_entry_chars: 200 }),
+  agreements: OmoMemoryAgreementsSchema.default(OMO_MEMORY_AGREEMENTS_DEFAULTS),
   soul: OmoMemorySoulSchema.default({ edit_notice: true }),
   write_notice: OmoMemoryWriteNoticeSchema.default({ enabled: true }),
   sync: OmoMemorySyncSchema.default({ enabled: true }),
@@ -7574,7 +7400,18 @@ var OmoMemorySettingsSchema = object({
     event_caps: { tool_args: 400, result_head: 600, assistant: 1500, prompt: 4000 },
     sidecar_max_tokens: 48000,
     max_concurrent_wakes: 2,
-    tool_budget: 8
+    tool_budget: 8,
+    query_expansion: false
+  }),
+  project_scope: OmoMemoryProjectScopeSchema.default({ nudge: true, recall: true }),
+  projection: OmoMemoryProjectionSchema.default({ max_entries_per_directory: 0, max_bytes: 40960 }),
+  runtime: OmoMemoryRuntimeSchema.default({
+    retention_days: 7,
+    abandoned_journal_days: 14,
+    completions_days: 30,
+    pass_budget_ms: 60000,
+    discard_unreflected_journals: false,
+    max_bytes: 2 * 1024 * 1024 * 1024
   }),
   compile_warn_tokens: number2().int().positive().default(30000),
   agents: record(string2(), OmoMemoryAgentOverridesSchema).default({})
@@ -7582,16 +7419,21 @@ var OmoMemorySettingsSchema = object({
 var OmoMemorySettingsLayerSchema = object({
   enabled: boolean2().optional(),
   agent: string2().min(1).optional(),
+  auto_identity: OmoMemoryAutoIdentitySchema.optional(),
   reflection: OmoMemoryReflectionLayerSchema.optional(),
   nudge: OmoMemoryNudgeLayerSchema.optional(),
   facts: OmoMemoryFactsLayerSchema.optional(),
   dream: OmoMemoryDreamLayerSchema.optional(),
   people: OmoMemoryPeopleLayerSchema.optional(),
+  agreements: OmoMemoryAgreementsLayerSchema.optional(),
   soul: OmoMemorySoulLayerSchema.optional(),
   write_notice: OmoMemoryWriteNoticeLayerSchema.optional(),
   sync: OmoMemorySyncLayerSchema.optional(),
   search: OmoMemorySearchLayerSchema.optional(),
   recall: OmoMemoryRecallLayerSchema.optional(),
+  project_scope: OmoMemoryProjectScopeLayerSchema.optional(),
+  projection: OmoMemoryProjectionLayerSchema.optional(),
+  runtime: OmoMemoryRuntimeLayerSchema.optional(),
   compile_warn_tokens: number2().int().positive().optional(),
   agents: record(string2(), OmoMemoryAgentOverridesSchema).optional()
 }).strict();
@@ -7612,12 +7454,24 @@ var OmoModelCatalogEntryLayerInputSchema = OmoModelCatalogEntryInputSchema.parti
 var OmoModelCatalogEntryLayerSchema = preprocess((value) => isRecord5(value) ? normalizeLegacyModelFields(value) : value, OmoModelCatalogEntryLayerInputSchema);
 var OmoModelCatalogLayerSchema = record(string2(), OmoModelCatalogEntryLayerSchema);
 
+// ../../omo-config-core/src/schema/model-pad.ts
+var OmoModelPadLabelsSchema = object({
+  daily: string2().optional(),
+  geeky: string2().optional(),
+  normal: string2().optional(),
+  heavy: string2().optional()
+}).strict();
+var OmoModelPadSchema = object({
+  labels: OmoModelPadLabelsSchema.optional()
+}).strict();
+
 // ../../omo-config-core/src/schema/model-profile.ts
 function isRecord6(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 var OmoModelProfileInputSchema = object({
   display_name: string2().optional(),
+  caution: string2().optional(),
   family: _enum(["daily", "geeky"]).optional(),
   tier: _enum(["normal", "heavy"]).optional(),
   models: array(union([string2(), OmoFallbackModelObjectSchema])).optional()
@@ -7627,6 +7481,56 @@ var OmoModelProfilesSchema = record(string2(), OmoModelProfileSchema);
 var OmoModelProfileLayerInputSchema = OmoModelProfileInputSchema.partial();
 var OmoModelProfileLayerSchema = preprocess((value) => isRecord6(value) ? normalizeLegacyModelFields(value) : value, OmoModelProfileLayerInputSchema);
 var OmoModelProfilesLayerSchema = record(string2(), OmoModelProfileLayerSchema);
+
+// ../../omo-config-core/src/schema/side-panel.ts
+var OmoSidePanelWidthSchema = union([number2().int().min(24).max(160), string2().regex(/^(?:1\d|[2-4]\d|50)%$/)]);
+var OmoSidePanelSectionsShape = {
+  session: boolean2(),
+  goal: boolean2(),
+  context: boolean2(),
+  usage: boolean2(),
+  agents: boolean2(),
+  tools: boolean2(),
+  files: boolean2(),
+  memory: boolean2()
+};
+var OmoSidePanelSectionsLayerSchema = object(OmoSidePanelSectionsShape).partial().strict();
+var OmoSidePanelSectionsSchema = OmoSidePanelSectionsLayerSchema.extend({
+  session: boolean2().default(true),
+  goal: boolean2().default(true),
+  context: boolean2().default(true),
+  usage: boolean2().default(false),
+  agents: boolean2().default(true),
+  tools: boolean2().default(true),
+  files: boolean2().default(true),
+  memory: boolean2().default(true)
+}).strict();
+var OmoSidePanelSettingsShape = {
+  enabled: boolean2(),
+  width: OmoSidePanelWidthSchema,
+  min_columns: number2().int().min(60).max(400),
+  clickable: boolean2(),
+  usage_poll_seconds: number2().int().min(60).max(3600),
+  sections: OmoSidePanelSectionsLayerSchema
+};
+var OmoSidePanelSettingsLayerSchema = object(OmoSidePanelSettingsShape).partial().strict();
+var OmoSidePanelSettingsSchema = OmoSidePanelSettingsLayerSchema.extend({
+  enabled: boolean2().default(false),
+  width: OmoSidePanelWidthSchema.default("26%"),
+  min_columns: number2().int().min(60).max(400).default(120),
+  clickable: boolean2().default(true),
+  usage_poll_seconds: number2().int().min(60).max(3600).default(150),
+  sections: OmoSidePanelSectionsSchema.default({
+    session: true,
+    goal: true,
+    context: true,
+    usage: false,
+    agents: true,
+    tools: true,
+    files: true,
+    memory: true
+  })
+}).strict();
 
 // ../../omo-config-core/src/schema/task.ts
 import { availableParallelism } from "node:os";
@@ -7686,6 +7590,7 @@ var OmoTaskSettingsSchema = object({
   process_runner: _enum(["host", "child-process"]).default("host"),
   host_engine_policy: _enum(["upgrade", "fallback"]).default("upgrade"),
   host_idle_exit_ms: number2().int().positive().optional(),
+  host_shard_prewarm: _enum(["off", "first-turn", "session-start"]).default("first-turn"),
   default_concurrency: number2().int().nonnegative().default(5),
   global_concurrency: number2().int().nonnegative().default(8),
   provider_concurrency: record(string2(), number2().int().nonnegative()).optional(),
@@ -7735,6 +7640,7 @@ var OmoTaskSettingsLayerSchema = object({
   process_runner: _enum(["host", "child-process"]).optional(),
   host_engine_policy: _enum(["upgrade", "fallback"]).optional(),
   host_idle_exit_ms: number2().int().positive().optional(),
+  host_shard_prewarm: _enum(["off", "first-turn", "session-start"]).optional(),
   default_concurrency: number2().int().nonnegative().optional(),
   global_concurrency: number2().int().nonnegative().optional(),
   provider_concurrency: record(string2(), number2().int().nonnegative()).optional(),
@@ -7809,10 +7715,20 @@ var OmoTeamsConfigLayerSchema = record(string2(), OmoTeamSpecLayerSchema);
 
 // ../../omo-config-core/src/schema/telemetry.ts
 var OmoTelemetrySettingsShape = {
-  enabled: boolean2()
+  enabled: boolean2(),
+  rawTurnSampleRate: number2().min(0).max(1)
 };
 var OmoTelemetrySettingsLayerSchema = object(OmoTelemetrySettingsShape).partial().strict();
 var OmoTelemetrySettingsSchema = OmoTelemetrySettingsLayerSchema.extend({
+  enabled: boolean2().default(true)
+}).strict();
+
+// ../../omo-config-core/src/schema/device-service.ts
+var OmoDeviceServiceSettingsShape = {
+  enabled: boolean2()
+};
+var OmoDeviceServiceSettingsLayerSchema = object(OmoDeviceServiceSettingsShape).partial().strict();
+var OmoDeviceServiceSettingsSchema = OmoDeviceServiceSettingsLayerSchema.extend({
   enabled: boolean2().default(true)
 }).strict();
 
@@ -7831,10 +7747,21 @@ var OmoFormatOnMutationSchema = OmoFormatOnMutationLayerSchema.extend({
   timeoutMs: number2().int().positive().default(3000)
 }).strict();
 
+// ../../omo-config-core/src/schema/provenance.ts
+var OmoProvenanceSettingsSchema = object({
+  workspaces: array(object({
+    name: string2().trim().min(1).regex(/\S/),
+    git_owners: array(string2().trim().min(1).regex(/\S/)).optional(),
+    paths: array(string2().trim().min(1).regex(/\S/)).optional()
+  }).strict()).optional()
+}).strict();
+
 // ../../omo-config-core/src/schema/config.ts
 var OmoOpenCodeHarnessConfigSchema = record(string2(), unknown());
 var OmoDisabledSkillsSchema = array(string2());
+var OmoExcludedModelsSchema = array(string2());
 var OmoTypedHarnessConfigSchema = object({
+  provenance: OmoProvenanceSettingsSchema.optional(),
   formatOnMutation: OmoFormatOnMutationLayerSchema.optional(),
   categories: OmoCategoriesConfigSchema.optional(),
   agents: OmoAgentsConfigSchema.optional(),
@@ -7844,31 +7771,41 @@ var OmoTypedHarnessConfigSchema = object({
   models: OmoModelCatalogLayerSchema.optional(),
   model_profiles: OmoModelProfilesLayerSchema.optional(),
   model_profile: string2().optional(),
+  model_pad: OmoModelPadSchema.optional(),
   memory: OmoMemorySettingsLayerSchema.optional(),
   telemetry: OmoTelemetrySettingsLayerSchema.optional(),
-  computer: OmoComputerSettingsLayerSchema.optional(),
-  disabled_skills: OmoDisabledSkillsSchema.optional()
-}).strict();
-var OmoConfigProfileSchema = object({
-  formatOnMutation: OmoFormatOnMutationLayerSchema.optional(),
-  categories: OmoCategoriesConfigSchema.optional(),
-  agents: OmoAgentsConfigSchema.optional(),
-  git_master: OmoGitMasterSettingsLayerSchema.optional(),
-  task: OmoTaskSettingsLayerSchema.optional(),
-  teams: OmoTeamsConfigLayerSchema.optional(),
-  models: OmoModelCatalogLayerSchema.optional(),
-  model_profiles: OmoModelProfilesLayerSchema.optional(),
-  model_profile: string2().optional(),
-  memory: OmoMemorySettingsLayerSchema.optional(),
-  telemetry: OmoTelemetrySettingsLayerSchema.optional(),
+  device_service: OmoDeviceServiceSettingsLayerSchema.optional(),
+  side_panel: OmoSidePanelSettingsLayerSchema.optional(),
   computer: OmoComputerSettingsLayerSchema.optional(),
   disabled_skills: OmoDisabledSkillsSchema.optional(),
+  exclude_models: OmoExcludedModelsSchema.optional()
+}).strict();
+var OmoConfigProfileSchema = object({
+  provenance: OmoProvenanceSettingsSchema.optional(),
+  formatOnMutation: OmoFormatOnMutationLayerSchema.optional(),
+  categories: OmoCategoriesConfigSchema.optional(),
+  agents: OmoAgentsConfigSchema.optional(),
+  git_master: OmoGitMasterSettingsLayerSchema.optional(),
+  task: OmoTaskSettingsLayerSchema.optional(),
+  teams: OmoTeamsConfigLayerSchema.optional(),
+  models: OmoModelCatalogLayerSchema.optional(),
+  model_profiles: OmoModelProfilesLayerSchema.optional(),
+  model_profile: string2().optional(),
+  model_pad: OmoModelPadSchema.optional(),
+  memory: OmoMemorySettingsLayerSchema.optional(),
+  telemetry: OmoTelemetrySettingsLayerSchema.optional(),
+  device_service: OmoDeviceServiceSettingsLayerSchema.optional(),
+  side_panel: OmoSidePanelSettingsLayerSchema.optional(),
+  computer: OmoComputerSettingsLayerSchema.optional(),
+  disabled_skills: OmoDisabledSkillsSchema.optional(),
+  exclude_models: OmoExcludedModelsSchema.optional(),
   "[opencode]": OmoOpenCodeHarnessConfigSchema.optional(),
   "[native]": OmoTypedHarnessConfigSchema.optional(),
   "[senpi]": OmoTypedHarnessConfigSchema.optional(),
   "[codex]": OmoTypedHarnessConfigSchema.optional()
 }).strict();
 var OmoConfigSchema = object({
+  provenance: OmoProvenanceSettingsSchema.optional(),
   formatOnMutation: OmoFormatOnMutationSchema.optional(),
   $schema: string2().optional(),
   categories: OmoCategoriesConfigSchema.optional(),
@@ -7879,10 +7816,14 @@ var OmoConfigSchema = object({
   models: OmoModelCatalogSchema.optional(),
   model_profiles: OmoModelProfilesSchema.optional(),
   model_profile: string2().optional(),
+  model_pad: OmoModelPadSchema.optional(),
   memory: OmoMemorySettingsSchema.optional(),
   telemetry: OmoTelemetrySettingsSchema.optional(),
+  device_service: OmoDeviceServiceSettingsSchema.optional(),
+  side_panel: OmoSidePanelSettingsSchema.optional(),
   computer: OmoComputerSettingsSchema.optional(),
   disabled_skills: OmoDisabledSkillsSchema.optional(),
+  exclude_models: OmoExcludedModelsSchema.optional(),
   "[opencode]": OmoOpenCodeHarnessConfigSchema.optional(),
   "[native]": OmoTypedHarnessConfigSchema.optional(),
   "[senpi]": OmoTypedHarnessConfigSchema.optional(),
@@ -7892,6 +7833,7 @@ var OmoConfigSchema = object({
   legacy_migrations: record(string2(), unknown()).optional()
 }).strict();
 var OmoConfigLayerSchema = object({
+  provenance: OmoProvenanceSettingsSchema.optional(),
   formatOnMutation: OmoFormatOnMutationLayerSchema.optional(),
   $schema: string2().optional(),
   categories: OmoCategoriesConfigSchema.optional(),
@@ -7902,10 +7844,14 @@ var OmoConfigLayerSchema = object({
   models: OmoModelCatalogLayerSchema.optional(),
   model_profiles: OmoModelProfilesLayerSchema.optional(),
   model_profile: string2().optional(),
+  model_pad: OmoModelPadSchema.optional(),
   memory: OmoMemorySettingsLayerSchema.optional(),
   telemetry: OmoTelemetrySettingsLayerSchema.optional(),
+  device_service: OmoDeviceServiceSettingsLayerSchema.optional(),
+  side_panel: OmoSidePanelSettingsLayerSchema.optional(),
   computer: OmoComputerSettingsLayerSchema.optional(),
   disabled_skills: OmoDisabledSkillsSchema.optional(),
+  exclude_models: OmoExcludedModelsSchema.optional(),
   "[opencode]": OmoOpenCodeHarnessConfigSchema.optional(),
   "[native]": OmoTypedHarnessConfigSchema.optional(),
   "[senpi]": OmoTypedHarnessConfigSchema.optional(),
@@ -8019,21 +7965,75 @@ function canonicalizeLegacyHarnessBlocks(document) {
   return { document: canonicalized, renames };
 }
 
+// ../../omo-config-core/src/loader/types.ts
+import { existsSync as existsSync2, lstatSync, readFileSync, realpathSync } from "node:fs";
+var MERGED_OMO_CONFIG_PATH = "(merged omo config)";
+var DEFAULT_READ_FILE_SYSTEM = {
+  existsSync: existsSync2,
+  lstatSync,
+  readFileSync,
+  realpathSync
+};
+
+// ../../omo-config-core/src/loader/disabled-skills.ts
+function toRecord(value) {
+  if (value === null || typeof value !== "object" || Array.isArray(value))
+    return;
+  return value;
+}
+function namesAt(record, key) {
+  const value = record?.[key];
+  if (!Array.isArray(value))
+    return [];
+  return value.filter((entry) => typeof entry === "string" && entry.trim() !== "");
+}
+function harnessBlockKeys(harness) {
+  const canonical = canonicalHarnessName(harness);
+  const legacy = Object.entries(OMO_CONFIG_LEGACY_HARNESS_ALIASES).filter(([, target]) => target === canonical).map(([name]) => harnessBlockKey(name));
+  return [harnessBlockKey(canonical), ...legacy];
+}
+function scopesOf(config, harness) {
+  if (harness === undefined)
+    return [config];
+  return [config, ...harnessBlockKeys(harness).map((key) => toRecord(config[key]))];
+}
+function collectExcludedModels(options) {
+  return collectUnionedList("exclude_models", options);
+}
+function collectUnionedList(key, options) {
+  const names = new Set;
+  for (const layer of options.layers) {
+    const config = toRecord(layer.config);
+    if (config === undefined)
+      continue;
+    const profile = options.profile === undefined ? undefined : toRecord(toRecord(config["profiles"])?.[options.profile]);
+    const scopes = [
+      ...scopesOf(config, options.harness),
+      ...profile === undefined ? [] : scopesOf(profile, options.harness)
+    ];
+    for (const scope of scopes) {
+      for (const name of namesAt(scope, key))
+        names.add(name.trim());
+    }
+  }
+  return [...names];
+}
+
 // ../../../node_modules/.bun/jsonc-parser@3.3.1/node_modules/jsonc-parser/lib/esm/impl/scanner.js
 function createScanner(text, ignoreTrivia = false) {
   const len = text.length;
   let pos = 0, value = "", tokenOffset = 0, token = 16, lineNumber = 0, lineStartOffset = 0, tokenLineStartOffset = 0, prevTokenLineStartOffset = 0, scanError = 0;
   function scanHexDigits(count, exact) {
     let digits = 0;
-    let value2 = 0;
+    let value = 0;
     while (digits < count || !exact) {
       let ch = text.charCodeAt(pos);
       if (ch >= 48 && ch <= 57) {
-        value2 = value2 * 16 + ch - 48;
+        value = value * 16 + ch - 48;
       } else if (ch >= 65 && ch <= 70) {
-        value2 = value2 * 16 + ch - 65 + 10;
+        value = value * 16 + ch - 65 + 10;
       } else if (ch >= 97 && ch <= 102) {
-        value2 = value2 * 16 + ch - 97 + 10;
+        value = value * 16 + ch - 97 + 10;
       } else {
         break;
       }
@@ -8041,9 +8041,9 @@ function createScanner(text, ignoreTrivia = false) {
       digits++;
     }
     if (digits < count) {
-      value2 = -1;
+      value = -1;
     }
-    return value2;
+    return value;
   }
   function setPosition(newPosition) {
     pos = newPosition;
@@ -8351,87 +8351,87 @@ function isDigit(ch) {
   return ch >= 48 && ch <= 57;
 }
 var CharacterCodes;
-(function(CharacterCodes2) {
-  CharacterCodes2[CharacterCodes2["lineFeed"] = 10] = "lineFeed";
-  CharacterCodes2[CharacterCodes2["carriageReturn"] = 13] = "carriageReturn";
-  CharacterCodes2[CharacterCodes2["space"] = 32] = "space";
-  CharacterCodes2[CharacterCodes2["_0"] = 48] = "_0";
-  CharacterCodes2[CharacterCodes2["_1"] = 49] = "_1";
-  CharacterCodes2[CharacterCodes2["_2"] = 50] = "_2";
-  CharacterCodes2[CharacterCodes2["_3"] = 51] = "_3";
-  CharacterCodes2[CharacterCodes2["_4"] = 52] = "_4";
-  CharacterCodes2[CharacterCodes2["_5"] = 53] = "_5";
-  CharacterCodes2[CharacterCodes2["_6"] = 54] = "_6";
-  CharacterCodes2[CharacterCodes2["_7"] = 55] = "_7";
-  CharacterCodes2[CharacterCodes2["_8"] = 56] = "_8";
-  CharacterCodes2[CharacterCodes2["_9"] = 57] = "_9";
-  CharacterCodes2[CharacterCodes2["a"] = 97] = "a";
-  CharacterCodes2[CharacterCodes2["b"] = 98] = "b";
-  CharacterCodes2[CharacterCodes2["c"] = 99] = "c";
-  CharacterCodes2[CharacterCodes2["d"] = 100] = "d";
-  CharacterCodes2[CharacterCodes2["e"] = 101] = "e";
-  CharacterCodes2[CharacterCodes2["f"] = 102] = "f";
-  CharacterCodes2[CharacterCodes2["g"] = 103] = "g";
-  CharacterCodes2[CharacterCodes2["h"] = 104] = "h";
-  CharacterCodes2[CharacterCodes2["i"] = 105] = "i";
-  CharacterCodes2[CharacterCodes2["j"] = 106] = "j";
-  CharacterCodes2[CharacterCodes2["k"] = 107] = "k";
-  CharacterCodes2[CharacterCodes2["l"] = 108] = "l";
-  CharacterCodes2[CharacterCodes2["m"] = 109] = "m";
-  CharacterCodes2[CharacterCodes2["n"] = 110] = "n";
-  CharacterCodes2[CharacterCodes2["o"] = 111] = "o";
-  CharacterCodes2[CharacterCodes2["p"] = 112] = "p";
-  CharacterCodes2[CharacterCodes2["q"] = 113] = "q";
-  CharacterCodes2[CharacterCodes2["r"] = 114] = "r";
-  CharacterCodes2[CharacterCodes2["s"] = 115] = "s";
-  CharacterCodes2[CharacterCodes2["t"] = 116] = "t";
-  CharacterCodes2[CharacterCodes2["u"] = 117] = "u";
-  CharacterCodes2[CharacterCodes2["v"] = 118] = "v";
-  CharacterCodes2[CharacterCodes2["w"] = 119] = "w";
-  CharacterCodes2[CharacterCodes2["x"] = 120] = "x";
-  CharacterCodes2[CharacterCodes2["y"] = 121] = "y";
-  CharacterCodes2[CharacterCodes2["z"] = 122] = "z";
-  CharacterCodes2[CharacterCodes2["A"] = 65] = "A";
-  CharacterCodes2[CharacterCodes2["B"] = 66] = "B";
-  CharacterCodes2[CharacterCodes2["C"] = 67] = "C";
-  CharacterCodes2[CharacterCodes2["D"] = 68] = "D";
-  CharacterCodes2[CharacterCodes2["E"] = 69] = "E";
-  CharacterCodes2[CharacterCodes2["F"] = 70] = "F";
-  CharacterCodes2[CharacterCodes2["G"] = 71] = "G";
-  CharacterCodes2[CharacterCodes2["H"] = 72] = "H";
-  CharacterCodes2[CharacterCodes2["I"] = 73] = "I";
-  CharacterCodes2[CharacterCodes2["J"] = 74] = "J";
-  CharacterCodes2[CharacterCodes2["K"] = 75] = "K";
-  CharacterCodes2[CharacterCodes2["L"] = 76] = "L";
-  CharacterCodes2[CharacterCodes2["M"] = 77] = "M";
-  CharacterCodes2[CharacterCodes2["N"] = 78] = "N";
-  CharacterCodes2[CharacterCodes2["O"] = 79] = "O";
-  CharacterCodes2[CharacterCodes2["P"] = 80] = "P";
-  CharacterCodes2[CharacterCodes2["Q"] = 81] = "Q";
-  CharacterCodes2[CharacterCodes2["R"] = 82] = "R";
-  CharacterCodes2[CharacterCodes2["S"] = 83] = "S";
-  CharacterCodes2[CharacterCodes2["T"] = 84] = "T";
-  CharacterCodes2[CharacterCodes2["U"] = 85] = "U";
-  CharacterCodes2[CharacterCodes2["V"] = 86] = "V";
-  CharacterCodes2[CharacterCodes2["W"] = 87] = "W";
-  CharacterCodes2[CharacterCodes2["X"] = 88] = "X";
-  CharacterCodes2[CharacterCodes2["Y"] = 89] = "Y";
-  CharacterCodes2[CharacterCodes2["Z"] = 90] = "Z";
-  CharacterCodes2[CharacterCodes2["asterisk"] = 42] = "asterisk";
-  CharacterCodes2[CharacterCodes2["backslash"] = 92] = "backslash";
-  CharacterCodes2[CharacterCodes2["closeBrace"] = 125] = "closeBrace";
-  CharacterCodes2[CharacterCodes2["closeBracket"] = 93] = "closeBracket";
-  CharacterCodes2[CharacterCodes2["colon"] = 58] = "colon";
-  CharacterCodes2[CharacterCodes2["comma"] = 44] = "comma";
-  CharacterCodes2[CharacterCodes2["dot"] = 46] = "dot";
-  CharacterCodes2[CharacterCodes2["doubleQuote"] = 34] = "doubleQuote";
-  CharacterCodes2[CharacterCodes2["minus"] = 45] = "minus";
-  CharacterCodes2[CharacterCodes2["openBrace"] = 123] = "openBrace";
-  CharacterCodes2[CharacterCodes2["openBracket"] = 91] = "openBracket";
-  CharacterCodes2[CharacterCodes2["plus"] = 43] = "plus";
-  CharacterCodes2[CharacterCodes2["slash"] = 47] = "slash";
-  CharacterCodes2[CharacterCodes2["formFeed"] = 12] = "formFeed";
-  CharacterCodes2[CharacterCodes2["tab"] = 9] = "tab";
+(function(CharacterCodes) {
+  CharacterCodes[CharacterCodes["lineFeed"] = 10] = "lineFeed";
+  CharacterCodes[CharacterCodes["carriageReturn"] = 13] = "carriageReturn";
+  CharacterCodes[CharacterCodes["space"] = 32] = "space";
+  CharacterCodes[CharacterCodes["_0"] = 48] = "_0";
+  CharacterCodes[CharacterCodes["_1"] = 49] = "_1";
+  CharacterCodes[CharacterCodes["_2"] = 50] = "_2";
+  CharacterCodes[CharacterCodes["_3"] = 51] = "_3";
+  CharacterCodes[CharacterCodes["_4"] = 52] = "_4";
+  CharacterCodes[CharacterCodes["_5"] = 53] = "_5";
+  CharacterCodes[CharacterCodes["_6"] = 54] = "_6";
+  CharacterCodes[CharacterCodes["_7"] = 55] = "_7";
+  CharacterCodes[CharacterCodes["_8"] = 56] = "_8";
+  CharacterCodes[CharacterCodes["_9"] = 57] = "_9";
+  CharacterCodes[CharacterCodes["a"] = 97] = "a";
+  CharacterCodes[CharacterCodes["b"] = 98] = "b";
+  CharacterCodes[CharacterCodes["c"] = 99] = "c";
+  CharacterCodes[CharacterCodes["d"] = 100] = "d";
+  CharacterCodes[CharacterCodes["e"] = 101] = "e";
+  CharacterCodes[CharacterCodes["f"] = 102] = "f";
+  CharacterCodes[CharacterCodes["g"] = 103] = "g";
+  CharacterCodes[CharacterCodes["h"] = 104] = "h";
+  CharacterCodes[CharacterCodes["i"] = 105] = "i";
+  CharacterCodes[CharacterCodes["j"] = 106] = "j";
+  CharacterCodes[CharacterCodes["k"] = 107] = "k";
+  CharacterCodes[CharacterCodes["l"] = 108] = "l";
+  CharacterCodes[CharacterCodes["m"] = 109] = "m";
+  CharacterCodes[CharacterCodes["n"] = 110] = "n";
+  CharacterCodes[CharacterCodes["o"] = 111] = "o";
+  CharacterCodes[CharacterCodes["p"] = 112] = "p";
+  CharacterCodes[CharacterCodes["q"] = 113] = "q";
+  CharacterCodes[CharacterCodes["r"] = 114] = "r";
+  CharacterCodes[CharacterCodes["s"] = 115] = "s";
+  CharacterCodes[CharacterCodes["t"] = 116] = "t";
+  CharacterCodes[CharacterCodes["u"] = 117] = "u";
+  CharacterCodes[CharacterCodes["v"] = 118] = "v";
+  CharacterCodes[CharacterCodes["w"] = 119] = "w";
+  CharacterCodes[CharacterCodes["x"] = 120] = "x";
+  CharacterCodes[CharacterCodes["y"] = 121] = "y";
+  CharacterCodes[CharacterCodes["z"] = 122] = "z";
+  CharacterCodes[CharacterCodes["A"] = 65] = "A";
+  CharacterCodes[CharacterCodes["B"] = 66] = "B";
+  CharacterCodes[CharacterCodes["C"] = 67] = "C";
+  CharacterCodes[CharacterCodes["D"] = 68] = "D";
+  CharacterCodes[CharacterCodes["E"] = 69] = "E";
+  CharacterCodes[CharacterCodes["F"] = 70] = "F";
+  CharacterCodes[CharacterCodes["G"] = 71] = "G";
+  CharacterCodes[CharacterCodes["H"] = 72] = "H";
+  CharacterCodes[CharacterCodes["I"] = 73] = "I";
+  CharacterCodes[CharacterCodes["J"] = 74] = "J";
+  CharacterCodes[CharacterCodes["K"] = 75] = "K";
+  CharacterCodes[CharacterCodes["L"] = 76] = "L";
+  CharacterCodes[CharacterCodes["M"] = 77] = "M";
+  CharacterCodes[CharacterCodes["N"] = 78] = "N";
+  CharacterCodes[CharacterCodes["O"] = 79] = "O";
+  CharacterCodes[CharacterCodes["P"] = 80] = "P";
+  CharacterCodes[CharacterCodes["Q"] = 81] = "Q";
+  CharacterCodes[CharacterCodes["R"] = 82] = "R";
+  CharacterCodes[CharacterCodes["S"] = 83] = "S";
+  CharacterCodes[CharacterCodes["T"] = 84] = "T";
+  CharacterCodes[CharacterCodes["U"] = 85] = "U";
+  CharacterCodes[CharacterCodes["V"] = 86] = "V";
+  CharacterCodes[CharacterCodes["W"] = 87] = "W";
+  CharacterCodes[CharacterCodes["X"] = 88] = "X";
+  CharacterCodes[CharacterCodes["Y"] = 89] = "Y";
+  CharacterCodes[CharacterCodes["Z"] = 90] = "Z";
+  CharacterCodes[CharacterCodes["asterisk"] = 42] = "asterisk";
+  CharacterCodes[CharacterCodes["backslash"] = 92] = "backslash";
+  CharacterCodes[CharacterCodes["closeBrace"] = 125] = "closeBrace";
+  CharacterCodes[CharacterCodes["closeBracket"] = 93] = "closeBracket";
+  CharacterCodes[CharacterCodes["colon"] = 58] = "colon";
+  CharacterCodes[CharacterCodes["comma"] = 44] = "comma";
+  CharacterCodes[CharacterCodes["dot"] = 46] = "dot";
+  CharacterCodes[CharacterCodes["doubleQuote"] = 34] = "doubleQuote";
+  CharacterCodes[CharacterCodes["minus"] = 45] = "minus";
+  CharacterCodes[CharacterCodes["openBrace"] = 123] = "openBrace";
+  CharacterCodes[CharacterCodes["openBracket"] = 91] = "openBracket";
+  CharacterCodes[CharacterCodes["plus"] = 43] = "plus";
+  CharacterCodes[CharacterCodes["slash"] = 47] = "slash";
+  CharacterCodes[CharacterCodes["formFeed"] = 12] = "formFeed";
+  CharacterCodes[CharacterCodes["tab"] = 9] = "tab";
 })(CharacterCodes || (CharacterCodes = {}));
 
 // ../../../node_modules/.bun/jsonc-parser@3.3.1/node_modules/jsonc-parser/lib/esm/impl/string-intern.js
@@ -8470,12 +8470,12 @@ var cachedBreakLinesWithSpaces = {
 
 // ../../../node_modules/.bun/jsonc-parser@3.3.1/node_modules/jsonc-parser/lib/esm/impl/parser.js
 var ParseOptions;
-(function(ParseOptions2) {
-  ParseOptions2.DEFAULT = {
+(function(ParseOptions) {
+  ParseOptions.DEFAULT = {
     allowTrailingComma: false
   };
 })(ParseOptions || (ParseOptions = {}));
-function parse3(text, errors2 = [], options = ParseOptions.DEFAULT) {
+function parse3(text, errors = [], options = ParseOptions.DEFAULT) {
   let currentProperty = null;
   let currentParent = [];
   const previousParents = [];
@@ -8488,10 +8488,10 @@ function parse3(text, errors2 = [], options = ParseOptions.DEFAULT) {
   }
   const visitor = {
     onObjectBegin: () => {
-      const object2 = {};
-      onValue(object2);
+      const object = {};
+      onValue(object);
       previousParents.push(currentParent);
-      currentParent = object2;
+      currentParent = object;
       currentProperty = null;
     },
     onObjectProperty: (name) => {
@@ -8501,18 +8501,18 @@ function parse3(text, errors2 = [], options = ParseOptions.DEFAULT) {
       currentParent = previousParents.pop();
     },
     onArrayBegin: () => {
-      const array2 = [];
-      onValue(array2);
+      const array = [];
+      onValue(array);
       previousParents.push(currentParent);
-      currentParent = array2;
+      currentParent = array;
       currentProperty = null;
     },
     onArrayEnd: () => {
       currentParent = previousParents.pop();
     },
     onLiteralValue: onValue,
-    onError: (error2, offset, length) => {
-      errors2.push({ error: error2, offset, length });
+    onError: (error, offset, length) => {
+      errors.push({ error, offset, length });
     }
   };
   visit(text, visitor, options);
@@ -8601,8 +8601,8 @@ function visit(text, visitor, options = ParseOptions.DEFAULT) {
       }
     }
   }
-  function handleError(error2, skipUntilAfter = [], skipUntil = []) {
-    onError(error2);
+  function handleError(error, skipUntilAfter = [], skipUntil = []) {
+    onError(error);
     if (skipUntilAfter.length + skipUntil.length > 0) {
       let token = _scanner.getToken();
       while (token !== 17) {
@@ -8773,54 +8773,54 @@ function visit(text, visitor, options = ParseOptions.DEFAULT) {
 
 // ../../../node_modules/.bun/jsonc-parser@3.3.1/node_modules/jsonc-parser/lib/esm/main.js
 var ScanError;
-(function(ScanError2) {
-  ScanError2[ScanError2["None"] = 0] = "None";
-  ScanError2[ScanError2["UnexpectedEndOfComment"] = 1] = "UnexpectedEndOfComment";
-  ScanError2[ScanError2["UnexpectedEndOfString"] = 2] = "UnexpectedEndOfString";
-  ScanError2[ScanError2["UnexpectedEndOfNumber"] = 3] = "UnexpectedEndOfNumber";
-  ScanError2[ScanError2["InvalidUnicode"] = 4] = "InvalidUnicode";
-  ScanError2[ScanError2["InvalidEscapeCharacter"] = 5] = "InvalidEscapeCharacter";
-  ScanError2[ScanError2["InvalidCharacter"] = 6] = "InvalidCharacter";
+(function(ScanError) {
+  ScanError[ScanError["None"] = 0] = "None";
+  ScanError[ScanError["UnexpectedEndOfComment"] = 1] = "UnexpectedEndOfComment";
+  ScanError[ScanError["UnexpectedEndOfString"] = 2] = "UnexpectedEndOfString";
+  ScanError[ScanError["UnexpectedEndOfNumber"] = 3] = "UnexpectedEndOfNumber";
+  ScanError[ScanError["InvalidUnicode"] = 4] = "InvalidUnicode";
+  ScanError[ScanError["InvalidEscapeCharacter"] = 5] = "InvalidEscapeCharacter";
+  ScanError[ScanError["InvalidCharacter"] = 6] = "InvalidCharacter";
 })(ScanError || (ScanError = {}));
 var SyntaxKind;
-(function(SyntaxKind2) {
-  SyntaxKind2[SyntaxKind2["OpenBraceToken"] = 1] = "OpenBraceToken";
-  SyntaxKind2[SyntaxKind2["CloseBraceToken"] = 2] = "CloseBraceToken";
-  SyntaxKind2[SyntaxKind2["OpenBracketToken"] = 3] = "OpenBracketToken";
-  SyntaxKind2[SyntaxKind2["CloseBracketToken"] = 4] = "CloseBracketToken";
-  SyntaxKind2[SyntaxKind2["CommaToken"] = 5] = "CommaToken";
-  SyntaxKind2[SyntaxKind2["ColonToken"] = 6] = "ColonToken";
-  SyntaxKind2[SyntaxKind2["NullKeyword"] = 7] = "NullKeyword";
-  SyntaxKind2[SyntaxKind2["TrueKeyword"] = 8] = "TrueKeyword";
-  SyntaxKind2[SyntaxKind2["FalseKeyword"] = 9] = "FalseKeyword";
-  SyntaxKind2[SyntaxKind2["StringLiteral"] = 10] = "StringLiteral";
-  SyntaxKind2[SyntaxKind2["NumericLiteral"] = 11] = "NumericLiteral";
-  SyntaxKind2[SyntaxKind2["LineCommentTrivia"] = 12] = "LineCommentTrivia";
-  SyntaxKind2[SyntaxKind2["BlockCommentTrivia"] = 13] = "BlockCommentTrivia";
-  SyntaxKind2[SyntaxKind2["LineBreakTrivia"] = 14] = "LineBreakTrivia";
-  SyntaxKind2[SyntaxKind2["Trivia"] = 15] = "Trivia";
-  SyntaxKind2[SyntaxKind2["Unknown"] = 16] = "Unknown";
-  SyntaxKind2[SyntaxKind2["EOF"] = 17] = "EOF";
+(function(SyntaxKind) {
+  SyntaxKind[SyntaxKind["OpenBraceToken"] = 1] = "OpenBraceToken";
+  SyntaxKind[SyntaxKind["CloseBraceToken"] = 2] = "CloseBraceToken";
+  SyntaxKind[SyntaxKind["OpenBracketToken"] = 3] = "OpenBracketToken";
+  SyntaxKind[SyntaxKind["CloseBracketToken"] = 4] = "CloseBracketToken";
+  SyntaxKind[SyntaxKind["CommaToken"] = 5] = "CommaToken";
+  SyntaxKind[SyntaxKind["ColonToken"] = 6] = "ColonToken";
+  SyntaxKind[SyntaxKind["NullKeyword"] = 7] = "NullKeyword";
+  SyntaxKind[SyntaxKind["TrueKeyword"] = 8] = "TrueKeyword";
+  SyntaxKind[SyntaxKind["FalseKeyword"] = 9] = "FalseKeyword";
+  SyntaxKind[SyntaxKind["StringLiteral"] = 10] = "StringLiteral";
+  SyntaxKind[SyntaxKind["NumericLiteral"] = 11] = "NumericLiteral";
+  SyntaxKind[SyntaxKind["LineCommentTrivia"] = 12] = "LineCommentTrivia";
+  SyntaxKind[SyntaxKind["BlockCommentTrivia"] = 13] = "BlockCommentTrivia";
+  SyntaxKind[SyntaxKind["LineBreakTrivia"] = 14] = "LineBreakTrivia";
+  SyntaxKind[SyntaxKind["Trivia"] = 15] = "Trivia";
+  SyntaxKind[SyntaxKind["Unknown"] = 16] = "Unknown";
+  SyntaxKind[SyntaxKind["EOF"] = 17] = "EOF";
 })(SyntaxKind || (SyntaxKind = {}));
 var parse4 = parse3;
 var ParseErrorCode;
-(function(ParseErrorCode2) {
-  ParseErrorCode2[ParseErrorCode2["InvalidSymbol"] = 1] = "InvalidSymbol";
-  ParseErrorCode2[ParseErrorCode2["InvalidNumberFormat"] = 2] = "InvalidNumberFormat";
-  ParseErrorCode2[ParseErrorCode2["PropertyNameExpected"] = 3] = "PropertyNameExpected";
-  ParseErrorCode2[ParseErrorCode2["ValueExpected"] = 4] = "ValueExpected";
-  ParseErrorCode2[ParseErrorCode2["ColonExpected"] = 5] = "ColonExpected";
-  ParseErrorCode2[ParseErrorCode2["CommaExpected"] = 6] = "CommaExpected";
-  ParseErrorCode2[ParseErrorCode2["CloseBraceExpected"] = 7] = "CloseBraceExpected";
-  ParseErrorCode2[ParseErrorCode2["CloseBracketExpected"] = 8] = "CloseBracketExpected";
-  ParseErrorCode2[ParseErrorCode2["EndOfFileExpected"] = 9] = "EndOfFileExpected";
-  ParseErrorCode2[ParseErrorCode2["InvalidCommentToken"] = 10] = "InvalidCommentToken";
-  ParseErrorCode2[ParseErrorCode2["UnexpectedEndOfComment"] = 11] = "UnexpectedEndOfComment";
-  ParseErrorCode2[ParseErrorCode2["UnexpectedEndOfString"] = 12] = "UnexpectedEndOfString";
-  ParseErrorCode2[ParseErrorCode2["UnexpectedEndOfNumber"] = 13] = "UnexpectedEndOfNumber";
-  ParseErrorCode2[ParseErrorCode2["InvalidUnicode"] = 14] = "InvalidUnicode";
-  ParseErrorCode2[ParseErrorCode2["InvalidEscapeCharacter"] = 15] = "InvalidEscapeCharacter";
-  ParseErrorCode2[ParseErrorCode2["InvalidCharacter"] = 16] = "InvalidCharacter";
+(function(ParseErrorCode) {
+  ParseErrorCode[ParseErrorCode["InvalidSymbol"] = 1] = "InvalidSymbol";
+  ParseErrorCode[ParseErrorCode["InvalidNumberFormat"] = 2] = "InvalidNumberFormat";
+  ParseErrorCode[ParseErrorCode["PropertyNameExpected"] = 3] = "PropertyNameExpected";
+  ParseErrorCode[ParseErrorCode["ValueExpected"] = 4] = "ValueExpected";
+  ParseErrorCode[ParseErrorCode["ColonExpected"] = 5] = "ColonExpected";
+  ParseErrorCode[ParseErrorCode["CommaExpected"] = 6] = "CommaExpected";
+  ParseErrorCode[ParseErrorCode["CloseBraceExpected"] = 7] = "CloseBraceExpected";
+  ParseErrorCode[ParseErrorCode["CloseBracketExpected"] = 8] = "CloseBracketExpected";
+  ParseErrorCode[ParseErrorCode["EndOfFileExpected"] = 9] = "EndOfFileExpected";
+  ParseErrorCode[ParseErrorCode["InvalidCommentToken"] = 10] = "InvalidCommentToken";
+  ParseErrorCode[ParseErrorCode["UnexpectedEndOfComment"] = 11] = "UnexpectedEndOfComment";
+  ParseErrorCode[ParseErrorCode["UnexpectedEndOfString"] = 12] = "UnexpectedEndOfString";
+  ParseErrorCode[ParseErrorCode["UnexpectedEndOfNumber"] = 13] = "UnexpectedEndOfNumber";
+  ParseErrorCode[ParseErrorCode["InvalidUnicode"] = 14] = "InvalidUnicode";
+  ParseErrorCode[ParseErrorCode["InvalidEscapeCharacter"] = 15] = "InvalidEscapeCharacter";
+  ParseErrorCode[ParseErrorCode["InvalidCharacter"] = 16] = "InvalidCharacter";
 })(ParseErrorCode || (ParseErrorCode = {}));
 function printParseErrorCode(code) {
   switch (code) {
@@ -8860,6 +8860,9 @@ function printParseErrorCode(code) {
   return "<unknown ParseErrorCode>";
 }
 
+// ../../omo-config-core/src/loader/layer-validation.ts
+import { createHash as createHash3 } from "node:crypto";
+
 // ../../omo-config-core/src/loader/merge.ts
 var DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 function isUnsafeObjectKey(key) {
@@ -8893,6 +8896,282 @@ function mergeOmoConfigRecords(base, override) {
   return result;
 }
 
+// ../../omo-config-core/src/loader/prune-invalid-leaves.ts
+var MAX_PRUNE_PASSES = 32;
+function isContainer(value) {
+  return typeof value === "object" && value !== null;
+}
+function childOf(container, segment) {
+  return Array.isArray(container) ? container[Number(segment)] : container[String(segment)];
+}
+function hasChild(container, segment) {
+  if (Array.isArray(container)) {
+    const index = Number(segment);
+    return Number.isInteger(index) && index >= 0 && index < container.length;
+  }
+  return Object.hasOwn(container, String(segment));
+}
+function segmentsOf(path) {
+  return path.map((segment) => typeof segment === "number" ? segment : String(segment));
+}
+function targetPaths(root, issue) {
+  const base = segmentsOf(issue.path);
+  if (issue.code === "unrecognized_keys")
+    return issue.keys.map((key) => [...base, key]);
+  let node = root;
+  let depth = 0;
+  for (const segment of base) {
+    if (!isContainer(node) || !hasChild(node, segment))
+      break;
+    node = childOf(node, segment);
+    depth += 1;
+  }
+  return [base.slice(0, depth)];
+}
+function isAncestor(ancestor, path) {
+  return ancestor.length < path.length && ancestor.every((segment, index) => segment === path[index]);
+}
+function compareDescending(left, right) {
+  const length = Math.min(left.length, right.length);
+  for (let index = 0;index < length; index += 1) {
+    const a = left[index];
+    const b = right[index];
+    if (a === b)
+      continue;
+    if (typeof a === "number" && typeof b === "number")
+      return b - a;
+    return String(b).localeCompare(String(a));
+  }
+  return right.length - left.length;
+}
+function removeChild(container, segment) {
+  if (Array.isArray(container))
+    container.splice(Number(segment), 1);
+  else
+    delete container[String(segment)];
+}
+function isEmpty(container) {
+  return Array.isArray(container) ? container.length === 0 : Object.keys(container).length === 0;
+}
+function removePathAndEmptiedAncestors(root, path) {
+  const chain = [root];
+  for (const segment of path.slice(0, -1)) {
+    const current = chain[chain.length - 1];
+    if (current === undefined)
+      return;
+    const next = childOf(current, segment);
+    if (!isContainer(next))
+      return;
+    chain.push(next);
+  }
+  for (let depth = path.length - 1;depth >= 0; depth -= 1) {
+    const container = chain[depth];
+    const segment = path[depth];
+    if (container === undefined || segment === undefined)
+      return;
+    removeChild(container, segment);
+    if (depth === 0 || !isEmpty(container))
+      return;
+  }
+}
+function prunePass(root, issues) {
+  const byKey = new Map;
+  for (const issue of issues) {
+    for (const path of targetPaths(root, issue)) {
+      if (path.length === 0)
+        return null;
+      const key = path.map((segment) => String(segment)).join(".");
+      if (!byKey.has(key))
+        byKey.set(key, { key, message: issue.message, path });
+    }
+  }
+  const targets = [...byKey.values()];
+  const outermost = targets.filter((target) => !targets.some((other) => isAncestor(other.path, target.path))).sort((left, right) => compareDescending(left.path, right.path));
+  const next = structuredClone(root);
+  for (const target of outermost)
+    removePathAndEmptiedAncestors(next, target.path);
+  return { dropped: outermost, next };
+}
+function pruneInvalidConfigPaths(config, issues, validate, maxPasses = MAX_PRUNE_PASSES) {
+  const dropped = [];
+  let current = config;
+  let pending = issues;
+  for (let pass = 0;pass < maxPasses; pass += 1) {
+    const step = prunePass(current, pending);
+    if (step === null || step.dropped.length === 0)
+      return { ok: false, dropped };
+    dropped.push(...step.dropped);
+    current = step.next;
+    if (Object.keys(current).length === 0)
+      return { ok: false, dropped };
+    const validation = validate(current);
+    if (validation.success)
+      return { ok: true, config: current, dropped };
+    pending = validation.issues;
+  }
+  return { ok: false, dropped };
+}
+
+// ../../omo-config-core/src/loader/layer-validation.ts
+function validationDiagnostic(path, issues) {
+  const issuePaths = issues.map((issue) => issue.path.map((segment) => String(segment)).join("."));
+  return {
+    kind: "validation",
+    message: `Invalid omo config at ${path}: ${issuePaths.join(", ")}`,
+    path,
+    issuePaths
+  };
+}
+function invalidValueDiagnostics(path, dropped) {
+  return dropped.map((entry) => ({
+    kind: "invalid-value",
+    message: `Ignored invalid value in ${path}: ${entry.key}: ${entry.message}`,
+    path,
+    issuePaths: [entry.key]
+  }));
+}
+function unrecognizedKeyIssues(issues) {
+  return issues.flatMap((issue) => issue.code === "unrecognized_keys" ? [{ keys: issue.keys, path: issue.path.map((segment) => String(segment)) }] : []);
+}
+function isRecord9(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+var RETIRED_SECTION_DIGESTS = new Set([
+  "447f75a8ebdbdb79a57f0b8cebbfba183820cf54a8119ac01449b30499e5ef0e",
+  "4ea5ee68fea05586106890ded5733820bb77d919cda27bc4b8139b7cd33b8889"
+]);
+function isRetiredSection(key) {
+  return RETIRED_SECTION_DIGESTS.has(createHash3("sha256").update(key.toLowerCase()).digest("hex"));
+}
+var HARNESS_BLOCKS = new Set(["[opencode]", "[native]", "[senpi]", "[codex]"]);
+function sanitizeUnsafeKeys(value, path = []) {
+  if (Array.isArray(value)) {
+    const issues = [];
+    const sanitized = value.map((entry, index) => {
+      const nested = sanitizeUnsafeKeys(entry, [...path, String(index)]);
+      issues.push(...nested.issues);
+      return nested.value;
+    });
+    return { issues, value: sanitized };
+  }
+  if (!isRecord9(value))
+    return { issues: [], value };
+  const issues = [];
+  if (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) {
+    issues.push({ keys: ["__proto__"], path });
+  }
+  const sanitized = {};
+  for (const [key, entry] of Object.entries(value)) {
+    const isConfigContainer = path.length === 0 || path.length === 1 && HARNESS_BLOCKS.has(path[0] ?? "") || path.length === 2 && path[0] === "profiles" || path.length === 3 && path[0] === "profiles" && HARNESS_BLOCKS.has(path[2] ?? "");
+    if (isConfigContainer && isRetiredSection(key))
+      continue;
+    if (isUnsafeObjectKey(key)) {
+      issues.push({ keys: [key], path });
+      continue;
+    }
+    const nested = sanitizeUnsafeKeys(entry, [...path, key]);
+    issues.push(...nested.issues);
+    sanitized[key] = nested.value;
+  }
+  return { issues, value: sanitized };
+}
+function containerAt(record, path) {
+  let node = record;
+  for (const segment of path) {
+    if (Array.isArray(node)) {
+      const index = Number(segment);
+      if (!Number.isInteger(index) || index < 0 || index >= node.length)
+        return null;
+      node = node[index];
+    } else if (isRecord9(node) && Object.hasOwn(node, segment)) {
+      node = node[segment];
+    } else {
+      return null;
+    }
+  }
+  return isRecord9(node) ? node : null;
+}
+function stripUnrecognizedKeys(record, issues) {
+  const stripped = structuredClone(record);
+  const issuePaths = [];
+  for (const issue of issues) {
+    const container = containerAt(stripped, issue.path);
+    if (container === null)
+      continue;
+    for (const key of issue.keys) {
+      delete container[key];
+      issuePaths.push([...issue.path, key].join("."));
+    }
+  }
+  return { issuePaths, stripped };
+}
+function toRecord2(value) {
+  if (value === null || typeof value !== "object" || Array.isArray(value))
+    return null;
+  const record = {};
+  for (const [key, entry] of Object.entries(value)) {
+    record[key] = entry;
+  }
+  return record;
+}
+var validateLayerRecord = (record) => {
+  const parsed = OmoConfigLayerSchema.safeParse(record);
+  return parsed.success ? { success: true } : { success: false, issues: parsed.error.issues };
+};
+function validateConfigLayer(path, data) {
+  const sanitized = sanitizeUnsafeKeys(data);
+  const record = toRecord2(sanitized.value);
+  const unsafeIssuePaths = sanitized.issues.flatMap((issue) => issue.keys.map((key) => [...issue.path, key].join(".")));
+  const unsafeDiagnostics = unsafeIssuePaths.length === 0 ? [] : [
+    {
+      kind: "unknown-keys",
+      message: `Ignored unknown keys in ${path}: ${unsafeIssuePaths.join(", ")}`,
+      path,
+      issuePaths: unsafeIssuePaths
+    }
+  ];
+  const validation = OmoConfigLayerSchema.safeParse(sanitized.value);
+  if (validation.success) {
+    if (record !== null)
+      return { loaded: true, diagnostics: unsafeDiagnostics, value: record };
+    return {
+      loaded: false,
+      diagnostics: [{ kind: "validation", message: `Invalid omo config at ${path}: root must be an object`, path }]
+    };
+  }
+  const rejected = { loaded: false, diagnostics: [validationDiagnostic(path, validation.error.issues)] };
+  const unknownIssues = unrecognizedKeyIssues(validation.error.issues);
+  if (record === null)
+    return rejected;
+  let candidate = record;
+  let issues = validation.error.issues;
+  const diagnostics = [...unsafeDiagnostics];
+  if (unknownIssues.length > 0) {
+    const { issuePaths, stripped } = stripUnrecognizedKeys(record, unknownIssues);
+    if (issuePaths.length > 0) {
+      diagnostics.push({
+        kind: "unknown-keys",
+        message: `Ignored unknown keys in ${path}: ${issuePaths.join(", ")}`,
+        path,
+        issuePaths
+      });
+    }
+    const strippedValidation = validateLayerRecord(stripped);
+    if (strippedValidation.success)
+      return { loaded: true, diagnostics, value: stripped };
+    candidate = stripped;
+    issues = strippedValidation.issues;
+  }
+  const pruned = pruneInvalidConfigPaths(candidate, issues, validateLayerRecord);
+  if (!pruned.ok)
+    return rejected;
+  return {
+    loaded: true,
+    diagnostics: [...diagnostics, ...invalidValueDiagnostics(path, pruned.dropped)],
+    value: pruned.config
+  };
+}
+
 // ../../omo-config-core/src/loader/paths.ts
 import { userInfo } from "node:os";
 import { dirname as dirname5, join as join8, posix, resolve as resolve3 } from "node:path";
@@ -8901,15 +9180,6 @@ import { dirname as dirname5, join as join8, posix, resolve as resolve3 } from "
 function toPosixPath(path) {
   return path.split("\\").join("/");
 }
-
-// ../../omo-config-core/src/loader/types.ts
-import { existsSync as existsSync2, lstatSync, readFileSync, realpathSync } from "node:fs";
-var DEFAULT_READ_FILE_SYSTEM = {
-  existsSync: existsSync2,
-  lstatSync,
-  readFileSync,
-  realpathSync
-};
 
 // ../../omo-config-core/src/loader/paths.ts
 var MAX_PROJECT_CONFIG_DIRECTORY_DEPTH = 256;
@@ -8937,10 +9207,10 @@ function isSymlinkedProjectPath(path, fileSystem) {
     return false;
   try {
     return fileSystem.lstatSync(path).isSymbolicLink();
-  } catch (error2) {
-    if (error2 instanceof Error)
+  } catch (error) {
+    if (error instanceof Error)
       return true;
-    throw error2;
+    throw error;
   }
 }
 function isLoadableProjectConfigFile(path, fileSystem) {
@@ -9009,51 +9279,53 @@ function resolveOmoProfileName(options = {}) {
   const env = options.env ?? process.env;
   return profileName(options.profile) ?? profileName(env["OMO_PROFILE"]) ?? profileName(env["OCX_PROFILE"]) ?? profileNameFromOpenCodeConfigDir(env["OPENCODE_CONFIG_DIR"]);
 }
-function toRecord(value) {
+function toRecord3(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return;
   return Object.fromEntries(Object.entries(value));
 }
-function withoutControlKeys(config2) {
+function withoutControlKeys(config) {
   const result = {};
-  for (const [key, value] of Object.entries(config2)) {
+  for (const [key, value] of Object.entries(config)) {
     if (key === "profiles" || HARNESS_KEYS.includes(key))
       continue;
     result[key] = value;
   }
   return result;
 }
-function harnessLayer(config2, harness) {
+function harnessLayer(config, harness) {
   if (harness === undefined)
     return {};
   const canonical = canonicalHarnessName(harness);
   const legacyKeys = Object.entries(OMO_CONFIG_LEGACY_HARNESS_ALIASES).filter(([, target]) => target === canonical).map(([legacy]) => harnessBlockKey(legacy));
   let layer = {};
   for (const key of [...legacyKeys, harnessBlockKey(canonical)]) {
-    layer = mergeOmoConfigRecords(layer, toRecord(config2[key]) ?? {});
+    layer = mergeOmoConfigRecords(layer, toRecord3(config[key]) ?? {});
   }
   return layer;
 }
 function resolveOmoConfigView(options) {
-  const profiles = toRecord(options.config["profiles"]);
-  const profile = options.profile === undefined ? undefined : toRecord(profiles?.[options.profile]);
-  const diagnostics = profile === undefined && options.profile !== undefined ? [{
-    kind: "profile",
-    message: `Activated omo profile "${options.profile}" does not exist; using the base configuration`,
-    path: `profiles.${options.profile}`
-  }] : [];
+  const profiles = toRecord3(options.config["profiles"]);
+  const profile = options.profile === undefined ? undefined : toRecord3(profiles?.[options.profile]);
+  const diagnostics = profile === undefined && options.profile !== undefined ? [
+    {
+      kind: "profile",
+      message: `Activated omo profile "${options.profile}" does not exist; using the base configuration`,
+      path: `profiles.${options.profile}`
+    }
+  ] : [];
   const layers = [
     withoutControlKeys(options.config),
     harnessLayer(options.config, options.harness),
     profile === undefined ? {} : withoutControlKeys(profile),
     profile === undefined ? {} : harnessLayer(profile, options.harness)
   ];
-  let config2 = {};
+  let config = {};
   for (const layer of layers)
-    config2 = mergeOmoConfigRecords(config2, layer);
+    config = mergeOmoConfigRecords(config, layer);
   const resolvedProfile = options.profile !== undefined && profile !== undefined ? options.profile : undefined;
   return {
-    config: withoutControlKeys(config2),
+    config: withoutControlKeys(config),
     diagnostics,
     ...resolvedProfile === undefined ? {} : { profile: resolvedProfile }
   };
@@ -9061,16 +9333,16 @@ function resolveOmoConfigView(options) {
 
 // ../../omo-config-core/src/loader/loader.ts
 function parseJsoncSafe(content) {
-  const errors2 = [];
-  const data = parse4(content.charCodeAt(0) === 65279 ? content.slice(1) : content, errors2, {
+  const errors = [];
+  const data = parse4(content.charCodeAt(0) === 65279 ? content.slice(1) : content, errors, {
     allowTrailingComma: true,
     disallowComments: false
   });
   return {
-    data: errors2.length === 0 ? data : null,
-    errors: errors2.map((error2) => ({
-      message: printParseErrorCode(error2.error),
-      offset: error2.offset
+    data: errors.length === 0 ? data : null,
+    errors: errors.map((error) => ({
+      message: printParseErrorCode(error.error),
+      offset: error.offset
     }))
   };
 }
@@ -9080,7 +9352,7 @@ var DEFAULT_RAW_CONFIG = {
   task: resolveOmoTaskSettings({}),
   teams: {}
 };
-function stripResolutionControlKeys(config2) {
+function stripResolutionControlKeys(config) {
   const {
     "[codex]": _codex,
     "[native]": _native,
@@ -9088,159 +9360,55 @@ function stripResolutionControlKeys(config2) {
     "[senpi]": _senpi,
     profiles: _profiles,
     ...resolved
-  } = config2;
+  } = config;
   return resolved;
-}
-function validationDiagnostic(path, issues) {
-  const issuePaths = issues.map((issue2) => issue2.path.map((segment) => String(segment)).join("."));
-  return {
-    kind: "validation",
-    message: `Invalid omo config at ${path}: ${issuePaths.join(", ")}`,
-    path,
-    issuePaths
-  };
-}
-function unrecognizedKeyIssues(issues) {
-  return issues.flatMap((issue2) => issue2.code === "unrecognized_keys" ? [{ keys: issue2.keys, path: issue2.path.map((segment) => String(segment)) }] : []);
-}
-function hasUnsafeUnrecognizedKey(issues) {
-  return issues.some((issue2) => issue2.keys.some((key) => isUnsafeObjectKey(key)));
-}
-function hasTamperedPrototype(value) {
-  if (Array.isArray(value))
-    return value.some((entry) => hasTamperedPrototype(entry));
-  if (!isRecord9(value))
-    return false;
-  const prototype = Object.getPrototypeOf(value);
-  if (prototype !== Object.prototype && prototype !== null)
-    return true;
-  return Object.values(value).some((entry) => hasTamperedPrototype(entry));
-}
-function isRecord9(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-function containerAt(record2, path) {
-  let container = record2;
-  for (const segment of path) {
-    const next = container[segment];
-    if (!isRecord9(next))
-      return null;
-    container = next;
-  }
-  return container;
-}
-function stripUnrecognizedKeys(record2, issues) {
-  const stripped = structuredClone(record2);
-  const issuePaths = [];
-  for (const issue2 of issues) {
-    const container = containerAt(stripped, issue2.path);
-    if (container === null)
-      continue;
-    for (const key of issue2.keys) {
-      delete container[key];
-      issuePaths.push([...issue2.path, key].join("."));
-    }
-  }
-  return { issuePaths, stripped };
-}
-function toRecord2(value) {
-  if (value === null || typeof value !== "object" || Array.isArray(value))
-    return null;
-  const record2 = {};
-  for (const [key, entry] of Object.entries(value)) {
-    record2[key] = entry;
-  }
-  return record2;
 }
 function readConfigSource(path, scope, fileSystem) {
   if (!fileSystem.existsSync(path)) {
-    return { source: { exists: false, loaded: false, path, scope } };
+    return { diagnostics: [], source: { exists: false, loaded: false, path, scope } };
   }
   let content;
   try {
     content = fileSystem.readFileSync(path, "utf-8");
-  } catch (error2) {
-    const message = error2 instanceof Error ? error2.message : String(error2);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     return {
-      diagnostic: { kind: "read", message: `Failed to read ${path}: ${message}`, path },
+      diagnostics: [{ kind: "read", message: `Failed to read ${path}: ${message}`, path }],
       source: { exists: true, loaded: false, path, scope }
     };
   }
   const parsed = parseJsoncSafe(content);
   if (parsed.errors.length > 0) {
     return {
-      diagnostic: {
-        kind: "parse",
-        message: `JSONC parse error in ${path}: ${parsed.errors.map((error2) => error2.message).join(", ")}`,
-        path
-      },
+      diagnostics: [
+        {
+          kind: "parse",
+          message: `JSONC parse error in ${path}: ${parsed.errors.map((error) => error.message).join(", ")}`,
+          path
+        }
+      ],
       source: { exists: true, loaded: false, path, scope }
     };
   }
-  if (hasTamperedPrototype(parsed.data)) {
-    return {
-      diagnostic: { kind: "validation", message: `Invalid omo config at ${path}: "__proto__" member is not allowed`, path },
-      source: { exists: true, loaded: false, path, scope }
-    };
-  }
-  const parsedRecord = toRecord2(parsed.data);
-  const validation = OmoConfigLayerSchema.safeParse(parsed.data);
-  if (!validation.success) {
-    const unrecognized = unrecognizedKeyIssues(validation.error.issues);
-    if (hasUnsafeUnrecognizedKey(unrecognized)) {
-      return {
-        diagnostic: validationDiagnostic(path, validation.error.issues),
-        source: { exists: true, loaded: false, path, scope }
-      };
-    }
-    const rejected = {
-      diagnostic: validationDiagnostic(path, validation.error.issues),
-      source: { exists: true, loaded: false, path, scope }
-    };
-    const unknownIssues = unrecognizedKeyIssues(validation.error.issues);
-    if (parsedRecord === null || unknownIssues.length === 0)
-      return rejected;
-    const { issuePaths, stripped } = stripUnrecognizedKeys(parsedRecord, unknownIssues);
-    if (!OmoConfigLayerSchema.safeParse(stripped).success)
-      return rejected;
-    return {
-      diagnostic: {
-        kind: "unknown-keys",
-        message: `Ignored unknown keys in ${path}: ${issuePaths.join(", ")}`,
-        path,
-        issuePaths
-      },
-      source: { exists: true, loaded: true, path, scope },
-      value: stripped
-    };
-  }
-  if (parsedRecord === null) {
-    return {
-      diagnostic: { kind: "validation", message: `Invalid omo config at ${path}: root must be an object`, path },
-      source: { exists: true, loaded: false, path, scope }
-    };
-  }
-  return {
-    source: { exists: true, loaded: true, path, scope },
-    value: parsedRecord
-  };
+  const layer = validateConfigLayer(path, parsed.data);
+  return layer.loaded ? { diagnostics: layer.diagnostics, source: { exists: true, loaded: true, path, scope }, value: layer.value } : { diagnostics: layer.diagnostics, source: { exists: true, loaded: false, path, scope } };
 }
 function legacyCategoryDiagnostic(path, renames) {
-  const detail = renames.map((rename3) => rename3.dropped ? `${rename3.path} ignored because ${rename3.canonical} is also configured` : `${rename3.path} renamed to ${rename3.canonical}`).join(", ");
+  const detail = renames.map((rename) => rename.dropped ? `${rename.path} ignored because ${rename.canonical} is also configured` : `${rename.path} renamed to ${rename.canonical}`).join(", ");
   return {
     kind: "deprecated-keys",
     message: `Deprecated category name in ${path}: ${detail}. Rename it; the alias is removed in a future release.`,
     path,
-    issuePaths: renames.map((rename3) => rename3.path)
+    issuePaths: renames.map((rename) => rename.path)
   };
 }
 function legacyHarnessDiagnostic(path, renames) {
-  const detail = renames.map((rename3) => rename3.dropped ? `${rename3.path} ignored because ${rename3.canonical} is also configured` : `${rename3.path} renamed to ${rename3.canonical}`).join(", ");
+  const detail = renames.map((rename) => rename.dropped ? `${rename.path} ignored because ${rename.canonical} is also configured` : `${rename.path} renamed to ${rename.canonical}`).join(", ");
   return {
     kind: "deprecated-keys",
     message: `Deprecated harness block in ${path}: ${detail}. Rename it; the alias is removed in a future release.`,
     path,
-    issuePaths: renames.map((rename3) => rename3.path)
+    issuePaths: renames.map((rename) => rename.path)
   };
 }
 function loadOmoConfig(options = {}) {
@@ -9250,24 +9418,23 @@ function loadOmoConfig(options = {}) {
   const diagnostics = [];
   const layers = [];
   const sources = [];
-  for (const candidate2 of resolveOmoConfigPaths({
+  for (const candidate of resolveOmoConfigPaths({
     cwd,
     ...options.env === undefined ? {} : { env: options.env },
     fileSystem,
     ...options.platform === undefined ? {} : { platform: options.platform }
   })) {
-    const loaded = readConfigSource(candidate2.path, candidate2.scope, fileSystem);
+    const loaded = readConfigSource(candidate.path, candidate.scope, fileSystem);
     sources.push(loaded.source);
-    if (loaded.diagnostic !== undefined)
-      diagnostics.push(loaded.diagnostic);
+    diagnostics.push(...loaded.diagnostics);
     if (loaded.value !== undefined) {
       const canonicalized = canonicalizeLegacyCategoryNames(loaded.value);
       if (canonicalized.renames.length > 0) {
-        diagnostics.push(legacyCategoryDiagnostic(candidate2.path, canonicalized.renames));
+        diagnostics.push(legacyCategoryDiagnostic(candidate.path, canonicalized.renames));
       }
       const harnessCanonicalized = canonicalizeLegacyHarnessBlocks(canonicalized.document);
       if (harnessCanonicalized.renames.length > 0) {
-        diagnostics.push(legacyHarnessDiagnostic(candidate2.path, harnessCanonicalized.renames));
+        diagnostics.push(legacyHarnessDiagnostic(candidate.path, harnessCanonicalized.renames));
       }
       layers.push({ config: harnessCanonicalized.document, source: loaded.source });
       merged = mergeOmoConfigRecords(merged, harnessCanonicalized.document);
@@ -9282,11 +9449,35 @@ function loadOmoConfig(options = {}) {
     ...options.harness === undefined ? {} : { harness: options.harness },
     ...requestedProfile === undefined ? {} : { profile: requestedProfile }
   });
-  const finalConfig = OmoConfigSchema.safeParse(mergeOmoConfigRecords(DEFAULT_RAW_CONFIG, resolved.config));
+  const finalInput = mergeOmoConfigRecords(DEFAULT_RAW_CONFIG, resolved.config);
+  const finalConfig = OmoConfigSchema.safeParse(finalInput);
+  const excludeModels = collectExcludedModels({
+    layers,
+    ...options.harness === undefined ? {} : { harness: options.harness },
+    ...resolved.profile === undefined ? {} : { profile: resolved.profile }
+  });
+  const withExcludedModels = (config) => excludeModels.length === 0 ? config : { ...config, exclude_models: [...excludeModels] };
   if (finalConfig.success) {
     return {
-      config: stripResolutionControlKeys(finalConfig.data),
+      config: withExcludedModels(stripResolutionControlKeys(finalConfig.data)),
       diagnostics: [...diagnostics, ...resolved.diagnostics],
+      layers,
+      ...resolved.profile === undefined ? {} : { profile: resolved.profile },
+      sources
+    };
+  }
+  const pruned = pruneInvalidConfigPaths(finalInput, finalConfig.error.issues, (record) => {
+    const parsed = OmoConfigSchema.safeParse(record);
+    return parsed.success ? { success: true } : { success: false, issues: parsed.error.issues };
+  });
+  if (pruned.ok) {
+    return {
+      config: withExcludedModels(stripResolutionControlKeys(OmoConfigSchema.parse(pruned.config))),
+      diagnostics: [
+        ...diagnostics,
+        ...resolved.diagnostics,
+        ...invalidValueDiagnostics(MERGED_OMO_CONFIG_PATH, pruned.dropped)
+      ],
       layers,
       ...resolved.profile === undefined ? {} : { profile: resolved.profile },
       sources
@@ -9294,35 +9485,111 @@ function loadOmoConfig(options = {}) {
   }
   return {
     config: stripResolutionControlKeys(OmoConfigSchema.parse(DEFAULT_RAW_CONFIG)),
-    diagnostics: [...diagnostics, ...resolved.diagnostics, validationDiagnostic("(merged omo config)", finalConfig.error.issues)],
+    diagnostics: [
+      ...diagnostics,
+      ...resolved.diagnostics,
+      validationDiagnostic(MERGED_OMO_CONFIG_PATH, finalConfig.error.issues)
+    ],
     layers,
     ...resolved.profile === undefined ? {} : { profile: resolved.profile },
     sources
   };
 }
 
-// ../src/install/codex-default-role-config.ts
-function readDefaultRoleConfig(options = {}) {
+// ../src/install/codex-cache-fs.ts
+import { lstat } from "node:fs/promises";
+async function fileExistsStrict(path) {
+  try {
+    await lstat(path);
+    return true;
+  } catch (error) {
+    if (isNodeErrorWithCode(error) && error.code === "ENOENT")
+      return false;
+    throw error;
+  }
+}
+function isPlainRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function isNodeErrorWithCode(error) {
+  return typeof error === "object" && error !== null && "code" in error;
+}
+
+// ../src/install/codex-agent-config.ts
+function readCodexAgentConfig(options = {}) {
   const result = loadOmoConfig({ ...options, harness: "codex" });
+  const overrides = readAgentOverrides(result);
   return {
-    enabled: result.config.agents?.default?.disable !== true,
-    warnings: result.diagnostics.map((diagnostic) => diagnostic.message)
+    defaultRoleEnabled: result.config.agents?.default?.disable !== true,
+    agentOverrides: overrides.agentOverrides,
+    warnings: [...result.diagnostics.map((diagnostic) => diagnostic.message), ...overrides.warnings]
   };
+}
+function unmanagedAgentOverrideWarnings(agentOverrides, managedAgentNames) {
+  return [...agentOverrides.keys()].filter((name) => !managedAgentNames.has(name)).map((name) => `[codex].agents.${name} does not name a LazyCodex-managed agent role; its model override was not applied`);
+}
+function readAgentOverrides(result) {
+  let merged = {};
+  for (const layer of result.layers)
+    merged = mergeOmoConfigRecords(merged, layer.config);
+  const profile = result.profile === undefined ? undefined : recordAt(recordAt(merged, "profiles"), result.profile);
+  let agents = {};
+  for (const scope of [merged, profile]) {
+    agents = mergeOmoConfigRecords(agents, recordAt(recordAt(scope, "[codex]"), "agents") ?? {});
+  }
+  const agentOverrides = new Map;
+  const warnings = [];
+  for (const [name, value] of Object.entries(agents)) {
+    if (name === "default")
+      continue;
+    const parsed = OmoAgentDefSchema.safeParse(value);
+    if (!parsed.success) {
+      warnings.push(`[codex].agents.${name} is invalid and was ignored: ${parsed.error.issues[0]?.message ?? "unknown error"}`);
+      continue;
+    }
+    const override = toCodexAgentOverride(parsed.data.model, parsed.data.reasoning);
+    if (override.model !== undefined || override.reasoningEffort !== undefined)
+      agentOverrides.set(name, override);
+  }
+  return { agentOverrides, warnings };
+}
+function toCodexAgentOverride(model, reasoning) {
+  const split = model === undefined ? undefined : splitReasoningSuffix(model);
+  const effort = codexReasoningEffort(reasoning ?? split?.level);
+  return {
+    ...split === undefined || split.base === "" ? {} : { model: split.base },
+    ...effort === undefined ? {} : { reasoningEffort: effort }
+  };
+}
+function codexReasoningEffort(reasoning) {
+  if (reasoning === undefined || reasoning === "auto")
+    return;
+  return reasoning === "off" ? "none" : reasoning;
+}
+function recordAt(value, key) {
+  if (!isPlainRecord(value))
+    return;
+  const child = value[key];
+  return isPlainRecord(child) ? child : undefined;
 }
 
 // ../src/install/link-cached-plugin-agents.ts
-import { copyFile, lstat as lstat5, mkdir as mkdir4, readdir as readdir2, rm as rm7, writeFile as writeFile5 } from "node:fs/promises";
-import { basename as basename4, join as join13 } from "node:path";
+import { copyFile, lstat as lstat6, mkdir as mkdir4, readdir as readdir2, readFile as readFile8, rm as rm8, writeFile as writeFile6 } from "node:fs/promises";
+import { basename as basename4, join as join14 } from "node:path";
+
+// ../src/install/agent-model-overrides.ts
+import { readFile as readFile5, rm as rm5, writeFile as writeFile4 } from "node:fs/promises";
+import { join as join10 } from "node:path";
 
 // ../src/install/preserved-agent-settings.ts
-import { lstat, readFile as readFile4, readdir, writeFile as writeFile3 } from "node:fs/promises";
+import { lstat as lstat2, readFile as readFile4, readdir, writeFile as writeFile3 } from "node:fs/promises";
 import { join as join9 } from "node:path";
 
 // ../src/install/toml-section-editor.ts
-function findTomlSection(config2, header) {
+function findTomlSection(config, header) {
   const headerLine = `[${header}]`;
   const targetHeaderPath = parseTomlDottedKey(header);
-  const lines = config2.match(/[^\n]*\n?|$/g) ?? [];
+  const lines = config.match(/[^\n]*\n?|$/g) ?? [];
   let offset = 0;
   let start = -1;
   let multilineQuote = null;
@@ -9340,18 +9607,18 @@ function findTomlSection(config2, header) {
       if (tomlTableHeaderMatches(trimmed, headerLine, targetHeaderPath))
         start = offset;
     } else if (isTomlTableHeaderLine(line)) {
-      return { start, end: offset, text: config2.slice(start, offset) };
+      return { start, end: offset, text: config.slice(start, offset) };
     }
     offset += line.length;
   }
   if (start === -1)
     return null;
-  return { start, end: config2.length, text: config2.slice(start) };
+  return { start, end: config.length, text: config.slice(start) };
 }
-function replaceOrInsertSetting(config2, section, key, value) {
+function replaceOrInsertSetting(config, section, key, value) {
   const targetPath = parseTomlDottedKey(key);
   if (!targetPath)
-    return config2;
+    return config;
   const lines = section.text.match(/[^\n]*\n?|$/g) ?? [];
   let offset = 0;
   let multilineQuote = null;
@@ -9374,23 +9641,23 @@ function replaceOrInsertSetting(config2, section, key, value) {
       offset += line.length;
       continue;
     }
-    const replacement2 = replaceTomlAssignmentValue(line, assignmentIndex, value);
+    const replacement = replaceTomlAssignmentValue(line, assignmentIndex, value);
     const assignmentEnd = multilineScan.nextQuote ? findTomlMultilineValueEnd(section.text, offset + line.length, multilineScan.nextQuote) : offset + line.length;
-    const sectionReplacement = section.text.slice(0, offset) + replacement2 + section.text.slice(assignmentEnd);
-    return config2.slice(0, section.start) + sectionReplacement + config2.slice(section.end);
+    const sectionReplacement = section.text.slice(0, offset) + replacement + section.text.slice(assignmentEnd);
+    return config.slice(0, section.start) + sectionReplacement + config.slice(section.end);
   }
   const replacement = insertSetting(section.text, key, value);
-  return config2.slice(0, section.start) + replacement + config2.slice(section.end);
+  return config.slice(0, section.start) + replacement + config.slice(section.end);
 }
-function removeSetting(config2, section, key) {
+function removeSetting(config, section, key) {
   const linePattern = new RegExp(`^[ \\t]*${escapeRegExp(key)}[ \\t]*=.*(?:\\n|$)`, "m");
   const replacement = section.text.replace(linePattern, "");
-  return config2.slice(0, section.start) + replacement + config2.slice(section.end);
+  return config.slice(0, section.start) + replacement + config.slice(section.end);
 }
-function replaceOrInsertRootSetting(config2, key, value) {
-  const sectionStart = findFirstTableStart(config2);
-  const root = config2.slice(0, sectionStart);
-  const suffix = config2.slice(sectionStart);
+function replaceOrInsertRootSetting(config, key, value) {
+  const sectionStart = findFirstTableStart(config);
+  const root = config.slice(0, sectionStart);
+  const suffix = config.slice(sectionStart);
   const linePattern = new RegExp(`^[ \\t]*${escapeRegExp(key)}[ \\t]*=.*$`, "m");
   const replacement = linePattern.test(root) ? root.replace(linePattern, `${key} = ${value}`) : `${root.trimEnd()}${root.trimEnd().length > 0 ? `
 ` : ""}${key} = ${value}
@@ -9401,20 +9668,20 @@ function replaceOrInsertRootSetting(config2, key, value) {
 
 ${suffix.trimStart()}`;
 }
-function removeRootSetting(config2, key) {
-  const sectionStart = findFirstTableStart(config2);
-  const root = config2.slice(0, sectionStart);
-  const suffix = config2.slice(sectionStart);
+function removeRootSetting(config, key) {
+  const sectionStart = findFirstTableStart(config);
+  const root = config.slice(0, sectionStart);
+  const suffix = config.slice(sectionStart);
   const linePattern = new RegExp(`^[ \\t]*${escapeRegExp(key)}[ \\t]*=.*(?:\\n|$)`, "m");
   if (!linePattern.test(root))
-    return config2;
+    return config;
   return root.replace(linePattern, "") + suffix;
 }
-function replaceOrInsertRootDottedSetting(config2, keyPath, value) {
+function replaceOrInsertRootDottedSetting(config, keyPath, value) {
   const targetPath = parseTomlDottedKey(keyPath);
   if (!targetPath)
-    return config2;
-  const lines = config2.match(/[^\n]*\n?|$/g) ?? [];
+    return config;
+  const lines = config.match(/[^\n]*\n?|$/g) ?? [];
   let offset = 0;
   let multilineQuote = null;
   for (const line of lines) {
@@ -9438,13 +9705,13 @@ function replaceOrInsertRootDottedSetting(config2, keyPath, value) {
       offset += line.length;
       continue;
     }
-    const replacement2 = replaceTomlAssignmentValue(line, assignmentIndex, value);
-    const assignmentEnd = multilineScan.nextQuote ? findTomlMultilineValueEnd(config2, offset + line.length, multilineScan.nextQuote) : offset + line.length;
-    return config2.slice(0, offset) + replacement2 + config2.slice(assignmentEnd);
+    const replacement = replaceTomlAssignmentValue(line, assignmentIndex, value);
+    const assignmentEnd = multilineScan.nextQuote ? findTomlMultilineValueEnd(config, offset + line.length, multilineScan.nextQuote) : offset + line.length;
+    return config.slice(0, offset) + replacement + config.slice(assignmentEnd);
   }
-  const sectionStart = findFirstTableStart(config2);
-  const root = config2.slice(0, sectionStart).trimEnd();
-  const suffix = config2.slice(sectionStart);
+  const sectionStart = findFirstTableStart(config);
+  const root = config.slice(0, sectionStart).trimEnd();
+  const suffix = config.slice(sectionStart);
   const replacement = `${root}${root.length > 0 ? `
 ` : ""}${keyPath} = ${value}
 `;
@@ -9454,15 +9721,15 @@ function replaceOrInsertRootDottedSetting(config2, keyPath, value) {
 
 ${suffix.trimStart()}`;
 }
-function appendBlock(config2, block) {
-  const prefix = config2.trimEnd();
+function appendBlock(config, block) {
+  const prefix = config.trimEnd();
   return `${prefix}${prefix.length > 0 ? `
 
 ` : ""}${block.trimEnd()}
 `;
 }
-function findFirstTableStart(config2) {
-  const lines = config2.match(/[^\n]*\n?|$/g) ?? [];
+function findFirstTableStart(config) {
+  const lines = config.match(/[^\n]*\n?|$/g) ?? [];
   let offset = 0;
   let multilineQuote = null;
   for (const line of lines) {
@@ -9478,7 +9745,7 @@ function findFirstTableStart(config2) {
       return offset;
     offset += line.length;
   }
-  return config2.length;
+  return config.length;
 }
 function insertSetting(sectionText, key, value) {
   const lines = sectionText.split(`
@@ -9540,10 +9807,10 @@ function scanTomlMultilineLine(line, currentQuote) {
     }
     if (char === "#")
       break;
-    const delimiter2 = line.startsWith('"""', index) ? '"""' : line.startsWith("'''", index) ? "'''" : null;
-    if (delimiter2) {
-      const closingIndex = findTomlMultilineDelimiter(line, delimiter2, index + delimiter2.length);
-      return { wasInside: false, nextQuote: closingIndex === -1 ? delimiter2 : null };
+    const delimiter = line.startsWith('"""', index) ? '"""' : line.startsWith("'''", index) ? "'''" : null;
+    if (delimiter) {
+      const closingIndex = findTomlMultilineDelimiter(line, delimiter, index + delimiter.length);
+      return { wasInside: false, nextQuote: closingIndex === -1 ? delimiter : null };
     }
     if (char === '"' || char === "'")
       quote = char;
@@ -9551,12 +9818,12 @@ function scanTomlMultilineLine(line, currentQuote) {
   }
   return { wasInside: false, nextQuote: null };
 }
-function findTomlMultilineDelimiter(line, delimiter2, startIndex) {
-  let index = line.indexOf(delimiter2, startIndex);
+function findTomlMultilineDelimiter(line, delimiter, startIndex) {
+  let index = line.indexOf(delimiter, startIndex);
   while (index !== -1) {
-    if (delimiter2 === "'''" || countPrecedingBackslashes(line, index) % 2 === 0)
+    if (delimiter === "'''" || countPrecedingBackslashes(line, index) % 2 === 0)
       return index;
-    index = line.indexOf(delimiter2, index + 1);
+    index = line.indexOf(delimiter, index + 1);
   }
   return -1;
 }
@@ -9609,8 +9876,8 @@ function findUnquotedCharacter(line, target, startIndex) {
   }
   return -1;
 }
-function tomlPathMatches(candidate2, target) {
-  return candidate2.length === target.length && candidate2.every((part, index) => part === target[index]);
+function tomlPathMatches(candidate, target) {
+  return candidate.length === target.length && candidate.every((part, index) => part === target[index]);
 }
 function replaceTomlAssignmentValue(line, assignmentIndex, value) {
   const newline = line.endsWith(`
@@ -9776,13 +10043,13 @@ function skipWhitespace(input, startIndex) {
 }
 
 // ../src/install/codex-config-toml-sections.ts
-function removeTomlSections(config2, shouldRemove) {
-  return splitTomlSections(config2).filter((section) => section.header === null || !shouldRemove(section.header, section)).map((section) => section.text).join("").replace(/\n{3,}/g, `
+function removeTomlSections(config, shouldRemove) {
+  return splitTomlSections(config).filter((section) => section.header === null || !shouldRemove(section.header, section)).map((section) => section.text).join("").replace(/\n{3,}/g, `
 
 `);
 }
-function splitTomlSections(config2) {
-  const lines = config2.match(/[^\n]*\n?|$/g) ?? [];
+function splitTomlSections(config) {
+  const lines = config.match(/[^\n]*\n?|$/g) ?? [];
   const sections = [];
   let current = { header: null, text: "" };
   for (const line of lines) {
@@ -9862,6 +10129,23 @@ function stripTomlLineComment(line) {
   return line;
 }
 
+// ../../model-core/src/latest-models.ts
+var LATEST_MODEL_BY_FAMILY = {
+  claudeOpus: "claude-opus-5-5",
+  claudeSonnet: "claude-sonnet-5-5",
+  claudeHaiku: "claude-haiku-5-5",
+  claudeFable: "claude-fable-5-2",
+  gptAstra: "gpt-6-astra",
+  gptSol: "gpt-6.1-sol",
+  gptSolFast: "gpt-6.1-sol-fast",
+  gptLunaFast: "gpt-6-luna-fast",
+  glm: "glm-5.3",
+  glmFlash: "glm-5.3-flash",
+  kimi: "kimi-k3.1-pro",
+  kimiK3: "kimi-k3",
+  geminiPro: "gemini-4-argon"
+};
+
 // ../src/install/managed-agent-reasoning-defaults.ts
 var MANAGED_REASONING_DEFAULT_UPGRADES = new Map([
   [
@@ -9877,7 +10161,7 @@ var MANAGED_REASONING_DEFAULT_UPGRADES = new Map([
       },
       {
         previous: { model: "gpt-5.6-luna", effort: "low" },
-        current: { model: "gpt-6-astra", effort: "low" }
+        current: { model: LATEST_MODEL_BY_FAMILY.gptAstra, effort: "low" }
       }
     ]
   ],
@@ -9894,7 +10178,7 @@ var MANAGED_REASONING_DEFAULT_UPGRADES = new Map([
       },
       {
         previous: { model: "gpt-5.6-luna", effort: "low" },
-        current: { model: "gpt-6-astra", effort: "low" }
+        current: { model: LATEST_MODEL_BY_FAMILY.gptAstra, effort: "low" }
       }
     ]
   ],
@@ -9903,7 +10187,7 @@ var MANAGED_REASONING_DEFAULT_UPGRADES = new Map([
     [
       {
         previous: { model: "gpt-5.6-sol", effort: "high" },
-        current: { model: "gpt-6-astra", effort: "high" }
+        current: { model: LATEST_MODEL_BY_FAMILY.gptAstra, effort: "high" }
       }
     ]
   ],
@@ -9912,7 +10196,7 @@ var MANAGED_REASONING_DEFAULT_UPGRADES = new Map([
     [
       {
         previous: { model: "gpt-5.6-luna", effort: "high" },
-        current: { model: "gpt-6-astra", effort: "high" }
+        current: { model: LATEST_MODEL_BY_FAMILY.gptAstra, effort: "high" }
       }
     ]
   ],
@@ -9929,7 +10213,7 @@ var MANAGED_REASONING_DEFAULT_UPGRADES = new Map([
       },
       {
         previous: { model: "gpt-5.6-terra", effort: "high" },
-        current: { model: "gpt-6-astra", effort: "high" }
+        current: { model: LATEST_MODEL_BY_FAMILY.gptAstra, effort: "high" }
       }
     ]
   ],
@@ -9946,7 +10230,7 @@ var MANAGED_REASONING_DEFAULT_UPGRADES = new Map([
       },
       {
         previous: { model: "gpt-5.6-sol", effort: "high" },
-        current: { model: "gpt-6-astra", effort: "high" }
+        current: { model: LATEST_MODEL_BY_FAMILY.gptAstra, effort: "high" }
       }
     ]
   ],
@@ -9963,7 +10247,7 @@ var MANAGED_REASONING_DEFAULT_UPGRADES = new Map([
       },
       {
         previous: { model: "gpt-5.6-terra", effort: "high" },
-        current: { model: "gpt-6-astra", effort: "high" }
+        current: { model: LATEST_MODEL_BY_FAMILY.gptAstra, effort: "high" }
       }
     ]
   ],
@@ -9976,7 +10260,7 @@ var MANAGED_REASONING_DEFAULT_UPGRADES = new Map([
       },
       {
         previous: { model: "gpt-5.6-sol", effort: "medium" },
-        current: { model: "gpt-6-astra", effort: "medium" }
+        current: { model: LATEST_MODEL_BY_FAMILY.gptAstra, effort: "medium" }
       }
     ]
   ],
@@ -9989,7 +10273,7 @@ var MANAGED_REASONING_DEFAULT_UPGRADES = new Map([
       },
       {
         previous: { model: "gpt-5.6-terra", effort: "medium" },
-        current: { model: "gpt-6-astra", effort: "medium" }
+        current: { model: LATEST_MODEL_BY_FAMILY.gptAstra, effort: "medium" }
       }
     ]
   ],
@@ -10002,7 +10286,7 @@ var MANAGED_REASONING_DEFAULT_UPGRADES = new Map([
       },
       {
         previous: { model: "gpt-5.6-terra", effort: "high" },
-        current: { model: "gpt-6-astra", effort: "high" }
+        current: { model: LATEST_MODEL_BY_FAMILY.gptAstra, effort: "high" }
       }
     ]
   ],
@@ -10015,7 +10299,7 @@ var MANAGED_REASONING_DEFAULT_UPGRADES = new Map([
       },
       {
         previous: { model: "gpt-5.6-luna", effort: "high" },
-        current: { model: "gpt-6-astra", effort: "high" }
+        current: { model: LATEST_MODEL_BY_FAMILY.gptAstra, effort: "high" }
       }
     ]
   ],
@@ -10032,7 +10316,7 @@ var MANAGED_REASONING_DEFAULT_UPGRADES = new Map([
       },
       {
         previous: { model: "gpt-5.6-sol", effort: "low" },
-        current: { model: "gpt-6-astra", effort: "low" }
+        current: { model: LATEST_MODEL_BY_FAMILY.gptAstra, effort: "low" }
       }
     ]
   ]
@@ -10103,7 +10387,9 @@ async function restorePreservedReasoning(input) {
   });
   if (bundledEffort === effort)
     return;
-  const replacement = replaceTopLevelStringSetting(content, "model_reasoning_effort", effort, { insertIfMissing: false });
+  const replacement = replaceTopLevelStringSetting(content, "model_reasoning_effort", effort, {
+    insertIfMissing: false
+  });
   if (!replacement.replaced)
     return;
   await writeFile3(input.linkPath, replacement.content);
@@ -10119,13 +10405,24 @@ async function restorePreservedServiceTier(input) {
     return;
   await writeFile3(input.linkPath, replacement.content);
 }
+async function restorePreservedModel(input) {
+  if (input.value === null)
+    return;
+  const content = await readFile4(input.linkPath, "utf8");
+  if (extractModel(content) === input.value)
+    return;
+  const replacement = replaceTopLevelStringSetting(content, "model", input.value, { insertIfMissing: true });
+  if (!replacement.replaced)
+    return;
+  await writeFile3(input.linkPath, replacement.content);
+}
 async function readTextIfExists(path) {
   try {
     return await readFile4(path, "utf8");
-  } catch (error2) {
-    if (nodeErrorCode(error2) === "ENOENT")
+  } catch (error) {
+    if (nodeErrorCode(error) === "ENOENT")
       return null;
-    throw error2;
+    throw error;
   }
 }
 function extractModel(content) {
@@ -10201,23 +10498,100 @@ function agentNameFromToml(fileName) {
 }
 async function exists(path) {
   try {
-    await lstat(path);
+    await lstat2(path);
     return true;
-  } catch (error2) {
-    if (nodeErrorCode(error2) !== "ENOENT")
-      throw error2;
+  } catch (error) {
+    if (nodeErrorCode(error) !== "ENOENT")
+      throw error;
     return false;
   }
 }
-function nodeErrorCode(error2) {
-  if (!(error2 instanceof Error) || !("code" in error2))
+function nodeErrorCode(error) {
+  if (!(error instanceof Error) || !("code" in error))
     return null;
-  return typeof error2.code === "string" ? error2.code : null;
+  return typeof error.code === "string" ? error.code : null;
+}
+
+// ../src/install/agent-model-overrides.ts
+var RECEIPT_FILE = ".lazycodex-agent-models.json";
+async function readAgentModelReceipts(codexHome) {
+  const content = await readTextIfExists(receiptPath(codexHome));
+  if (content === null)
+    return new Map;
+  const parsed = parseJson(content);
+  if (!isPlainRecord(parsed))
+    return new Map;
+  const receipts = new Map;
+  for (const [name, value] of Object.entries(parsed)) {
+    if (!isPlainRecord(value))
+      continue;
+    const model = value["model"];
+    const reasoningEffort = value["reasoningEffort"];
+    receipts.set(name, {
+      ...typeof model === "string" ? { model } : {},
+      ...typeof reasoningEffort === "string" ? { reasoningEffort } : {}
+    });
+  }
+  return receipts;
+}
+async function writeAgentModelReceipts(codexHome, receipts) {
+  const path = receiptPath(codexHome);
+  if (receipts.size === 0) {
+    await rm5(path, { force: true });
+    return;
+  }
+  await writeFile4(path, `${JSON.stringify(Object.fromEntries(receipts), null, "\t")}
+`);
+}
+async function applyAgentOverride(input) {
+  if (input.override === undefined)
+    return;
+  let content = await readFile5(input.linkPath, "utf8");
+  if (input.override.model !== undefined) {
+    content = replaceTopLevelStringSetting(content, "model", input.override.model, { insertIfMissing: true }).content;
+  }
+  if (input.override.reasoningEffort !== undefined) {
+    content = replaceTopLevelStringSetting(content, "model_reasoning_effort", input.override.reasoningEffort, {
+      insertIfMissing: true
+    }).content;
+  }
+  await writeFile4(input.linkPath, content);
+}
+function receiptPath(codexHome) {
+  return join10(codexHome, "agents", RECEIPT_FILE);
+}
+function parseJson(content) {
+  try {
+    return JSON.parse(content);
+  } catch (error) {
+    if (error instanceof SyntaxError)
+      return null;
+    throw error;
+  }
+}
+
+// ../src/install/managed-agent-model-defaults.ts
+var PREVIOUSLY_BUNDLED_AGENT_MODELS = new Set([
+  "gpt-5.2",
+  "gpt-5.4-mini",
+  "gpt-5.5",
+  "gpt-5.6-luna",
+  "gpt-5.6-luna-fast",
+  "gpt-5.6-sol",
+  "gpt-5.6-terra",
+  "gpt-6-astra"
+]);
+function handEditedAgentModel(installedModel, receipt) {
+  if (installedModel === null)
+    return null;
+  if (receipt?.model !== undefined)
+    return installedModel === receipt.model ? null : installedModel;
+  return PREVIOUSLY_BUNDLED_AGENT_MODELS.has(installedModel) ? null : installedModel;
 }
 
 // ../src/install/retired-managed-agent-purge.ts
-import { lstat as lstat2, readFile as readFile5, rm as rm5 } from "node:fs/promises";
-import { join as join10 } from "node:path";
+import { lstat as lstat3, readFile as readFile6, rm as rm6 } from "node:fs/promises";
+import { join as join11 } from "node:path";
 var RETIRED_MANAGED_AGENT_FILES = [
   {
     fileName: "codex-ultrawork-reviewer.toml",
@@ -10229,20 +10603,20 @@ var RETIRED_MANAGED_AGENT_FILES = [
   }
 ];
 async function purgeRetiredManagedAgentFiles(input) {
-  const agentsDir = join10(input.codexHome, "agents");
+  const agentsDir = join11(input.codexHome, "agents");
   if (!await exists2(agentsDir))
     return;
   for (const retiredAgent of RETIRED_MANAGED_AGENT_FILES) {
-    const agentPath = join10(agentsDir, retiredAgent.fileName);
+    const agentPath = join11(agentsDir, retiredAgent.fileName);
     if (!await exists2(agentPath))
       continue;
-    const agentStat = await lstat2(agentPath);
+    const agentStat = await lstat3(agentPath);
     if (agentStat.isDirectory() && !agentStat.isSymbolicLink())
       continue;
     const content = await readTextIfExists2(agentPath);
     if (content === null || !hasRequiredMarkers(content, retiredAgent.requiredMarkers))
       continue;
-    await rm5(agentPath, { force: true });
+    await rm6(agentPath, { force: true });
   }
 }
 function hasRequiredMarkers(content, markers) {
@@ -10250,69 +10624,69 @@ function hasRequiredMarkers(content, markers) {
 }
 async function readTextIfExists2(path) {
   try {
-    return await readFile5(path, "utf8");
-  } catch (error2) {
-    if (nodeErrorCode2(error2) === "ENOENT")
+    return await readFile6(path, "utf8");
+  } catch (error) {
+    if (nodeErrorCode2(error) === "ENOENT")
       return null;
-    throw error2;
+    throw error;
   }
 }
 async function exists2(path) {
   try {
-    await lstat2(path);
+    await lstat3(path);
     return true;
-  } catch (error2) {
-    if (nodeErrorCode2(error2) !== "ENOENT")
-      throw error2;
+  } catch (error) {
+    if (nodeErrorCode2(error) !== "ENOENT")
+      throw error;
     return false;
   }
 }
-function nodeErrorCode2(error2) {
-  if (!(error2 instanceof Error) || !("code" in error2))
+function nodeErrorCode2(error) {
+  if (!(error instanceof Error) || !("code" in error))
     return null;
-  return typeof error2.code === "string" ? error2.code : null;
+  return typeof error.code === "string" ? error.code : null;
 }
 
 // ../src/install/default-agent-role.ts
-import { createHash as createHash3 } from "node:crypto";
-import { lstat as lstat4, readFile as readFile6, rm as rm6 } from "node:fs/promises";
-import { join as join12 } from "node:path";
+import { createHash as createHash4 } from "node:crypto";
+import { lstat as lstat5, readFile as readFile7, rm as rm7 } from "node:fs/promises";
+import { join as join13 } from "node:path";
 
 // ../src/install/codex-config-atomic-write.ts
-import { lstat as lstat3, readlink, realpath, rename as rename3, unlink, writeFile as writeFile4 } from "node:fs/promises";
-import { basename as basename3, dirname as dirname6, isAbsolute as isAbsolute2, join as join11, resolve as resolve4 } from "node:path";
+import { lstat as lstat4, readlink, realpath, rename as rename3, unlink, writeFile as writeFile5 } from "node:fs/promises";
+import { basename as basename3, dirname as dirname6, isAbsolute as isAbsolute2, join as join12, resolve as resolve4 } from "node:path";
 var RENAME_RETRY_DELAYS_MS = [10, 25, 50];
 var RETRIABLE_RENAME_CODES = new Set(["EPERM", "EBUSY"]);
 async function writeFileAtomic(targetPath, data) {
   const writeTarget = await resolveSymlinkTarget(targetPath);
-  const temporaryPath = join11(dirname6(writeTarget), `.tmp-${basename3(writeTarget)}-${process.pid}-${Date.now()}`);
-  await writeFile4(temporaryPath, data);
+  const temporaryPath = join12(dirname6(writeTarget), `.tmp-${basename3(writeTarget)}-${process.pid}-${Date.now()}`);
+  await writeFile5(temporaryPath, data);
   try {
     await renameWithRetry(temporaryPath, writeTarget);
-  } catch (error2) {
+  } catch (error) {
     await unlink(temporaryPath).catch((unlinkError) => {
       if (unlinkError instanceof Error)
         return;
       return;
     });
-    throw error2;
+    throw error;
   }
 }
 async function resolveSymlinkTarget(targetPath) {
   try {
-    const linkStats = await lstat3(targetPath);
+    const linkStats = await lstat4(targetPath);
     if (!linkStats.isSymbolicLink())
       return targetPath;
-  } catch (error2) {
-    if (error2 instanceof Error)
+  } catch (error) {
+    if (error instanceof Error)
       return targetPath;
     return targetPath;
   }
   try {
     return await realpath(targetPath);
-  } catch (error2) {
-    if (!(error2 instanceof Error))
-      throw error2;
+  } catch (error) {
+    if (!(error instanceof Error))
+      throw error;
     const linkValue = await readlink(targetPath);
     return isAbsolute2(linkValue) ? linkValue : resolve4(dirname6(targetPath), linkValue);
   }
@@ -10322,18 +10696,18 @@ async function renameWithRetry(fromPath, toPath) {
     try {
       await rename3(fromPath, toPath);
       return;
-    } catch (error2) {
-      if (!isRetriableRenameError(error2) || attempt >= RENAME_RETRY_DELAYS_MS.length) {
-        throw error2;
+    } catch (error) {
+      if (!isRetriableRenameError(error) || attempt >= RENAME_RETRY_DELAYS_MS.length) {
+        throw error;
       }
       await delay(RENAME_RETRY_DELAYS_MS[attempt] ?? 0);
     }
   }
 }
-function isRetriableRenameError(error2) {
-  if (!(error2 instanceof Error) || !("code" in error2))
+function isRetriableRenameError(error) {
+  if (!(error instanceof Error) || !("code" in error))
     return false;
-  return typeof error2.code === "string" && RETRIABLE_RENAME_CODES.has(error2.code);
+  return typeof error.code === "string" && RETRIABLE_RENAME_CODES.has(error.code);
 }
 function delay(milliseconds) {
   return new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds));
@@ -10355,9 +10729,9 @@ var MANAGED_CODEX_AGENT_NAMES = [
   ...LEGACY_MANAGED_CODEX_AGENT_NAMES_TO_PURGE,
   ...CURRENT_MANAGED_CODEX_AGENT_NAMES
 ];
-function removeStaleManagedAgentBlocks(config2, keepAgentNames) {
+function removeStaleManagedAgentBlocks(config, keepAgentNames) {
   const managedAgentNames = new Set(MANAGED_CODEX_AGENT_NAMES);
-  return splitTomlSections(config2).filter((section) => {
+  return splitTomlSections(config).filter((section) => {
     if (section.header === null)
       return true;
     const agentName = parseAgentHeaderName(section.header);
@@ -10368,21 +10742,21 @@ function removeStaleManagedAgentBlocks(config2, keepAgentNames) {
 
 `);
 }
-function hasForeignAgentRegistration(config2, agentConfig) {
-  const section = findTomlSection(config2, `agents.${tomlKeySegment(agentConfig.name)}`);
+function hasForeignAgentRegistration(config, agentConfig) {
+  const section = findTomlSection(config, `agents.${tomlKeySegment(agentConfig.name)}`);
   if (!section)
     return false;
   return !section.text.includes(`config_file = ${JSON.stringify(agentConfig.configFile)}`);
 }
-function ensureAgentConfig(config2, agentConfig) {
+function ensureAgentConfig(config, agentConfig) {
   const header = `agents.${tomlKeySegment(agentConfig.name)}`;
-  const section = findTomlSection(config2, header);
+  const section = findTomlSection(config, header);
   const configFile = JSON.stringify(agentConfig.configFile);
   if (!section)
-    return appendBlock(config2, `[${header}]
+    return appendBlock(config, `[${header}]
 config_file = ${configFile}
 `);
-  return replaceOrInsertSetting(config2, section, "config_file", configFile);
+  return replaceOrInsertSetting(config, section, "config_file", configFile);
 }
 function tomlKeySegment(value) {
   return /^[A-Za-z0-9_-]+$/.test(value) ? value : JSON.stringify(value);
@@ -10391,14 +10765,14 @@ function tomlKeySegment(value) {
 // ../src/install/default-agent-role.ts
 var REGISTRATION = { name: "default", configFile: "./agents/default.toml" };
 async function installDefaultAgentRole(input) {
-  const target = join12(input.codexHome, "agents", "default.toml");
-  const receipt = join12(input.codexHome, "agents", ".lazycodex-default.sha256");
-  const configPath = join12(input.codexHome, "config.toml");
-  const config2 = await readIfPresent(configPath);
-  const entry = await lstat4(target).catch((error2) => {
-    if (error2 instanceof Error && "code" in error2 && error2.code === "ENOENT")
+  const target = join13(input.codexHome, "agents", "default.toml");
+  const receipt = join13(input.codexHome, "agents", ".lazycodex-default.sha256");
+  const configPath = join13(input.codexHome, "config.toml");
+  const config = await readIfPresent(configPath);
+  const entry = await lstat5(target).catch((error) => {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT")
       return null;
-    throw error2;
+    throw error;
   });
   if (entry !== null && !entry.isFile()) {
     if (!input.enabled)
@@ -10408,23 +10782,23 @@ async function installDefaultAgentRole(input) {
   const existing = await readIfPresent(target);
   const digest = await readIfPresent(receipt);
   const owned = existing !== null && digest === hash(existing);
-  const foreign = hasForeignAgentRegistration(config2 ?? "", REGISTRATION);
+  const foreign = hasForeignAgentRegistration(config ?? "", REGISTRATION);
   if (!input.enabled) {
     if (owned) {
-      if (!foreign && config2 !== null) {
-        const next = splitTomlSections(config2).filter((section) => section.header === null || parseAgentHeaderName(section.header) !== "default").map((section) => section.text).join("");
-        if (next !== config2)
+      if (!foreign && config !== null) {
+        const next = splitTomlSections(config).filter((section) => section.header === null || parseAgentHeaderName(section.header) !== "default").map((section) => section.text).join("");
+        if (next !== config)
           await writeFileAtomic(configPath, next);
       }
-      await rm6(target);
-      await rm6(receipt);
+      await rm7(target);
+      await rm7(receipt);
     }
     return null;
   }
   if (foreign || existing !== null && !owned) {
     throw new Error("Preserved user-owned agents.default / agents/default.toml. Move it aside to install the LazyCodex fallback, or set [codex].agents.default.disable = true in omo.jsonc. Explicit LazyCodex roles remain required.");
   }
-  const worker = await readFile6(input.worker.path, "utf8");
+  const worker = await readFile7(input.worker.path, "utf8");
   const content = worker.replace(/^name\s*=\s*["']lazycodex-worker-medium["']\s*$/m, 'name = "default"');
   if (content === worker)
     throw new Error("Cannot derive default: medium worker has no matching internal name");
@@ -10434,15 +10808,15 @@ async function installDefaultAgentRole(input) {
 }
 async function readIfPresent(path) {
   try {
-    return await readFile6(path, "utf8");
-  } catch (error2) {
-    if (error2 instanceof Error && "code" in error2 && error2.code === "ENOENT")
+    return await readFile7(path, "utf8");
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT")
       return null;
-    throw error2;
+    throw error;
   }
 }
 function hash(content) {
-  return createHash3("sha256").update(content).digest("hex");
+  return createHash4("sha256").update(content).digest("hex");
 }
 
 // ../src/install/link-cached-plugin-agents.ts
@@ -10454,38 +10828,68 @@ async function linkCachedPluginAgents(input) {
     await writeManifest(input.pluginRoot, []);
     return [];
   }
-  const agentsDir = join13(input.codexHome, "agents");
+  const agentsDir = join14(input.codexHome, "agents");
   await mkdir4(agentsDir, { recursive: true });
+  const previousReceipts = await readAgentModelReceipts(input.codexHome);
+  const receipts = new Map;
   const linked = [];
   for (const agentPath of bundledAgents) {
     const agentFileName = basename4(agentPath);
     const agentName = agentNameFromToml2(agentFileName);
-    const linkPath = join13(agentsDir, agentFileName);
-    await replaceWithCopy(linkPath, agentPath);
-    await restorePreservedReasoning({
+    const linkPath = join14(agentsDir, agentFileName);
+    receipts.set(agentName, await syncAgentFile({
+      ...input,
       agentName,
+      agentPath,
       linkPath,
-      target: agentPath,
-      value: input.preservedReasoning?.get(agentName)
-    });
-    await restorePreservedServiceTier({
-      linkPath,
-      preserved: input.preservedServiceTier?.has(agentName) ?? false,
-      value: input.preservedServiceTier?.get(agentName) ?? null
-    });
+      previousReceipt: previousReceipts.get(agentName)
+    }));
     linked.push({ name: agentFileName, path: linkPath, target: agentPath });
   }
+  await writeAgentModelReceipts(input.codexHome, receipts);
   const worker = linked.find((entry) => entry.name === "lazycodex-worker-medium.toml");
   if (worker !== undefined) {
-    const fallback = await installDefaultAgentRole({ codexHome: input.codexHome, worker, enabled: input.defaultRoleEnabled !== false });
+    const fallback = await installDefaultAgentRole({
+      codexHome: input.codexHome,
+      worker,
+      enabled: input.defaultRoleEnabled !== false
+    });
     if (fallback !== null)
       linked.push(fallback);
   }
   await writeManifest(input.pluginRoot, linked.map((entry) => entry.path));
   return linked;
 }
+async function syncAgentFile(input) {
+  const installed = await readTextIfExists(input.linkPath);
+  const installedModel = installed === null ? null : extractModel(installed);
+  const preservedReasoning = input.preservedReasoning?.get(input.agentName);
+  const override = input.agentOverrides?.get(input.agentName);
+  await replaceWithCopy(input.linkPath, input.agentPath);
+  await restorePreservedModel({
+    linkPath: input.linkPath,
+    value: handEditedAgentModel(installedModel, input.previousReceipt)
+  });
+  await restorePreservedReasoning({
+    agentName: input.agentName,
+    linkPath: input.linkPath,
+    target: input.agentPath,
+    value: preservedReasoning?.effort === input.previousReceipt?.reasoningEffort ? undefined : preservedReasoning
+  });
+  await restorePreservedServiceTier({
+    linkPath: input.linkPath,
+    preserved: input.preservedServiceTier?.has(input.agentName) ?? false,
+    value: input.preservedServiceTier?.get(input.agentName) ?? null
+  });
+  await applyAgentOverride({ linkPath: input.linkPath, override });
+  const model = override?.model ?? extractModel(await readFile8(input.agentPath, "utf8"));
+  return {
+    ...model === null ? {} : { model },
+    ...override?.reasoningEffort === undefined ? {} : { reasoningEffort: override.reasoningEffort }
+  };
+}
 async function discoverBundledAgents(pluginRoot) {
-  const componentsRoot = join13(pluginRoot, "components");
+  const componentsRoot = join14(pluginRoot, "components");
   if (!await exists3(componentsRoot))
     return [];
   const componentEntries = await readdir2(componentsRoot, { withFileTypes: true });
@@ -10493,14 +10897,14 @@ async function discoverBundledAgents(pluginRoot) {
   for (const entry of componentEntries) {
     if (!entry.isDirectory())
       continue;
-    const agentsRoot = join13(componentsRoot, entry.name, "agents");
+    const agentsRoot = join14(componentsRoot, entry.name, "agents");
     if (!await exists3(agentsRoot))
       continue;
     const agentEntries = await readdir2(agentsRoot, { withFileTypes: true });
     for (const file of agentEntries) {
       if (!file.isFile() || !file.name.endsWith(".toml"))
         continue;
-      agents.push(join13(agentsRoot, file.name));
+      agents.push(join14(agentsRoot, file.name));
     }
   }
   agents.sort();
@@ -10513,16 +10917,16 @@ async function replaceWithCopy(linkPath, target) {
 async function prepareReplacement(linkPath) {
   if (!await exists3(linkPath))
     return;
-  const entryStat = await lstat5(linkPath);
+  const entryStat = await lstat6(linkPath);
   if (entryStat.isDirectory() && !entryStat.isSymbolicLink()) {
     throw new Error(`${linkPath} already exists and is a directory; refusing to replace`);
   }
-  await rm7(linkPath, { force: true });
+  await rm8(linkPath, { force: true });
 }
 async function writeManifest(pluginRoot, agentPaths) {
-  const manifestPath = join13(pluginRoot, MANIFEST_FILE);
+  const manifestPath = join14(pluginRoot, MANIFEST_FILE);
   const payload = { agents: [...agentPaths].sort() };
-  await writeFile5(manifestPath, `${JSON.stringify(payload, null, "\t")}
+  await writeFile6(manifestPath, `${JSON.stringify(payload, null, "\t")}
 `);
 }
 function agentNameFromToml2(fileName) {
@@ -10530,23 +10934,23 @@ function agentNameFromToml2(fileName) {
 }
 async function exists3(path) {
   try {
-    await lstat5(path);
+    await lstat6(path);
     return true;
-  } catch (error2) {
-    if (nodeErrorCode3(error2) !== "ENOENT")
-      throw error2;
+  } catch (error) {
+    if (nodeErrorCode3(error) !== "ENOENT")
+      throw error;
     return false;
   }
 }
-function nodeErrorCode3(error2) {
-  if (!(error2 instanceof Error) || !("code" in error2))
+function nodeErrorCode3(error) {
+  if (!(error instanceof Error) || !("code" in error))
     return null;
-  return typeof error2.code === "string" ? error2.code : null;
+  return typeof error.code === "string" ? error.code : null;
 }
 
 // ../src/install/codex-cache-bins.ts
-import { chmod as chmod2, lstat as lstat9, mkdir as mkdir5, readFile as readFile9, readdir as readdir4, readlink as readlink4, rm as rm10, stat as stat4, symlink, writeFile as writeFile6 } from "node:fs/promises";
-import { basename as basename5, isAbsolute as isAbsolute4, join as join17, relative as relative2, resolve as resolve6, sep } from "node:path";
+import { chmod as chmod2, lstat as lstat9, mkdir as mkdir5, readFile as readFile11, readdir as readdir4, readlink as readlink4, rm as rm11, stat as stat4, symlink, writeFile as writeFile7 } from "node:fs/promises";
+import { basename as basename5, isAbsolute as isAbsolute4, join as join18, relative as relative2, resolve as resolve6, sep } from "node:path";
 
 // ../src/install/codex-cache-command-shim.ts
 var COMMAND_SHIM_MARKER = ":: generated by oh-my-openagent Codex installer";
@@ -10565,8 +10969,7 @@ function windowsNodeDiscoveryLines() {
     '  for /f "tokens=* delims= " %%N in ("!OMO_NODE_BINARY!") do set "OMO_NODE_BINARY=%%N"',
     `  if "!OMO_NODE_BINARY:~0,1!"=="'" set "OMO_NODE_BINARY=!OMO_NODE_BINARY:~1!"`,
     `  if "!OMO_NODE_BINARY:~-1!"=="'" set "OMO_NODE_BINARY=!OMO_NODE_BINARY:~0,-1!"`,
-    '  if "!OMO_NODE_BINARY:~0,1!"=="^"" set "OMO_NODE_BINARY=!OMO_NODE_BINARY:~1!"',
-    '  if "!OMO_NODE_BINARY:~-1!"=="^"" set "OMO_NODE_BINARY=!OMO_NODE_BINARY:~0,-1!"',
+    '  set "OMO_NODE_BINARY=!OMO_NODE_BINARY:"=!"',
     '  if defined OMO_NODE_BINARY if not exist "!OMO_NODE_BINARY!" set "OMO_NODE_BINARY="',
     ")",
     'if not defined OMO_NODE_BINARY where node >nul 2>nul && set "OMO_NODE_BINARY=node"'
@@ -10590,36 +10993,15 @@ function windowsCommandShim(targetPath) {
 }
 
 // ../src/install/codex-cache-dangling-bins.ts
-import { lstat as lstat7, readFile as readFile7, readdir as readdir3, readlink as readlink2, rm as rm8, stat as stat3 } from "node:fs/promises";
-import { dirname as dirname7, isAbsolute as isAbsolute3, join as join14, resolve as resolve5 } from "node:path";
-
-// ../src/install/codex-cache-fs.ts
-import { lstat as lstat6 } from "node:fs/promises";
-async function fileExistsStrict(path) {
-  try {
-    await lstat6(path);
-    return true;
-  } catch (error2) {
-    if (isNodeErrorWithCode(error2) && error2.code === "ENOENT")
-      return false;
-    throw error2;
-  }
-}
-function isPlainRecord(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-function isNodeErrorWithCode(error2) {
-  return typeof error2 === "object" && error2 !== null && "code" in error2;
-}
-
-// ../src/install/codex-cache-dangling-bins.ts
+import { lstat as lstat7, readFile as readFile9, readdir as readdir3, readlink as readlink2, rm as rm9, stat as stat3 } from "node:fs/promises";
+import { dirname as dirname7, isAbsolute as isAbsolute3, join as join15, resolve as resolve5 } from "node:path";
 async function removeDanglingManagedComponentBins(binDir, platform, managedBinNames) {
   const entries = await readdir3(binDir, { withFileTypes: true });
   for (const entry of entries) {
     const binName = managedBinNameForEntry(entry.name, platform);
     if (binName === null || !managedBinNames.has(binName))
       continue;
-    const linkPath = join14(binDir, entry.name);
+    const linkPath = join15(binDir, entry.name);
     if (platform === "win32") {
       await removeDanglingGeneratedCommandShim(linkPath);
       continue;
@@ -10640,11 +11022,11 @@ async function removeDanglingManagedSymlink(linkPath) {
     const linkTarget = await readlink2(linkPath);
     const target = isAbsolute3(linkTarget) ? linkTarget : resolve5(dirname7(linkPath), linkTarget);
     if (!await isFileSystemEntry(target) && isManagedComponentBinTarget(target))
-      await rm8(linkPath, { force: true });
-  } catch (error2) {
-    if (isNodeErrorWithCode(error2) && error2.code === "ENOENT")
+      await rm9(linkPath, { force: true });
+  } catch (error) {
+    if (isNodeErrorWithCode(error) && error.code === "ENOENT")
       return;
-    throw error2;
+    throw error;
   }
 }
 async function removeDanglingGeneratedCommandShim(linkPath) {
@@ -10652,26 +11034,26 @@ async function removeDanglingGeneratedCommandShim(linkPath) {
     const linkStat = await lstat7(linkPath);
     if (!linkStat.isFile())
       return;
-    const content = await readFile7(linkPath, "utf8");
+    const content = await readFile9(linkPath, "utf8");
     if (!content.includes(COMMAND_SHIM_MARKER))
       return;
     const target = extractCommandShimTarget(content);
     if (target !== null && !await isFileSystemEntry(target) && isManagedComponentBinTarget(target))
-      await rm8(linkPath, { force: true });
-  } catch (error2) {
-    if (isNodeErrorWithCode(error2) && error2.code === "ENOENT")
+      await rm9(linkPath, { force: true });
+  } catch (error) {
+    if (isNodeErrorWithCode(error) && error.code === "ENOENT")
       return;
-    throw error2;
+    throw error;
   }
 }
 async function isFileSystemEntry(path) {
   try {
     await stat3(path);
     return true;
-  } catch (error2) {
-    if (isNodeErrorWithCode(error2) && error2.code === "ENOENT")
+  } catch (error) {
+    if (isNodeErrorWithCode(error) && error.code === "ENOENT")
       return false;
-    throw error2;
+    throw error;
   }
 }
 function extractCommandShimTarget(content) {
@@ -10700,8 +11082,8 @@ function hasOmoCodexPluginPrefix(parts, endExclusive) {
 }
 
 // ../src/install/codex-cache-legacy-bins.ts
-import { lstat as lstat8, readFile as readFile8, readlink as readlink3, rm as rm9 } from "node:fs/promises";
-import { join as join15 } from "node:path";
+import { lstat as lstat8, readFile as readFile10, readlink as readlink3, rm as rm10 } from "node:fs/promises";
+import { join as join16 } from "node:path";
 var LEGACY_CODEX_COMPONENT_BINS = [
   { name: "omo", component: "ulw-loop" },
   { name: "codex-comment-checker", component: "comment-checker" },
@@ -10714,30 +11096,30 @@ var LEGACY_CODEX_COMPONENT_BINS = [
 var LEGACY_CODEX_COMPONENT_BIN_NAMES = LEGACY_CODEX_COMPONENT_BINS.map((entry) => entry.name);
 async function removeLegacyCodexComponentBins(binDir, platform) {
   for (const entry of LEGACY_CODEX_COMPONENT_BINS) {
-    const linkPath = join15(binDir, platform === "win32" ? `${entry.name}.cmd` : entry.name);
+    const linkPath = join16(binDir, platform === "win32" ? `${entry.name}.cmd` : entry.name);
     await removeLegacyCodexComponentBin(linkPath, entry.component, platform);
   }
 }
 async function removeLegacyCodexComponentBin(linkPath, component, platform) {
   try {
-    const stat4 = await lstat8(linkPath);
+    const stat = await lstat8(linkPath);
     if (platform !== "win32") {
-      if (!stat4.isSymbolicLink())
+      if (!stat.isSymbolicLink())
         return;
       const target = await readlink3(linkPath);
       if (isManagedLegacyComponentTarget(target, component))
-        await rm9(linkPath, { force: true });
+        await rm10(linkPath, { force: true });
       return;
     }
-    if (!stat4.isFile())
+    if (!stat.isFile())
       return;
-    const content = await readFile8(linkPath, "utf8");
+    const content = await readFile10(linkPath, "utf8");
     if (content.includes(COMMAND_SHIM_MARKER))
-      await rm9(linkPath, { force: true });
-  } catch (error2) {
-    if (isNodeErrorWithCode2(error2) && error2.code === "ENOENT")
+      await rm10(linkPath, { force: true });
+  } catch (error) {
+    if (isNodeErrorWithCode2(error) && error.code === "ENOENT")
       return;
-    throw error2;
+    throw error;
   }
 }
 function isManagedLegacyComponentTarget(target, component) {
@@ -10760,15 +11142,15 @@ function hasOmoCodexPluginPrefix2(parts, endExclusive) {
   }
   return false;
 }
-function isNodeErrorWithCode2(error2) {
-  return typeof error2 === "object" && error2 !== null && "code" in error2;
+function isNodeErrorWithCode2(error) {
+  return typeof error === "object" && error !== null && "code" in error;
 }
 
 // ../src/install/codex-cache-runtime-wrapper.ts
-import { join as join16 } from "node:path";
+import { join as join17 } from "node:path";
 var RUNTIME_WRAPPER_MARKER = "OMO_GENERATED_RUNTIME_WRAPPER";
 function posixRuntimeWrapper(binName, cliPath, codexHome, binDir, nodeCliPath) {
-  const ulwLoopBin = toPosixPath2(join16(binDir, "omo-ulw-loop"));
+  const ulwLoopBin = toPosixPath2(join17(binDir, "omo-ulw-loop"));
   const nodeCli = escapePosixDoubleQuoted(toPosixPath2(nodeCliPath));
   const escapedCliPath = escapePosixDoubleQuoted(toPosixPath2(cliPath));
   const escapedCodexHome = escapePosixDoubleQuoted(toPosixPath2(codexHome));
@@ -10815,7 +11197,7 @@ function posixRuntimeWrapper(binName, cliPath, codexHome, binDir, nodeCliPath) {
 `);
 }
 function windowsRuntimeWrapper(binName, cliPath, codexHome, binDir, nodeCliPath) {
-  const ulwLoopBin = join16(binDir, "omo-ulw-loop.cmd");
+  const ulwLoopBin = join17(binDir, "omo-ulw-loop.cmd");
   return [
     "@echo off",
     `rem ${RUNTIME_WRAPPER_MARKER}`,
@@ -10881,23 +11263,23 @@ async function linkCachedPluginBins(input) {
   return linked;
 }
 async function linkRootRuntimeBin(input) {
-  const cliPath = join17(input.repoRoot, "dist", "cli", "index.js");
+  const cliPath = join18(input.repoRoot, "dist", "cli", "index.js");
   const platform = input.platform ?? process.platform;
-  const legacyPath = join17(input.binDir, platform === "win32" ? "omo.cmd" : "omo");
+  const legacyPath = join18(input.binDir, platform === "win32" ? "omo.cmd" : "omo");
   if (!await isFile2(cliPath)) {
     await removeGeneratedRuntimeWrapper(legacyPath);
     return null;
   }
   const binName = "omo-agent-toolkit";
-  const nodeCliPath = join17(input.repoRoot, "dist", "cli-node", "index.js");
+  const nodeCliPath = join18(input.repoRoot, "dist", "cli-node", "index.js");
   await mkdir5(input.binDir, { recursive: true });
   if (platform === "win32") {
-    const linkPath2 = join17(input.binDir, `${binName}.cmd`);
-    await replaceRuntimeWrapper(linkPath2, windowsRuntimeWrapper(binName, cliPath, input.codexHome, input.binDir, nodeCliPath));
+    const linkPath = join18(input.binDir, `${binName}.cmd`);
+    await replaceRuntimeWrapper(linkPath, windowsRuntimeWrapper(binName, cliPath, input.codexHome, input.binDir, nodeCliPath));
     await removeGeneratedRuntimeWrapper(legacyPath);
-    return { name: binName, path: linkPath2, target: cliPath };
+    return { name: binName, path: linkPath, target: cliPath };
   }
-  const linkPath = join17(input.binDir, binName);
+  const linkPath = join18(input.binDir, binName);
   await replaceRuntimeWrapper(linkPath, posixRuntimeWrapper(binName, cliPath, input.codexHome, input.binDir, nodeCliPath));
   await chmod2(linkPath, 493);
   await removeGeneratedRuntimeWrapper(legacyPath);
@@ -10905,21 +11287,21 @@ async function linkRootRuntimeBin(input) {
 }
 async function linkCachedPluginBin(binDir, link, platform) {
   if (platform === "win32") {
-    const linkPath2 = join17(binDir, `${link.name}.cmd`);
-    await replaceCommandShim(linkPath2, link.target);
-    return linkPath2;
+    const linkPath = join18(binDir, `${link.name}.cmd`);
+    await replaceCommandShim(linkPath, link.target);
+    return linkPath;
   }
-  const linkPath = join17(binDir, link.name);
+  const linkPath = join18(binDir, link.name);
   await replaceSymlink(linkPath, link.target);
   return linkPath;
 }
 async function isFile2(path) {
   try {
     return (await stat4(path)).isFile();
-  } catch (error2) {
-    if (isNodeErrorWithCode(error2) && error2.code === "ENOENT")
+  } catch (error) {
+    if (isNodeErrorWithCode(error) && error.code === "ENOENT")
       return false;
-    throw error2;
+    throw error;
   }
 }
 async function discoverPackageBins(root) {
@@ -10930,21 +11312,21 @@ async function discoverPackageBins(root) {
 async function collectPackageBins(directory, root, links) {
   const entries = await readdir4(directory, { withFileTypes: true });
   if (entries.some((entry) => entry.isFile() && entry.name === "package.json")) {
-    await appendPackageBinLinks(join17(directory, "package.json"), directory, root, links);
+    await appendPackageBinLinks(join18(directory, "package.json"), directory, root, links);
   }
   for (const entry of entries) {
     if (!entry.isDirectory())
       continue;
     if (entry.name === "node_modules" || entry.name === ".git" || entry.name === "dist")
       continue;
-    const childPath = join17(directory, entry.name);
+    const childPath = join18(directory, entry.name);
     if (!childPath.startsWith(root))
       continue;
     await collectPackageBins(childPath, root, links);
   }
 }
 async function appendPackageBinLinks(packageJsonPath, packageRoot, root, links) {
-  const packageJson = JSON.parse(await readFile9(packageJsonPath, "utf8"));
+  const packageJson = JSON.parse(await readFile11(packageJsonPath, "utf8"));
   if (!isPlainRecord(packageJson))
     return;
   const packageName = packageJson.name;
@@ -10990,19 +11372,19 @@ function resolvePackageBinTarget(packageRoot, target) {
 async function replaceSymlink(linkPath, targetPath) {
   if (await existingNonSymlink(linkPath))
     throw new Error(`${linkPath} already exists and is not a symlink`);
-  await rm10(linkPath, { force: true });
+  await rm11(linkPath, { force: true });
   await symlink(targetPath, linkPath);
 }
 async function replaceCommandShim(linkPath, targetPath) {
   if (await existingNonShim(linkPath))
     throw new Error(`${linkPath} already exists and is not a command shim`);
-  await writeFile6(linkPath, windowsCommandShim(targetPath));
+  await writeFile7(linkPath, windowsCommandShim(targetPath));
 }
 async function replaceRuntimeWrapper(linkPath, content) {
   if (await existingNonRuntimeWrapper(linkPath))
     throw new Error(`${linkPath} already exists and is not a generated OMO runtime wrapper`);
-  await rm10(linkPath, { force: true });
-  await writeFile6(linkPath, content);
+  await rm11(linkPath, { force: true });
+  await writeFile7(linkPath, content);
 }
 async function removeGeneratedRuntimeWrapper(path) {
   try {
@@ -11011,78 +11393,78 @@ async function removeGeneratedRuntimeWrapper(path) {
       return;
     const content = await readGeneratedWrapperContent(path);
     if (content.includes(RUNTIME_WRAPPER_MARKER))
-      await rm10(path, { force: true });
-  } catch (error2) {
-    if (isNodeErrorWithCode(error2) && error2.code === "ENOENT")
+      await rm11(path, { force: true });
+  } catch (error) {
+    if (isNodeErrorWithCode(error) && error.code === "ENOENT")
       return;
-    throw error2;
+    throw error;
   }
 }
 async function readGeneratedWrapperContent(path) {
   try {
-    return await readFile9(path, "utf8");
-  } catch (error2) {
-    if (isNodeErrorWithCode(error2) && (error2.code === "ENOENT" || error2.code === "EISDIR"))
+    return await readFile11(path, "utf8");
+  } catch (error) {
+    if (isNodeErrorWithCode(error) && (error.code === "ENOENT" || error.code === "EISDIR"))
       return "";
-    throw error2;
+    throw error;
   }
 }
 async function existingNonRuntimeWrapper(path) {
   try {
-    const stat5 = await lstat9(path);
-    if (stat5.isSymbolicLink())
+    const stat = await lstat9(path);
+    if (stat.isSymbolicLink())
       return false;
-    if (!stat5.isFile())
+    if (!stat.isFile())
       return true;
-    const content = await readFile9(path, "utf8");
+    const content = await readFile11(path, "utf8");
     return !content.includes(RUNTIME_WRAPPER_MARKER);
-  } catch (error2) {
-    if (isNodeErrorWithCode(error2) && error2.code === "ENOENT")
+  } catch (error) {
+    if (isNodeErrorWithCode(error) && error.code === "ENOENT")
       return false;
-    throw error2;
+    throw error;
   }
 }
 async function existingNonShim(path) {
   try {
-    const stat5 = await lstat9(path);
-    if (!stat5.isFile())
+    const stat = await lstat9(path);
+    if (!stat.isFile())
       return true;
-    const content = await readFile9(path, "utf8");
+    const content = await readFile11(path, "utf8");
     if (content.includes(COMMAND_SHIM_MARKER))
       return false;
     throw new Error(`${path} already exists and is not a generated command shim`);
-  } catch (error2) {
-    if (isNodeErrorWithCode(error2) && error2.code === "ENOENT")
+  } catch (error) {
+    if (isNodeErrorWithCode(error) && error.code === "ENOENT")
       return false;
-    throw error2;
+    throw error;
   }
 }
 async function existingNonSymlink(path) {
   try {
-    const stat5 = await lstat9(path);
-    if (!stat5.isSymbolicLink())
+    const stat = await lstat9(path);
+    if (!stat.isSymbolicLink())
       return true;
     await readlink4(path);
     return false;
-  } catch (error2) {
-    if (isNodeErrorWithCode(error2) && error2.code === "ENOENT")
+  } catch (error) {
+    if (isNodeErrorWithCode(error) && error.code === "ENOENT")
       return false;
-    throw error2;
+    throw error;
   }
 }
 
 // ../src/install/codex-config-toml.ts
-import { mkdir as mkdir6, readFile as readFile11 } from "node:fs/promises";
+import { mkdir as mkdir6, readFile as readFile13 } from "node:fs/promises";
 import { dirname as dirname9 } from "node:path";
 
 // ../src/install/toml-setting-reader.ts
-function hasTomlRootDottedKeyPrefix(config2, rootKey) {
-  return hasTomlAssignment(config2, (tablePath, settingPath) => tablePath.length === 0 && settingPath.length > 1 && settingPath[0] === rootKey);
+function hasTomlRootDottedKeyPrefix(config, rootKey) {
+  return hasTomlAssignment(config, (tablePath, settingPath) => tablePath.length === 0 && settingPath.length > 1 && settingPath[0] === rootKey);
 }
-function hasTomlAssignment(config2, predicate) {
+function hasTomlAssignment(config, predicate) {
   let tablePath = [];
   let multilineQuote = null;
-  for (const line of config2.split(`
+  for (const line of config.split(`
 `)) {
     const multilineScan = scanTomlMultilineLine(line, multilineQuote);
     multilineQuote = multilineScan.nextQuote;
@@ -11187,17 +11569,23 @@ function findUnquotedAssignment2(line) {
 }
 
 // ../src/install/codex-config-features.ts
-function ensureFeatureEnabled(config2, featureName) {
-  const section = findTomlSection(config2, "features");
+function ensureFeatureEnabled(config, featureName) {
+  const section = findTomlSection(config, "features");
   if (!section) {
-    if (hasTomlRootDottedKeyPrefix(config2, "features")) {
-      return replaceOrInsertRootDottedSetting(config2, `features.${featureName}`, "true");
+    if (hasTomlRootDottedKeyPrefix(config, "features")) {
+      return replaceOrInsertRootDottedSetting(config, `features.${featureName}`, "true");
     }
-    return appendBlock(config2, `[features]
+    return appendBlock(config, `[features]
 ${featureName} = true
 `);
   }
-  return replaceOrInsertSetting(config2, section, featureName, "true");
+  return replaceOrInsertSetting(config, section, featureName, "true");
+}
+function removeFeature(config, featureName) {
+  const section = findTomlSection(config, "features");
+  if (section !== null)
+    return removeSetting(config, section, featureName);
+  return removeRootSetting(config, `features.${featureName}`);
 }
 
 // ../src/install/codex-config-marketplaces.ts
@@ -11205,14 +11593,14 @@ var SISYPHUS_LEGACY_MARKETPLACES = ["lazycodex", "code-yeongyu-codex-plugins"];
 function legacyMarketplaceNames(marketplaceName) {
   return marketplaceName === "sisyphuslabs" ? SISYPHUS_LEGACY_MARKETPLACES : [];
 }
-function removeMarketplaceBlock(config2, marketplaceName) {
-  return removeTomlSections(config2, (header) => header === `marketplaces.${marketplaceName}`);
+function removeMarketplaceBlock(config, marketplaceName) {
+  return removeTomlSections(config, (header) => header === `marketplaces.${marketplaceName}`);
 }
-function hasMarketplaceBlock(config2, marketplaceName) {
-  return findTomlSection(config2, `marketplaces.${marketplaceName}`) !== null;
+function hasMarketplaceBlock(config, marketplaceName) {
+  return findTomlSection(config, `marketplaces.${marketplaceName}`) !== null;
 }
-function removeStaleMarketplacePluginBlocks(config2, marketplaceName, keepPluginNames) {
-  return removeTomlSections(config2, (header) => {
+function removeStaleMarketplacePluginBlocks(config, marketplaceName, keepPluginNames) {
+  return removeTomlSections(config, (header) => {
     const pluginKey = parsePluginHeaderKey(header);
     if (pluginKey === null)
       return false;
@@ -11222,8 +11610,8 @@ function removeStaleMarketplacePluginBlocks(config2, marketplaceName, keepPlugin
     return !keepPluginNames.has(pluginKey.slice(0, -suffix.length));
   });
 }
-function removeStaleMarketplaceHookStateBlocks(config2, marketplaceName, keepPluginNames) {
-  return removeTomlSections(config2, (header) => {
+function removeStaleMarketplaceHookStateBlocks(config, marketplaceName, keepPluginNames) {
+  return removeTomlSections(config, (header) => {
     const hookKey = parseHookStateHeaderKey(header);
     if (hookKey === null)
       return false;
@@ -11237,7 +11625,7 @@ function removeStaleMarketplaceHookStateBlocks(config2, marketplaceName, keepPlu
     return !keepPluginNames.has(pluginKey.slice(0, -suffix.length));
   });
 }
-function ensureMarketplaceBlock(config2, marketplaceName, source) {
+function ensureMarketplaceBlock(config, marketplaceName, source) {
   const header = `marketplaces.${marketplaceName}`;
   const lines = [
     `[${header}]`,
@@ -11251,16 +11639,16 @@ function ensureMarketplaceBlock(config2, marketplaceName, source) {
   lines.push("");
   const block = lines.join(`
 `);
-  const section = findTomlSection(config2, header);
+  const section = findTomlSection(config, header);
   if (section)
-    return config2.slice(0, section.start) + block + config2.slice(section.end);
-  return appendBlock(config2, block);
+    return config.slice(0, section.start) + block + config.slice(section.end);
+  return appendBlock(config, block);
 }
 
 // ../src/install/codex-config-permissions.ts
 var AUTONOMOUS_FEATURES = ["multi_agent", "unified_exec", "goals"];
-function ensureAutonomousPermissions(config2) {
-  let next = replaceOrInsertRootSetting(config2, "approval_policy", JSON.stringify("never"));
+function ensureAutonomousPermissions(config) {
+  let next = replaceOrInsertRootSetting(config, "approval_policy", JSON.stringify("never"));
   next = replaceOrInsertRootSetting(next, "sandbox_mode", JSON.stringify("danger-full-access"));
   next = removeRootSetting(next, "network_access");
   for (const featureName of AUTONOMOUS_FEATURES) {
@@ -11270,64 +11658,64 @@ function ensureAutonomousPermissions(config2) {
   next = ensureNoticeEnabled(next, "hide_full_access_warning");
   return ensureNoticeEnabled(next, "hide_world_writable_warning");
 }
-function removeWindowsSandboxSetting(config2) {
-  const section = findTomlSection(config2, "windows");
+function removeWindowsSandboxSetting(config) {
+  const section = findTomlSection(config, "windows");
   if (section === null)
-    return config2;
-  return removeSetting(config2, section, "sandbox");
+    return config;
+  return removeSetting(config, section, "sandbox");
 }
-function ensureNoticeEnabled(config2, key) {
-  const section = findTomlSection(config2, "notice");
+function ensureNoticeEnabled(config, key) {
+  const section = findTomlSection(config, "notice");
   if (section === null)
-    return appendNoticeBlock(config2, key);
-  return replaceOrInsertSetting(config2, section, key, "true");
+    return appendNoticeBlock(config, key);
+  return replaceOrInsertSetting(config, section, key, "true");
 }
-function appendNoticeBlock(config2, key) {
-  return appendBlock(config2, `[notice]
+function appendNoticeBlock(config, key) {
+  return appendBlock(config, `[notice]
 ${key} = true
 `);
 }
 
 // ../src/install/codex-config-plugins.ts
-function ensurePluginEnabled(config2, pluginKey) {
+function ensurePluginEnabled(config, pluginKey) {
   const header = `plugins.${JSON.stringify(pluginKey)}`;
-  const section = findTomlSection(config2, header);
+  const section = findTomlSection(config, header);
   if (!section)
-    return appendBlock(config2, `[${header}]
+    return appendBlock(config, `[${header}]
 enabled = true
 `);
-  return replaceOrInsertSetting(config2, section, "enabled", "true");
+  return replaceOrInsertSetting(config, section, "enabled", "true");
 }
-function ensureOmoBuiltinMcpPolicies(config2, input) {
+function ensureOmoBuiltinMcpPolicies(config, input) {
   if (input.marketplaceName !== "sisyphuslabs" || !input.pluginNames.includes("omo"))
-    return config2;
+    return config;
   const gitBashEnabled = (input.platform ?? process.platform) === "win32" && input.gitBashEnabled === true;
-  let nextConfig = removeStaleContext7PlaceholderMcp(config2);
+  let nextConfig = removeStaleContext7PlaceholderMcp(config);
   nextConfig = ensurePluginMcpEnabled(nextConfig, "omo@sisyphuslabs", "context7", true);
   nextConfig = ensurePluginMcpEnabled(nextConfig, "omo@sisyphuslabs", "git_bash", gitBashEnabled);
   return nextConfig;
 }
-function ensureHookTrusted(config2, state) {
+function ensureHookTrusted(config, state) {
   const header = `hooks.state.${JSON.stringify(state.key)}`;
-  const section = findTomlSection(config2, header);
+  const section = findTomlSection(config, header);
   if (!section)
-    return appendBlock(config2, `[${header}]
+    return appendBlock(config, `[${header}]
 trusted_hash = ${JSON.stringify(state.trustedHash)}
 `);
-  return replaceOrInsertSetting(config2, section, "trusted_hash", JSON.stringify(state.trustedHash));
+  return replaceOrInsertSetting(config, section, "trusted_hash", JSON.stringify(state.trustedHash));
 }
-function ensurePluginMcpEnabled(config2, pluginKey, serverName, enabled) {
+function ensurePluginMcpEnabled(config, pluginKey, serverName, enabled) {
   const header = `plugins.${JSON.stringify(pluginKey)}.mcp_servers.${serverName}`;
-  const section = findTomlSection(config2, header);
+  const section = findTomlSection(config, header);
   const enabledValue = enabled ? "true" : "false";
   if (!section)
-    return appendBlock(config2, `[${header}]
+    return appendBlock(config, `[${header}]
 enabled = ${enabledValue}
 `);
-  return replaceOrInsertSetting(config2, section, "enabled", enabledValue);
+  return replaceOrInsertSetting(config, section, "enabled", enabledValue);
 }
-function removeStaleContext7PlaceholderMcp(config2) {
-  return removeTomlSections(config2, (header, section) => header === "mcp_servers.context7" && isContext7PlaceholderSection(section.text));
+function removeStaleContext7PlaceholderMcp(config) {
+  return removeTomlSections(config, (header, section) => header === "mcp_servers.context7" && isContext7PlaceholderSection(section.text));
 }
 function isContext7PlaceholderSection(sectionText) {
   const args = readStringArraySetting(sectionText, "args");
@@ -11448,20 +11836,20 @@ function applyReasoningOverride(catalog, reasoning) {
     return catalog;
   return { ...catalog, current: { ...catalog.current, modelReasoningEffort: wireEffort } };
 }
-function ensureCodexReasoningConfig(config2, catalog) {
-  const current = readRootReasoningSettings(config2);
+function ensureCodexReasoningConfig(config, catalog) {
+  const current = readRootReasoningSettings(config);
   if (Object.keys(current).length > 0 && !matchesProfile(current, catalog.current) && !catalog.managedProfiles.some((profile) => matchesProfile(current, profile))) {
-    return config2;
+    return config;
   }
-  let next = replaceOrInsertRootSetting(config2, "model", JSON.stringify(catalog.current.model));
+  let next = replaceOrInsertRootSetting(config, "model", JSON.stringify(catalog.current.model));
   next = replaceOrInsertRootSetting(next, "model_context_window", catalog.current.modelContextWindow.toString());
   next = replaceOrInsertRootSetting(next, "model_reasoning_effort", JSON.stringify(catalog.current.modelReasoningEffort));
   next = replaceOrInsertRootSetting(next, "plan_mode_reasoning_effort", JSON.stringify(catalog.current.planModeReasoningEffort));
   return next;
 }
-function readRootReasoningSettings(config2) {
+function readRootReasoningSettings(config) {
   const settings = {};
-  for (const line of config2.split(/\n/)) {
+  for (const line of config.split(/\n/)) {
     if (isSectionHeader2(line))
       break;
     for (const key of MANAGED_KEYS) {
@@ -11492,10 +11880,10 @@ function parseTomlScalar(value) {
   if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
     try {
       return JSON.parse(trimmed);
-    } catch (error2) {
-      if (error2 instanceof SyntaxError)
+    } catch (error) {
+      if (error instanceof SyntaxError)
         return;
-      throw error2;
+      throw error;
     }
   }
   const numeric = Number(trimmed);
@@ -11514,11 +11902,11 @@ function isRootSetting(line, key) {
 }
 
 // ../src/install/codex-model-catalog.ts
-import { readFile as readFile10 } from "node:fs/promises";
-import { join as join18 } from "node:path";
+import { readFile as readFile12 } from "node:fs/promises";
+import { join as join19 } from "node:path";
 var FALLBACK_CODEX_MODEL_CATALOG = {
   current: {
-    model: "gpt-6-astra",
+    model: LATEST_MODEL_BY_FAMILY.gptAstra,
     modelContextWindow: 600000,
     modelReasoningEffort: "high",
     planModeReasoningEffort: "xhigh"
@@ -11546,14 +11934,14 @@ var FALLBACK_CODEX_MODEL_CATALOG = {
   ]
 };
 async function readCodexModelCatalog(codexPackageRoot) {
-  const catalogPath = join18(codexPackageRoot, "plugin", "model-catalog.json");
+  const catalogPath = join19(codexPackageRoot, "plugin", "model-catalog.json");
   try {
-    const parsed = JSON.parse(await readFile10(catalogPath, "utf8"));
+    const parsed = JSON.parse(await readFile12(catalogPath, "utf8"));
     return parseCodexModelCatalog(parsed) ?? FALLBACK_CODEX_MODEL_CATALOG;
-  } catch (error2) {
-    if (error2 instanceof Error)
+  } catch (error) {
+    if (error instanceof Error)
       return FALLBACK_CODEX_MODEL_CATALOG;
-    throw error2;
+    throw error;
   }
 }
 function parseCodexModelCatalog(value) {
@@ -11599,8 +11987,8 @@ function parseProfileMatch(match) {
 
 // ../src/install/codex-multi-agent-mode-config.ts
 var CODEX_MULTI_AGENT_MODE_KEY = "multi_agent_mode";
-function removeUnsupportedCodexMultiAgentModeConfig(config2) {
-  const lines = config2.split(/\n/);
+function removeUnsupportedCodexMultiAgentModeConfig(config) {
+  const lines = config.split(/\n/);
   const output = [];
   let inRoot = true;
   let changed = false;
@@ -11615,7 +12003,7 @@ function removeUnsupportedCodexMultiAgentModeConfig(config2) {
       inRoot = false;
   }
   return changed ? output.join(`
-`) : config2;
+`) : config;
 }
 function isSectionHeader3(line) {
   return isTomlTableHeaderLine(line);
@@ -11630,11 +12018,11 @@ function isRootSetting2(line, key) {
 
 // ../src/install/codex-multi-agent-v2-config.ts
 import { readFileSync as readFileSync2 } from "node:fs";
-import { dirname as dirname8, isAbsolute as isAbsolute5, join as join19 } from "node:path";
+import { dirname as dirname8, isAbsolute as isAbsolute5, join as join20 } from "node:path";
 var CODEX_AGENTS_HEADER = "agents";
 var CODEX_MULTI_AGENT_V2_HEADER = "features.multi_agent_v2";
-function ensureCodexMultiAgentV2Config(config2, options = {}) {
-  const featureFlag = removeFeatureFlagSetting(config2, "multi_agent_v2");
+function ensureCodexMultiAgentV2Config(config, options = {}) {
+  const featureFlag = removeFeatureFlagSetting(config, "multi_agent_v2");
   const v2Preferred = options.multiAgentVersion === "v2" || isMultiAgentV2Enabled(featureFlag.config);
   const agentsConfig = removeAgentsMaxThreads(featureFlag.config, v2Preferred);
   const preserveDisable = featureFlag.value === false && !v2Preferred;
@@ -11646,11 +12034,11 @@ enabled = false`);
   }
   return withoutManagedLimit;
 }
-function resolveCodexMultiAgentVersion(config2, configPath) {
-  const model = readRootModel(config2);
+function resolveCodexMultiAgentVersion(config, configPath) {
+  const model = readRootModel(config);
   if (model === null)
     return null;
-  const catalogPath = resolveCatalogPath(readRootModelCatalogPath(config2), configPath);
+  const catalogPath = resolveCatalogPath(readRootModelCatalogPath(config), configPath);
   const catalogVersion = readCatalogMultiAgentVersion(model, catalogPath);
   if (catalogVersion !== null)
     return catalogVersion;
@@ -11658,8 +12046,8 @@ function resolveCodexMultiAgentVersion(config2, configPath) {
 }
 function resolveCatalogPath(configuredPath, configPath) {
   if (configuredPath === null)
-    return join19(dirname8(configPath), "models_cache.json");
-  return isAbsolute5(configuredPath) ? configuredPath : join19(dirname8(configPath), configuredPath);
+    return join20(dirname8(configPath), "models_cache.json");
+  return isAbsolute5(configuredPath) ? configuredPath : join20(dirname8(configPath), configuredPath);
 }
 function readCatalogMultiAgentVersion(model, cachePath) {
   let raw;
@@ -11681,56 +12069,56 @@ function readCatalogMultiAgentVersion(model, cachePath) {
       continue;
     if (entry.slug !== model && entry.id !== model)
       continue;
-    const version2 = entry.multi_agent_version;
-    if (version2 === "v1" || version2 === "v2")
-      return version2;
+    const version = entry.multi_agent_version;
+    if (version === "v1" || version === "v2")
+      return version;
     return null;
   }
   return null;
 }
-function readRootModel(config2) {
-  const double = config2.match(/^\s*model\s*=\s*"([^"]+)"/m);
+function readRootModel(config) {
+  const double = config.match(/^\s*model\s*=\s*"([^"]+)"/m);
   if (double !== null)
     return double[1] ?? null;
-  const single = config2.match(/^\s*model\s*=\s*'([^']+)'/m);
+  const single = config.match(/^\s*model\s*=\s*'([^']+)'/m);
   return single?.[1] ?? null;
 }
-function readRootModelCatalogPath(config2) {
-  const double = config2.match(/^\s*model_catalog_json\s*=\s*"([^"]+)"/m);
+function readRootModelCatalogPath(config) {
+  const double = config.match(/^\s*model_catalog_json\s*=\s*"([^"]+)"/m);
   if (double !== null)
     return double[1] ?? null;
-  const single = config2.match(/^\s*model_catalog_json\s*=\s*'([^']+)'/m);
+  const single = config.match(/^\s*model_catalog_json\s*=\s*'([^']+)'/m);
   return single?.[1] ?? null;
 }
 function isRecord10(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-function removeFeatureFlagSetting(config2, featureName) {
-  const section = findTomlSection(config2, "features");
+function removeFeatureFlagSetting(config, featureName) {
+  const section = findTomlSection(config, "features");
   if (!section)
-    return { config: config2, value: null };
+    return { config, value: null };
   return {
-    config: removeSetting(config2, section, featureName),
+    config: removeSetting(config, section, featureName),
     value: readBooleanSetting(section.text, featureName)
   };
 }
-function isMultiAgentV2Enabled(config2) {
-  const section = findTomlSection(config2, CODEX_MULTI_AGENT_V2_HEADER);
+function isMultiAgentV2Enabled(config) {
+  const section = findTomlSection(config, CODEX_MULTI_AGENT_V2_HEADER);
   return section !== null && /^\s*enabled\s*=\s*true[ \t]*(?:#.*)?$/m.test(section.text);
 }
-function removeAgentsMaxThreads(config2, v2Preferred) {
-  const section = findTomlSection(config2, CODEX_AGENTS_HEADER);
+function removeAgentsMaxThreads(config, v2Preferred) {
+  const section = findTomlSection(config, CODEX_AGENTS_HEADER);
   if (!section)
-    return config2;
-  return removeMatchingCap(config2, section, "max_threads", v2Preferred ? undefined : /^1000\s*(?:#.*)?$/);
+    return config;
+  return removeMatchingCap(config, section, "max_threads", v2Preferred ? undefined : /^1000\s*(?:#.*)?$/);
 }
-function removeManagedMultiAgentV2ThreadLimit(config2) {
-  const section = findTomlSection(config2, CODEX_MULTI_AGENT_V2_HEADER);
+function removeManagedMultiAgentV2ThreadLimit(config) {
+  const section = findTomlSection(config, CODEX_MULTI_AGENT_V2_HEADER);
   if (!section)
-    return config2;
-  return removeMatchingCap(config2, section, "max_concurrent_threads_per_session", /^(?:1000|16)\s*(?:#.*)?$/);
+    return config;
+  return removeMatchingCap(config, section, "max_concurrent_threads_per_session", /^(?:1000|16)\s*(?:#.*)?$/);
 }
-function removeMatchingCap(config2, section, keyName, expectedValue) {
+function removeMatchingCap(config, section, keyName, expectedValue) {
   let quote = null;
   let offset = section.start;
   for (const line of section.text.match(/[^\n]*\n?/g) ?? []) {
@@ -11740,26 +12128,26 @@ function removeMatchingCap(config2, section, keyName, expectedValue) {
       const assignment = line.indexOf("=");
       const key = assignment < 0 ? null : parseTomlDottedKey(line.slice(0, assignment).trim());
       if (key?.length === 1 && key[0] === keyName && (expectedValue === undefined || expectedValue.test(line.slice(assignment + 1).trim()))) {
-        return config2.slice(0, offset) + config2.slice(offset + line.length);
+        return config.slice(0, offset) + config.slice(offset + line.length);
       }
     }
     offset += line.length;
   }
-  return config2;
+  return config;
 }
-function removeMultiAgentV2Disable(config2) {
-  const section = findTomlSection(config2, CODEX_MULTI_AGENT_V2_HEADER);
+function removeMultiAgentV2Disable(config) {
+  const section = findTomlSection(config, CODEX_MULTI_AGENT_V2_HEADER);
   if (!section)
-    return config2;
+    return config;
   if (!/^\s*enabled\s*=\s*false(?:\s*#.*)?$/m.test(section.text))
-    return config2;
-  return removeSetting(config2, section, "enabled");
+    return config;
+  return removeSetting(config, section, "enabled");
 }
-function setMultiAgentV2Disable(config2) {
-  const section = findTomlSection(config2, CODEX_MULTI_AGENT_V2_HEADER);
+function setMultiAgentV2Disable(config) {
+  const section = findTomlSection(config, CODEX_MULTI_AGENT_V2_HEADER);
   if (!section)
-    return config2;
-  return replaceOrInsertSetting(config2, section, "enabled", "false");
+    return config;
+  return replaceOrInsertSetting(config, section, "enabled", "false");
 }
 function readBooleanSetting(sectionText, key) {
   const match = new RegExp(`^\\s*${escapeRegExp(key)}\\s*=\\s*(true|false)\\s*(?:#.*)?$`, "m").exec(sectionText);
@@ -11771,62 +12159,63 @@ function readBooleanSetting(sectionText, key) {
 // ../src/install/codex-config-toml.ts
 async function updateCodexConfig(input) {
   await mkdir6(dirname9(input.configPath), { recursive: true });
-  let config2;
+  let config;
   try {
-    config2 = await readFile11(input.configPath, "utf8");
-  } catch (error2) {
-    if (!isMissingFileError(error2))
-      throw error2;
-    config2 = "";
+    config = await readFile13(input.configPath, "utf8");
+  } catch (error) {
+    if (!isMissingFileError(error))
+      throw error;
+    config = "";
   }
   const pluginSet = new Set(input.pluginNames);
   for (const legacyMarketplaceName of legacyMarketplaceNames(input.marketplaceName)) {
-    config2 = removeMarketplaceBlock(config2, legacyMarketplaceName);
-    config2 = removeStaleMarketplacePluginBlocks(config2, legacyMarketplaceName, new Set);
-    config2 = removeStaleMarketplaceHookStateBlocks(config2, legacyMarketplaceName, new Set);
+    config = removeMarketplaceBlock(config, legacyMarketplaceName);
+    config = removeStaleMarketplacePluginBlocks(config, legacyMarketplaceName, new Set);
+    config = removeStaleMarketplaceHookStateBlocks(config, legacyMarketplaceName, new Set);
   }
-  config2 = removeStaleMarketplacePluginBlocks(config2, input.marketplaceName, pluginSet);
-  config2 = removeStaleMarketplaceHookStateBlocks(config2, input.marketplaceName, pluginSet);
-  config2 = removeStaleManagedAgentBlocks(config2, new Set((input.agentConfigs ?? []).map((agentConfig) => agentConfig.name)));
-  config2 = ensureFeatureEnabled(config2, "plugins");
-  config2 = ensureFeatureEnabled(config2, "plugin_hooks");
-  config2 = ensureFeatureEnabled(config2, "multi_agent");
-  config2 = removeUnsupportedCodexMultiAgentModeConfig(config2);
-  config2 = ensureCodexReasoningConfig(config2, applyReasoningOverride(await readCodexModelCatalog(input.repoRoot), input.reasoning));
-  config2 = ensureCodexMultiAgentV2Config(config2, {
-    multiAgentVersion: resolveCodexMultiAgentVersion(config2, input.configPath)
+  config = removeStaleMarketplacePluginBlocks(config, input.marketplaceName, pluginSet);
+  config = removeStaleMarketplaceHookStateBlocks(config, input.marketplaceName, pluginSet);
+  config = removeStaleManagedAgentBlocks(config, new Set((input.agentConfigs ?? []).map((agentConfig) => agentConfig.name)));
+  config = ensureFeatureEnabled(config, "plugins");
+  config = ensureFeatureEnabled(config, "plugin_hooks");
+  config = ensureFeatureEnabled(config, "multi_agent");
+  config = removeFeature(config, "child_agents_md");
+  config = removeUnsupportedCodexMultiAgentModeConfig(config);
+  config = ensureCodexReasoningConfig(config, applyReasoningOverride(await readCodexModelCatalog(input.repoRoot), input.reasoning));
+  config = ensureCodexMultiAgentV2Config(config, {
+    multiAgentVersion: resolveCodexMultiAgentVersion(config, input.configPath)
   });
   if (input.autonomousPermissions === true)
-    config2 = ensureAutonomousPermissions(config2);
-  if (!(input.preserveMarketplaceSource === true && hasMarketplaceBlock(config2, input.marketplaceName))) {
-    config2 = ensureMarketplaceBlock(config2, input.marketplaceName, input.marketplaceSource);
+    config = ensureAutonomousPermissions(config);
+  if (!(input.preserveMarketplaceSource === true && hasMarketplaceBlock(config, input.marketplaceName))) {
+    config = ensureMarketplaceBlock(config, input.marketplaceName, input.marketplaceSource);
   }
   for (const pluginName of input.pluginNames) {
-    config2 = ensurePluginEnabled(config2, `${pluginName}@${input.marketplaceName}`);
+    config = ensurePluginEnabled(config, `${pluginName}@${input.marketplaceName}`);
   }
-  config2 = ensureOmoBuiltinMcpPolicies(config2, input);
+  config = ensureOmoBuiltinMcpPolicies(config, input);
   for (const state of input.trustedHookStates ?? []) {
-    config2 = ensureHookTrusted(config2, state);
+    config = ensureHookTrusted(config, state);
   }
   for (const agentConfig of input.agentConfigs ?? []) {
-    config2 = ensureAgentConfig(config2, agentConfig);
+    config = ensureAgentConfig(config, agentConfig);
   }
-  await writeFileAtomic(input.configPath, `${config2.trimEnd()}
+  await writeFileAtomic(input.configPath, `${config.trimEnd()}
 `);
 }
-function isMissingFileError(error2) {
-  return error2 instanceof Error && "code" in error2 && error2.code === "ENOENT";
+function isMissingFileError(error) {
+  return error instanceof Error && "code" in error && error.code === "ENOENT";
 }
 
 // ../src/install/codex-git-bash-mcp-env.ts
-import { readFile as readFile12, writeFile as writeFile7 } from "node:fs/promises";
-import { join as join20 } from "node:path";
+import { readFile as readFile14, writeFile as writeFile8 } from "node:fs/promises";
+import { join as join21 } from "node:path";
 var GIT_BASH_ENV_KEY = "OMO_CODEX_GIT_BASH_PATH";
 async function stampGitBashMcpEnv(input) {
-  const manifestPath = join20(input.pluginRoot, ".mcp.json");
+  const manifestPath = join21(input.pluginRoot, ".mcp.json");
   if (!await fileExistsStrict(manifestPath))
     return false;
-  const parsed = JSON.parse(await readFile12(manifestPath, "utf8"));
+  const parsed = JSON.parse(await readFile14(manifestPath, "utf8"));
   if (!isPlainRecord(parsed) || !isPlainRecord(parsed["mcpServers"]))
     return false;
   let changed = false;
@@ -11844,15 +12233,15 @@ async function stampGitBashMcpEnv(input) {
   }
   if (!changed)
     return false;
-  await writeFile7(manifestPath, `${JSON.stringify(parsed, null, "\t")}
+  await writeFile8(manifestPath, `${JSON.stringify(parsed, null, "\t")}
 `);
   return true;
 }
 
 // ../src/install/codex-hook-trust.ts
-import { createHash as createHash4 } from "node:crypto";
-import { readFile as readFile13 } from "node:fs/promises";
-import { join as join21 } from "node:path";
+import { createHash as createHash5 } from "node:crypto";
+import { readFile as readFile15 } from "node:fs/promises";
+import { join as join22 } from "node:path";
 var EVENT_LABELS = new Map([
   ["PreToolUse", "pre_tool_use"],
   ["PermissionRequest", "permission_request"],
@@ -11866,18 +12255,18 @@ var EVENT_LABELS = new Map([
   ["Stop", "stop"]
 ]);
 async function trustedHookStatesForPlugin(input) {
-  const manifestPath = join21(input.pluginRoot, ".codex-plugin", "plugin.json");
+  const manifestPath = join22(input.pluginRoot, ".codex-plugin", "plugin.json");
   if (!await exists4(manifestPath))
     return [];
-  const manifest = JSON.parse(await readFile13(manifestPath, "utf8"));
+  const manifest = JSON.parse(await readFile15(manifestPath, "utf8"));
   if (!isPlainRecord(manifest))
     return [];
   const states = [];
   for (const hookPath of hookManifestPaths(manifest.hooks)) {
-    const hooksPath = join21(input.pluginRoot, hookPath);
+    const hooksPath = join22(input.pluginRoot, hookPath);
     if (!await exists4(hooksPath))
       continue;
-    const parsed = JSON.parse(await readFile13(hooksPath, "utf8"));
+    const parsed = JSON.parse(await readFile15(hooksPath, "utf8"));
     if (!isPlainRecord(parsed) || !isPlainRecord(parsed.hooks))
       continue;
     states.push(...trustedHookStatesForHooksFile({
@@ -11942,7 +12331,7 @@ function commandHookHash(eventName, matcher, handler, command) {
   if (typeof matcher === "string")
     identity.matcher = matcher;
   const canonical = JSON.stringify(canonicalJson(identity));
-  return `sha256:${createHash4("sha256").update(canonical).digest("hex")}`;
+  return `sha256:${createHash5("sha256").update(canonical).digest("hex")}`;
 }
 function canonicalJson(value) {
   if (Array.isArray(value))
@@ -11960,10 +12349,10 @@ function stripDotSlash(value) {
 }
 async function exists4(path) {
   try {
-    await readFile13(path, "utf8");
+    await readFile15(path, "utf8");
     return true;
-  } catch (error2) {
-    if (error2 instanceof Error)
+  } catch (error) {
+    if (error instanceof Error)
       return false;
     return false;
   }
@@ -11971,7 +12360,7 @@ async function exists4(path) {
 
 // ../src/install/codex-installer-bin-dir.ts
 import { homedir as homedir4 } from "node:os";
-import { join as join22, resolve as resolve7 } from "node:path";
+import { join as join23, resolve as resolve7 } from "node:path";
 function resolveCodexInstallerBinDir(input) {
   const explicitBinDir = input.binDir ?? input.env?.CODEX_LOCAL_BIN_DIR;
   if (explicitBinDir !== undefined && explicitBinDir.trim().length > 0)
@@ -11980,7 +12369,7 @@ function resolveCodexInstallerBinDir(input) {
   const defaultCodexHome = resolve7(homeDir, ".codex");
   const resolvedCodexHome = resolve7(input.codexHome);
   if (resolvedCodexHome !== defaultCodexHome)
-    return join22(resolvedCodexHome, "bin");
+    return join23(resolvedCodexHome, "bin");
   return resolve7(homeDir, ".local", "bin");
 }
 
@@ -12003,23 +12392,23 @@ function resolveGitBash(input) {
     }
     return missingGitBash(checkedPaths);
   }
-  for (const candidate2 of [
+  for (const candidate of [
     { path: PROGRAM_FILES_GIT_BASH, source: "program-files" },
     { path: PROGRAM_FILES_X86_GIT_BASH, source: "program-files-x86" }
   ]) {
-    checkedPaths.push(candidate2.path);
-    if (input.exists(candidate2.path))
-      return { found: true, path: candidate2.path, source: candidate2.source, checkedPaths };
+    checkedPaths.push(candidate.path);
+    if (input.exists(candidate.path))
+      return { found: true, path: candidate.path, source: candidate.source, checkedPaths };
   }
   for (const pathCandidate of input.where("bash")) {
-    const candidate2 = pathCandidate.trim();
-    if (candidate2.length === 0)
+    const candidate = pathCandidate.trim();
+    if (candidate.length === 0)
       continue;
-    checkedPaths.push(candidate2);
-    if (isKnownNonGitBashLauncher(candidate2))
+    checkedPaths.push(candidate);
+    if (isKnownNonGitBashLauncher(candidate))
       continue;
-    if (isBashExePath(candidate2) && input.exists(candidate2))
-      return { found: true, path: candidate2, source: "path", checkedPaths };
+    if (isBashExePath(candidate) && input.exists(candidate))
+      return { found: true, path: candidate, source: "path", checkedPaths };
   }
   return missingGitBash(checkedPaths);
 }
@@ -12059,11 +12448,11 @@ function isKnownNonGitBashLauncher(path) {
 }
 function whereCommand(command) {
   try {
-    return execFileSync2("where", [command], { encoding: "utf8" }).split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0);
-  } catch (error2) {
-    if (error2 instanceof Error)
+    return execFileSync2("where", [command], { encoding: "utf8", windowsHide: true }).split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0);
+  } catch (error) {
+    if (error instanceof Error)
       return [];
-    throw error2;
+    throw error;
   }
 }
 
@@ -12072,8 +12461,8 @@ var resolveGitBashForCurrentProcess2 = (input = {}) => {
   return toCodexResolution(resolveGitBashForCurrentProcess(input));
 };
 async function prepareGitBashForInstall(input) {
-  const resolve8 = input.resolveGitBash ?? (() => resolveGitBashForCurrentProcess2({ platform: input.platform, env: input.env }));
-  const initialResolution = resolve8();
+  const resolve = input.resolveGitBash ?? (() => resolveGitBashForCurrentProcess2({ platform: input.platform, env: input.env }));
+  const initialResolution = resolve();
   return initialResolution;
 }
 function toCodexResolution(resolution) {
@@ -12126,66 +12515,69 @@ async function resolveGitBashStep(options, degraded) {
       hint: GIT_BASH_INSTALL_HINT,
       reason: "Git Bash was not found on this Windows machine; the omo git_bash MCP server stays disabled"
     });
-  } catch (error2) {
+  } catch (error) {
     degraded.push({
       component: "git-bash",
       hint: GIT_BASH_INSTALL_HINT,
-      reason: `Git Bash preflight failed: ${errorMessage(error2)}`
+      reason: `Git Bash preflight failed: ${errorMessage(error)}`
     });
   }
   return false;
 }
 async function linkBundledAgentsStep(options) {
-  const agentsTarget = join23(options.codexHome, "agents");
+  const agentsTarget = join24(options.codexHome, "agents");
   try {
-    const stageRoot = join23(options.pluginData, "bootstrap", "agents-stage");
+    const stageRoot = join24(options.pluginData, "bootstrap", "agents-stage");
     await stageBundledAgents(options.pluginRoot, stageRoot);
     const preservedReasoning = await capturePreservedAgentReasoning({ codexHome: options.codexHome });
     const preservedServiceTier = await capturePreservedAgentServiceTier({ codexHome: options.codexHome });
-    const config2 = readDefaultRoleConfig({ env: options.env });
+    const config = readCodexAgentConfig({ env: options.env });
     const linked = await linkCachedPluginAgents({
       codexHome: options.codexHome,
       pluginRoot: stageRoot,
       preservedReasoning,
       preservedServiceTier,
-      defaultRoleEnabled: config2.enabled
+      defaultRoleEnabled: config.defaultRoleEnabled,
+      agentOverrides: config.agentOverrides
     });
+    const managedAgentNames = new Set(linked.map((link) => agentNameFromToml3(link.name)));
+    const warnings = [...config.warnings, ...unmanagedAgentOverrideWarnings(config.agentOverrides, managedAgentNames)];
     const agentConfigs = linked.map((link) => ({ configFile: `./agents/${link.name}`, name: agentNameFromToml3(link.name) })).sort((left, right) => left.name.localeCompare(right.name));
     return {
       agentConfigs,
-      degraded: config2.warnings.map((reason) => ({ component: "agents-config", hint: BOOTSTRAP_DOCTOR_HINT, reason }))
+      degraded: warnings.map((reason) => ({ component: "agents-config", hint: BOOTSTRAP_DOCTOR_HINT, reason }))
     };
-  } catch (error2) {
+  } catch (error) {
     return {
       agentConfigs: [],
       degraded: [
         {
           component: "agents",
           hint: BOOTSTRAP_DOCTOR_HINT,
-          reason: `failed to link bundled agents into ${agentsTarget}: ${errorMessage(error2)}`
+          reason: `failed to link bundled agents into ${agentsTarget}: ${errorMessage(error)}`
         }
       ]
     };
   }
 }
 async function stageBundledAgents(pluginRoot, stageRoot) {
-  await rm11(stageRoot, { force: true, recursive: true });
+  await rm12(stageRoot, { force: true, recursive: true });
   await mkdir7(stageRoot, { recursive: true });
-  const componentsRoot = join23(pluginRoot, "components");
+  const componentsRoot = join24(pluginRoot, "components");
   for (const componentName of await directoryNames(componentsRoot)) {
-    const agentsDir = join23(componentsRoot, componentName, "agents");
+    const agentsDir = join24(componentsRoot, componentName, "agents");
     const agentFiles = (await fileNames(agentsDir)).filter((name) => name.endsWith(".toml"));
     if (agentFiles.length === 0)
       continue;
-    const stagedAgentsDir = join23(stageRoot, "components", componentName, "agents");
+    const stagedAgentsDir = join24(stageRoot, "components", componentName, "agents");
     await mkdir7(stagedAgentsDir, { recursive: true });
     for (const agentFile of agentFiles) {
-      await copyFile2(join23(agentsDir, agentFile), join23(stagedAgentsDir, agentFile));
+      await copyFile2(join24(agentsDir, agentFile), join24(stagedAgentsDir, agentFile));
     }
   }
 }
 async function updateConfigStep(options, inputs, degraded) {
-  const configPath = join23(options.codexHome, "config.toml");
+  const configPath = join24(options.codexHome, "config.toml");
   try {
     await assertWritableConfigIfPresent(configPath);
     const existingConfig = await readConfigIfPresent(configPath);
@@ -12208,11 +12600,11 @@ async function updateConfigStep(options, inputs, degraded) {
       repoRoot: options.pluginRoot,
       trustedHookStates
     });
-  } catch (error2) {
+  } catch (error) {
     degraded.push({
       component: "config",
       hint: BOOTSTRAP_DOCTOR_HINT,
-      reason: `failed to update ${configPath}: ${errorMessage(error2)}`
+      reason: `failed to update ${configPath}: ${errorMessage(error)}`
     });
   }
 }
@@ -12220,39 +12612,39 @@ async function assertWritableConfigIfPresent(configPath) {
   try {
     if (((await stat5(configPath)).mode & 146) === 0)
       throw new Error(`${configPath} has no write permission bits set`);
-  } catch (error2) {
-    if (errorCode(error2) === "ENOENT")
+  } catch (error) {
+    if (errorCode(error) === "ENOENT")
       return;
-    throw error2;
+    throw error;
   }
 }
-function errorCode(error2) {
-  return error2 instanceof Error && "code" in error2 && typeof error2.code === "string" ? error2.code : undefined;
+function errorCode(error) {
+  return error instanceof Error && "code" in error && typeof error.code === "string" ? error.code : undefined;
 }
 async function readConfigIfPresent(configPath) {
   try {
-    return await readFile14(configPath, "utf8");
-  } catch (error2) {
-    if (errorCode(error2) === "ENOENT")
+    return await readFile16(configPath, "utf8");
+  } catch (error) {
+    if (errorCode(error) === "ENOENT")
       return "";
-    throw error2;
+    throw error;
   }
 }
 async function linkComponentBinsStep(options, degraded) {
   const binDir = resolveCodexInstallerBinDir({ codexHome: options.codexHome, env: options.env });
   try {
     await linkCachedPluginBins({ binDir, pluginRoot: options.pluginRoot, platform: options.platform });
-  } catch (error2) {
+  } catch (error) {
     degraded.push({
       component: "bin-links",
       hint: BOOTSTRAP_DOCTOR_HINT,
-      reason: `failed to link component bins into ${binDir}: ${errorMessage(error2)}`
+      reason: `failed to link component bins into ${binDir}: ${errorMessage(error)}`
     });
   }
   await linkRuntimeWrapperStep(options, binDir, degraded);
 }
 async function linkRuntimeWrapperStep(options, binDir, degraded) {
-  const cliPath = join23(options.pluginRoot, "dist", "cli", "index.js");
+  const cliPath = join24(options.pluginRoot, "dist", "cli", "index.js");
   try {
     const linked = await linkRootRuntimeBin({
       binDir,
@@ -12270,22 +12662,22 @@ async function linkRuntimeWrapperStep(options, binDir, degraded) {
     await appendBootstrapLog(options.pluginData, options.now ?? Date.now(), "omo-agent-toolkit-degraded", {
       warning: `Warning: skipped the omo-agent-toolkit runtime wrapper because ${cliPath} is missing; omo-agent-toolkit ulw-loop commands will be unavailable until a package shipping dist/cli is installed`
     });
-  } catch (error2) {
+  } catch (error) {
     degraded.push({
       component: "omo-agent-toolkit",
       hint: BOOTSTRAP_DOCTOR_HINT,
-      reason: `failed to link the omo-agent-toolkit runtime wrapper into ${binDir}: ${errorMessage(error2)}`
+      reason: `failed to link the omo-agent-toolkit runtime wrapper into ${binDir}: ${errorMessage(error)}`
     });
   }
 }
 async function stampGitBashEnvStep(options, degraded) {
   try {
     await stampGitBashMcpEnv({ env: options.env, platform: options.platform, pluginRoot: options.pluginRoot });
-  } catch (error2) {
+  } catch (error) {
     degraded.push({
       component: "git-bash-env",
       hint: BOOTSTRAP_DOCTOR_HINT,
-      reason: `failed to stamp ${join23(options.pluginRoot, ".mcp.json")}: ${errorMessage(error2)}`
+      reason: `failed to stamp ${join24(options.pluginRoot, ".mcp.json")}: ${errorMessage(error)}`
     });
   }
 }
@@ -12299,17 +12691,17 @@ async function entryNames(root, keep) {
   try {
     const entries = await readdir5(root, { withFileTypes: true });
     return entries.filter((entry) => keep(entry)).map((entry) => entry.name).sort();
-  } catch (error2) {
-    if (error2 instanceof Error && "code" in error2 && error2.code === "ENOENT")
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT")
       return [];
-    throw error2;
+    throw error;
   }
 }
 function agentNameFromToml3(fileName) {
   return fileName.endsWith(".toml") ? fileName.slice(0, -".toml".length) : fileName;
 }
-function errorMessage(error2) {
-  return error2 instanceof Error ? error2.message : String(error2);
+function errorMessage(error) {
+  return error instanceof Error ? error.message : String(error);
 }
 
 // components/bootstrap/src/worker.ts
@@ -12353,17 +12745,17 @@ function resolvePluginDataRoot(env) {
   const fromEnv = env["PLUGIN_DATA"]?.trim();
   if (fromEnv !== undefined && fromEnv.length > 0)
     return fromEnv;
-  return join24(homedir5(), ".local", "share", "lazycodex");
+  return join25(homedir5(), ".local", "share", "lazycodex");
 }
 async function readPluginVersion(pluginRoot) {
   try {
-    const parsed = JSON.parse(await readFile15(join24(pluginRoot, ".codex-plugin", "plugin.json"), "utf8"));
+    const parsed = JSON.parse(await readFile17(join25(pluginRoot, ".codex-plugin", "plugin.json"), "utf8"));
     if (typeof parsed !== "object" || parsed === null)
       return;
-    const version2 = parsed["version"];
-    if (typeof version2 !== "string")
+    const version = parsed["version"];
+    if (typeof version !== "string")
       return;
-    const trimmed = version2.trim();
+    const trimmed = version.trim();
     return trimmed.length > 0 ? trimmed : undefined;
   } catch {
     return;
@@ -12416,18 +12808,30 @@ async function runBootstrapWorker(options = {}) {
     const pluginVersion = await readPluginVersion(pluginRoot);
     const marker = await readBootstrapState(statePath);
     if (!flags.once && pluginVersion !== undefined && marker.completedForVersion === pluginVersion) {
-      await appendBootstrapLog(pluginData, now, "worker-skipped", { reason: "already-completed", version: pluginVersion });
+      await appendBootstrapLog(pluginData, now, "worker-skipped", {
+        reason: "already-completed",
+        version: pluginVersion
+      });
       return { ran: false, reason: "already-completed" };
     }
     const codexHome = flags.codexHome ?? (await resolveCodexHome({ env, pluginRoot })).path;
-    const context = { codexHome, env, flags, now, platform, pluginData, pluginRoot, pluginVersion };
+    const context = {
+      codexHome,
+      env,
+      flags,
+      now,
+      platform,
+      pluginData,
+      pluginRoot,
+      pluginVersion
+    };
     await appendBootstrapLog(pluginData, now, "worker-started", { version: pluginVersion ?? "unknown" });
     const degraded = [];
     if (pluginVersion === undefined) {
       degraded.push({
         component: "bootstrap",
         hint: BOOTSTRAP_DOCTOR_HINT,
-        reason: `plugin version unresolved from ${join24(pluginRoot, ".codex-plugin", "plugin.json")}`
+        reason: `plugin version unresolved from ${join25(pluginRoot, ".codex-plugin", "plugin.json")}`
       });
     }
     for (const step of steps) {
@@ -12452,12 +12856,12 @@ async function runBootstrapWorker(options = {}) {
 async function runStep(step, context) {
   try {
     return (await step.run(context)).degraded;
-  } catch (error2) {
+  } catch (error) {
     return [
       {
         component: step.name,
         hint: BOOTSTRAP_DOCTOR_HINT,
-        reason: error2 instanceof Error ? error2.message : String(error2)
+        reason: error instanceof Error ? error.message : String(error)
       }
     ];
   }
@@ -12470,7 +12874,7 @@ function resolvePluginRoot(env) {
 }
 async function appendBootstrapLog(pluginData, now, event, details) {
   try {
-    const logPath = join24(pluginData, "bootstrap", "bootstrap.log");
+    const logPath = join25(pluginData, "bootstrap", "bootstrap.log");
     await mkdir8(dirname10(logPath), { recursive: true });
     await appendFile2(logPath, `${JSON.stringify({ timestamp: new Date(now).toISOString(), event, ...details })}
 `);
@@ -12480,16 +12884,16 @@ function parseDegradedEntries(raw) {
   if (!Array.isArray(raw))
     return;
   const entries = [];
-  for (const candidate2 of raw) {
-    if (typeof candidate2 !== "object" || candidate2 === null)
+  for (const candidate of raw) {
+    if (typeof candidate !== "object" || candidate === null)
       continue;
-    const record2 = candidate2;
-    if (typeof record2["component"] !== "string" || typeof record2["reason"] !== "string")
+    const record = candidate;
+    if (typeof record["component"] !== "string" || typeof record["reason"] !== "string")
       continue;
     entries.push({
-      component: record2["component"],
-      reason: record2["reason"],
-      ...typeof record2["hint"] === "string" ? { hint: record2["hint"] } : {}
+      component: record["component"],
+      reason: record["reason"],
+      ...typeof record["hint"] === "string" ? { hint: record["hint"] } : {}
     });
   }
   return entries;
@@ -12503,7 +12907,7 @@ function requireFlagValue(argv, index, flag) {
 }
 
 // components/bootstrap/src/hook.ts
-var BOOTSTRAP_RESTART_NOTICE = "LazyCodex bootstrap running in background — restart the session when it completes";
+var BOOTSTRAP_RESTART_NOTICE = "LazyCodex bootstrap running in background: restart the session when it completes";
 async function runSessionStartHook(options) {
   return (await executeSessionStartHook(options)).exitCode;
 }
@@ -12585,8 +12989,8 @@ ${TOP_LEVEL_HELP}`);
     process.stdout.write(`OK:${destination}
 `);
     return 0;
-  } catch (error2) {
-    process.stderr.write(`[omo-bootstrap] download failed: ${error2 instanceof Error ? error2.message : String(error2)}
+  } catch (error) {
+    process.stderr.write(`[omo-bootstrap] download failed: ${error instanceof Error ? error.message : String(error)}
 `);
     return 1;
   }
@@ -12595,8 +12999,8 @@ async function runWorkerCommand(args) {
   let result;
   try {
     result = await runBootstrapWorker({ argv: args, env: process.env });
-  } catch (error2) {
-    const message = error2 instanceof Error ? error2.message : String(error2);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     if (/flag/.test(message)) {
       process.stderr.write(`[omo-bootstrap] ${message}
 ${TOP_LEVEL_HELP}`);
@@ -12644,40 +13048,40 @@ function isProcessEntry() {
 if (isProcessEntry()) {
   main().then((code) => {
     process.exit(code);
-  }).catch((error2) => {
-    process.stderr.write(`[omo-bootstrap] ${error2 instanceof Error ? error2.message : String(error2)}
+  }).catch((error) => {
+    process.stderr.write(`[omo-bootstrap] ${error instanceof Error ? error.message : String(error)}
 `);
     process.exit(0);
   });
 }
 export {
-  sgProvisionDestination,
-  runWorkerSetup,
-  runSgProvision,
-  runSessionStartHook,
-  runBootstrapWorker,
-  resolvePluginDataRoot,
-  resolveCodexHome,
-  resolveBootstrapStatePath,
-  resolveBootstrapLockPath,
-  readPluginVersion,
-  readBootstrapState,
-  parseWorkerFlags,
-  parseBootstrapState,
-  executeSessionStartHook,
-  detectInstallFlowFromEnvironment,
-  detectInstallFlowForTest,
-  detectInstallFlowDetailed,
-  detectInstallFlow,
-  defaultWorkerSteps,
-  bootstrapLocks,
-  appendBootstrapLog,
-  SG_PROVISION_COMPONENT,
-  SG_FORCE_PROVISION_ENV_KEY,
-  SETUP_PLUGIN_NAME,
-  SETUP_MARKETPLACE_NAME,
-  INSTALL_SNAPSHOT_FILENAME,
-  GIT_BASH_INSTALL_HINT,
+  BOOTSTRAP_DOCTOR_HINT,
   BOOTSTRAP_RESTART_NOTICE,
-  BOOTSTRAP_DOCTOR_HINT
+  GIT_BASH_INSTALL_HINT,
+  INSTALL_SNAPSHOT_FILENAME,
+  SETUP_MARKETPLACE_NAME,
+  SETUP_PLUGIN_NAME,
+  SG_FORCE_PROVISION_ENV_KEY,
+  SG_PROVISION_COMPONENT,
+  appendBootstrapLog,
+  bootstrapLocks,
+  defaultWorkerSteps,
+  detectInstallFlow,
+  detectInstallFlowDetailed,
+  detectInstallFlowForTest,
+  detectInstallFlowFromEnvironment,
+  executeSessionStartHook,
+  parseBootstrapState,
+  parseWorkerFlags,
+  readBootstrapState,
+  readPluginVersion,
+  resolveBootstrapLockPath,
+  resolveBootstrapStatePath,
+  resolveCodexHome,
+  resolvePluginDataRoot,
+  runBootstrapWorker,
+  runSessionStartHook,
+  runSgProvision,
+  runWorkerSetup,
+  sgProvisionDestination
 };

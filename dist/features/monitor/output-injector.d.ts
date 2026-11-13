@@ -10,6 +10,7 @@ export declare class MonitorOutputInjector {
     queueBatch(record: MonitorRecord, batch: OutputBatch): void;
     getPendingBatches(monitorId: string): OutputBatch[];
     flushMonitor(monitorId: string): Promise<void>;
+    private deleteIfDrained;
     private dispatchBatch;
     private requeueBatch;
     private isTerminalBatch;

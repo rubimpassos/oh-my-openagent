@@ -7,4 +7,5 @@ export declare function areRuntimeModelsEquivalent(candidate: string | undefined
 export declare function createFallbackState(originalModel: unknown): FallbackState;
 export declare function isModelInCooldown(model: string, state: FallbackState, cooldownSeconds: number): boolean;
 export declare function findNextAvailableFallback(state: FallbackState, fallbackModels: string[], cooldownSeconds: number): string | undefined;
+export declare function canPrepareFallback(state: FallbackState | undefined, fallbackModels: string[], config: Required<Pick<RuntimeFallbackConfig, "max_fallback_attempts" | "cooldown_seconds">>, currentModel?: string): boolean;
 export declare function prepareFallback(sessionID: string, state: FallbackState, fallbackModels: string[], config: Required<RuntimeFallbackConfig>): FallbackResult;

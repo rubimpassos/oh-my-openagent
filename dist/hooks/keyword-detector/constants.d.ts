@@ -1,5 +1,6 @@
 export declare const CODE_BLOCK_PATTERN: RegExp;
 export declare const INLINE_CODE_PATTERN: RegExp;
+export declare const ULTRAWORK_PATTERN: RegExp;
 import type { KeywordType } from "../../config/schema/keyword-detector";
 import { getUltraworkMessage, isPlannerAgent, isNonOmoAgent } from "./ultrawork";
 import { TEAM_PATTERN, TEAM_MESSAGE } from "./team";

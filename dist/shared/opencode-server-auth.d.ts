@@ -1,7 +1,7 @@
 /**
  * Builds HTTP Basic Auth header from environment variables.
  *
- * @returns Basic Auth header string, or undefined if OPENCODE_SERVER_PASSWORD is not set
+ * @returns Basic Auth header string, or undefined if neither server password is set
  */
 export declare function getServerBasicAuthHeader(): string | undefined;
 /**

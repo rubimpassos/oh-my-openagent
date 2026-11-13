@@ -56,6 +56,7 @@ export declare function createCoreHooks(args: {
     teamToolGating: ReturnType<typeof import("../../hooks").createTeamToolGating> | null;
     notepadWriteGuard: ReturnType<typeof import("../../hooks").createNotepadWriteGuardHook> | null;
     planFormatValidator: ReturnType<typeof import("../../hooks").createPlanFormatValidatorHook> | null;
+    momusReviewPersistence: ReturnType<typeof import("../../hooks").createMomusReviewPersistenceHook> | null;
     claudeCodeHooks: ReturnType<typeof import("../../hooks").createClaudeCodeHooksHook> | null;
     keywordDetector: ReturnType<typeof import("../../hooks").createKeywordDetectorHook> | null;
     btwSideContextInjector: ReturnType<typeof import("../../features/btw-side").createBtwSideContextInjectorHook>;

@@ -5,4 +5,4 @@ type CoreModelResolutionResult = ReturnType<typeof resolveModelWithFallbackFromC
 export type ModelResolutionResult = Exclude<CoreModelResolutionResult, undefined>;
 export type ModelSource = ModelResolutionResult["source"];
 export declare function resolveModelWithFallback(input: ExtendedModelResolutionInput): CoreModelResolutionResult;
-export type { ModelResolutionInput, ExtendedModelResolutionInput, };
+export type { ModelResolutionInput, ExtendedModelResolutionInput };

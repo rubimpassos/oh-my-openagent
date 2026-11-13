@@ -157,8 +157,6 @@ var ULW_LOOP_SUCCESS_CRITERION_USER_MODELS = [
 ];
 // components/ulw-loop/src/runtime.ts
 class UlwLoopError extends Error {
-  code;
-  details;
   constructor(message, code, opts) {
     super(message, opts?.cause === undefined ? undefined : { cause: opts.cause });
     this.name = "UlwLoopError";
@@ -640,7 +638,7 @@ async function acquireAsync(lockPath, options) {
       continue;
     if (clock.now() >= deadline)
       throw lockTimeout(lockPath, options);
-    await new Promise((resolve3) => clock.schedule(resolve3, backoffMs(attempt)));
+    await new Promise((resolve) => clock.schedule(resolve, backoffMs(attempt)));
     attempt += 1;
   }
 }
@@ -2011,7 +2009,7 @@ async function checkpointUlwLoop(repoRoot, args, scope, dependencies) {
     if (aggregateCompletion !== undefined)
       plan.aggregateCompletion = aggregateCompletion;
     if (aggregateCompletion !== undefined)
-      nextActions = [...nextActions, 'aggregate complete — now update_goal({status:"complete"})'];
+      nextActions = [...nextActions, 'aggregate complete: now update_goal({status:"complete"})'];
     plan.updatedAt = now;
     const ledgerEntry = buildLedger(now, args, goal, qualityGate, codexGoal, aggregateCompletion);
     const entries = [ledgerEntry];
@@ -2241,7 +2239,7 @@ function buildText(mode, plan, goal, createGoal, isFinal, surface) {
     `Mode: ${mode}`,
     `Plan: ${plan.goalsPath}`,
     `Ledger: ${plan.ledgerPath}`,
-    `Goal: ${goal.id} — ${goal.title}`,
+    `Goal: ${goal.id} - ${goal.title}`,
     "",
     ...activeGoalLines(goal),
     "",
@@ -2295,13 +2293,13 @@ function successCriteriaLines(criteria) {
 function formatCriterionLine(criterion) {
   const remainingWork = criterion.status === "pending" ? " remaining work:" : "";
   const marker = isEssentialCriterion(criterion) ? "essential" : "non-essential";
-  return `-${remainingWork} [${criterion.id}] [${marker}] (${criterion.userModel}) ${criterion.scenario} — expect: ${criterion.expectedEvidence} — status: ${criterion.status}`;
+  return `-${remainingWork} [${criterion.id}] [${marker}] (${criterion.userModel}) ${criterion.scenario} - expect: ${criterion.expectedEvidence} - status: ${criterion.status}`;
 }
 function evidenceLayoutLines(plan) {
   if (plan.evidenceLayoutVersion !== 2)
     return [];
   return [
-    "- Evidence layout v2: write every artifact for the active goal (QA matrix, review reports, receipts) under the current attempt directory — read currentAttemptDir from `omo-agent-toolkit ulw-loop status --json` (.omo/evidence/ulw/<session>/<goalId>/a<attempt>). The final checkpoint rejects quality-gate artifacts outside that directory."
+    "- Evidence layout v2: write every artifact for the active goal (QA matrix, review reports, receipts) under the current attempt directory. Read currentAttemptDir from `omo-agent-toolkit ulw-loop status --json` (.omo/evidence/ulw/<session>/<goalId>/a<attempt>). The final checkpoint rejects quality-gate artifacts outside that directory."
   ];
 }
 function finalSection(plan, goal, isFinal, aggregate, surface) {
@@ -2314,7 +2312,7 @@ function finalSection(plan, goal, isFinal, aggregate, surface) {
   const blockerCommand = `omo-agent-toolkit ulw-loop record-review-blockers${option} --goal-id ${goal.id} --title "Resolve final code-review blockers" --objective "<blocker-resolution objective>" --evidence "<review findings>" --codex-goal-json "<active get_goal JSON or path>"`;
   const checkpointCommand = `omo-agent-toolkit ulw-loop checkpoint${option} --goal-id ${goal.id} --status complete --evidence "<targeted verification/manualQa/gateReview evidence>" --codex-goal-json "<fresh complete get_goal JSON or path>" --quality-gate-json "<quality gate JSON or path>"`;
   return joinLines([
-    "Final story — self-review and manual QA are the default; use the quality gate before update_goal:",
+    "Final story: self-review and manual QA are the default; use the quality gate before update_goal:",
     "- Run targeted verification for changed behavior.",
     "- Confirm every manualQa artifact path exists and has non-zero size.",
     `- Run manual QA yourself and write its artifact under currentAttemptDir. Only if the user explicitly demands strict, rigorous, or high-accuracy review, spawn ${roles.gateReview}, optionally also ${roles.codeReview} and ${roles.manualQa}; otherwise set manualQa.by and gateReview.by to "main-session".`,
@@ -2331,7 +2329,7 @@ function senpiFinalSection(plan, goal, aggregate) {
   const option = sessionOption(plan);
   const checkpointCommand = `omo-agent-toolkit ulw-loop checkpoint${option} --goal-id ${goal.id} --status complete --evidence "<manualQa/gateReview evidence>" --codex-goal-json "<fresh complete get_goal JSON or path>" --quality-gate-json "$(omo-agent-toolkit ulw-loop checkpoint${option} --print-template)"`;
   return joinLines([
-    "Final story — run the single-reviewer quality gate before update_goal:",
+    "Final story: run the single-reviewer quality gate before update_goal:",
     '- Run manual QA yourself and write the non-empty artifact under currentAttemptDir; set manualQa.by to "main-session".',
     '- Spawn exactly one gate reviewer with task(category: "deep-high").',
     "- If that task fails with any model_unavailable failure, retry with category:deep-low, then category:unspecified-high, then category:unspecified-low.",
@@ -2873,13 +2871,13 @@ async function parseSteeringProposal(argv) {
     }
     case "revise_criterion": {
       const goalId = requiredGoal(argv);
-      const criterionId2 = required3(argv, "--criterion-id");
+      const criterionId = required3(argv, "--criterion-id");
       const scenario = readValue(argv, "--scenario");
       const expectedEvidence = readValue(argv, "--expected-evidence");
       const userModel = model(readValue(argv, "--user-model"));
       if (scenario === undefined && expectedEvidence === undefined && userModel === undefined)
         return fail3("revise_criterion requires scenario, expected-evidence, or user-model.", "ULW_LOOP_STEERING_UPDATE_REQUIRED", { kind });
-      return normalizeSteeringProposal({ ...base, goalId, targetGoalId: goalId, criterionId: criterionId2, ...scenario === undefined ? {} : { scenario }, ...expectedEvidence === undefined ? {} : { expectedEvidence }, ...userModel === undefined ? {} : { userModel } });
+      return normalizeSteeringProposal({ ...base, goalId, targetGoalId: goalId, criterionId, ...scenario === undefined ? {} : { scenario }, ...expectedEvidence === undefined ? {} : { expectedEvidence }, ...userModel === undefined ? {} : { userModel } });
     }
     case "annotate_ledger":
       return normalizeSteeringProposal(base);
@@ -2908,7 +2906,7 @@ function normalizeSteeringProposal(proposal) {
   const goalId = text2(proposal.goalId, "goalId");
   const targetGoalId = text2(proposal.targetGoalId, "targetGoalId");
   const targetGoalIds = normalizedStrings(proposal.targetGoalIds, "targetGoalIds");
-  const criterionId2 = text2(proposal.criterionId, "criterionId");
+  const criterionId = text2(proposal.criterionId, "criterionId");
   const title = text2(proposal.title, "title");
   const objective = text2(proposal.objective, "objective");
   const revisedTitle = text2(proposal.revisedTitle, "revisedTitle");
@@ -2921,7 +2919,7 @@ function normalizeSteeringProposal(proposal) {
   const expectedEvidence = text2(proposal.expectedEvidence, "expectedEvidence");
   const childGoals = normalizedChildren(proposal.childGoals);
   const pendingOrder = normalizedStrings(proposal.pendingOrder, "pendingOrder");
-  return { kind: proposal.kind, source: proposal.source, evidence, rationale, ...goalId === undefined ? {} : { goalId }, ...targetGoalId === undefined ? {} : { targetGoalId }, ...targetGoalIds === undefined ? {} : { targetGoalIds }, ...criterionId2 === undefined ? {} : { criterionId: criterionId2 }, ...title === undefined ? {} : { title }, ...objective === undefined ? {} : { objective }, ...childGoals === undefined ? {} : { childGoals }, ...revisedTitle === undefined ? {} : { revisedTitle }, ...revisedObjective === undefined ? {} : { revisedObjective }, ...pendingOrder === undefined ? {} : { pendingOrder }, ...blockedReason === undefined ? {} : { blockedReason }, ...proposal.after === undefined ? {} : { after: proposal.after }, ...directiveText === undefined ? {} : { directiveText }, ...promptSignature === undefined ? {} : { promptSignature }, ...idempotencyKey === undefined ? {} : { idempotencyKey }, ...proposal.now === undefined ? {} : { now: proposal.now }, ...scenario === undefined ? {} : { scenario }, ...expectedEvidence === undefined ? {} : { expectedEvidence }, ...proposal.userModel === undefined ? {} : { userModel: proposal.userModel } };
+  return { kind: proposal.kind, source: proposal.source, evidence, rationale, ...goalId === undefined ? {} : { goalId }, ...targetGoalId === undefined ? {} : { targetGoalId }, ...targetGoalIds === undefined ? {} : { targetGoalIds }, ...criterionId === undefined ? {} : { criterionId }, ...title === undefined ? {} : { title }, ...objective === undefined ? {} : { objective }, ...childGoals === undefined ? {} : { childGoals }, ...revisedTitle === undefined ? {} : { revisedTitle }, ...revisedObjective === undefined ? {} : { revisedObjective }, ...pendingOrder === undefined ? {} : { pendingOrder }, ...blockedReason === undefined ? {} : { blockedReason }, ...proposal.after === undefined ? {} : { after: proposal.after }, ...directiveText === undefined ? {} : { directiveText }, ...promptSignature === undefined ? {} : { promptSignature }, ...idempotencyKey === undefined ? {} : { idempotencyKey }, ...proposal.now === undefined ? {} : { now: proposal.now }, ...scenario === undefined ? {} : { scenario }, ...expectedEvidence === undefined ? {} : { expectedEvidence }, ...proposal.userModel === undefined ? {} : { userModel: proposal.userModel } };
 }
 async function parseSteeringProposals(argv) {
   const input = text2(readValue(argv, "--proposals-json"), "--proposals-json");
@@ -2949,7 +2947,7 @@ function proposalFromObject(value) {
   let proposal = { kind, source, evidence: objectText(value, "evidence") ?? "", rationale: objectText(value, "rationale") ?? "" };
   const goalId = objectText(value, "goalId");
   const targetGoalId = objectText(value, "targetGoalId");
-  const criterionId2 = objectText(value, "criterionId");
+  const criterionId = objectText(value, "criterionId");
   const title = objectText(value, "title");
   const objective = objectText(value, "objective");
   const revisedTitle = objectText(value, "revisedTitle");
@@ -2964,8 +2962,8 @@ function proposalFromObject(value) {
     proposal = { ...proposal, goalId };
   if (targetGoalId !== undefined)
     proposal = { ...proposal, targetGoalId };
-  if (criterionId2 !== undefined)
-    proposal = { ...proposal, criterionId: criterionId2 };
+  if (criterionId !== undefined)
+    proposal = { ...proposal, criterionId };
   if (title !== undefined)
     proposal = { ...proposal, title };
   if (objective !== undefined)
@@ -3129,7 +3127,7 @@ var text3 = (value, key) => {
   const candidate = read2(value, key);
   return isText(candidate) ? candidate.trim() : undefined;
 };
-var isModel2 = (value) => typeof value === "string" && ULW_LOOP_SUCCESS_CRITERION_USER_MODELS.some((model2) => model2 === value);
+var isModel2 = (value) => typeof value === "string" && ULW_LOOP_SUCCESS_CRITERION_USER_MODELS.some((model) => model === value);
 var after = (proposal) => {
   const candidate = read2(proposal, "after");
   return typeof candidate === "object" && candidate !== null && !Array.isArray(candidate) ? candidate : undefined;
@@ -3204,8 +3202,8 @@ function reviseCriterion(plan, proposal, now) {
   const current = target?.successCriteria[index];
   if (target === undefined || current === undefined)
     return;
-  const model2 = read2(proposal, "userModel");
-  target.successCriteria[index] = { ...current, scenario: text3(proposal, "scenario") ?? current.scenario, expectedEvidence: text3(proposal, "expectedEvidence") ?? current.expectedEvidence, userModel: isModel2(model2) ? model2 : current.userModel };
+  const model = read2(proposal, "userModel");
+  target.successCriteria[index] = { ...current, scenario: text3(proposal, "scenario") ?? current.scenario, expectedEvidence: text3(proposal, "expectedEvidence") ?? current.expectedEvidence, userModel: isModel2(model) ? model : current.userModel };
   target.updatedAt = now;
 }
 
@@ -3214,19 +3212,19 @@ function buildSteeringPlanSnapshot(plan, changedGoalIds) {
   const snapshot = {
     updatedAt: plan.updatedAt,
     goalCount: plan.goals.length,
-    goalIds: plan.goals.map((goal2) => goal2.id),
-    goals: plan.goals.filter((goal2) => changedGoalIds.has(goal2.id))
+    goalIds: plan.goals.map((goal) => goal.id),
+    goals: plan.goals.filter((goal) => changedGoalIds.has(goal.id))
   };
   return plan.activeGoalId === undefined ? snapshot : { ...snapshot, activeGoalId: plan.activeGoalId };
 }
-function changedGoalIdsBetween(before, after2) {
-  const beforeById = new Map(before.goals.map((goal2) => [goal2.id, goal2]));
+function changedGoalIdsBetween(before, after) {
+  const beforeById = new Map(before.goals.map((goal) => [goal.id, goal]));
   const changed = new Set;
-  for (const goal2 of after2.goals) {
-    const prior = beforeById.get(goal2.id);
-    if (prior === undefined || JSON.stringify(prior) !== JSON.stringify(goal2))
-      changed.add(goal2.id);
-    beforeById.delete(goal2.id);
+  for (const goal of after.goals) {
+    const prior = beforeById.get(goal.id);
+    if (prior === undefined || JSON.stringify(prior) !== JSON.stringify(goal))
+      changed.add(goal.id);
+    beforeById.delete(goal.id);
   }
   for (const id of beforeById.keys())
     changed.add(id);
@@ -3246,7 +3244,7 @@ var text4 = (value, key) => {
 };
 var isKind2 = (value) => typeof value === "string" && ULW_LOOP_STEERING_MUTATION_KINDS.some((kind) => kind === value);
 var isSource2 = (value) => typeof value === "string" && SOURCES2.some((source) => source === value);
-var isModel3 = (value) => typeof value === "string" && ULW_LOOP_SUCCESS_CRITERION_USER_MODELS.some((model2) => model2 === value);
+var isModel3 = (value) => typeof value === "string" && ULW_LOOP_SUCCESS_CRITERION_USER_MODELS.some((model) => model === value);
 var texts = (value, key) => {
   const candidate = read3(value, key);
   return Array.isArray(candidate) && candidate.every((item) => typeof item === "string") ? candidate : [];
@@ -3309,12 +3307,12 @@ function auditFor(proposal, reasons) {
   const audit = { kind: isKind2(kindRaw) ? kindRaw : "annotate_ledger", source: isSource2(sourceRaw) ? sourceRaw : "cli", targetGoalIds: object === undefined ? [] : targets2(object), evidence, rationale, invariant: { accepted: reasons.length === 0, structuralInvariantAccepted: reasons.length === 0, evidenceBackedNecessity: evidence.length > 0 && rationale.length > 0, noEasierCompletion: !weakens(proposal), rejectedReasons: reasons, reasons } };
   if (object === undefined)
     return audit;
-  const criterionId2 = text4(object, "criterionId");
+  const criterionId = text4(object, "criterionId");
   const directiveText = text4(object, "directiveText");
   const promptSignature = text4(object, "promptSignature");
   const idempotencyKey = text4(object, "idempotencyKey");
-  if (criterionId2 !== undefined)
-    audit.criterionId = criterionId2;
+  if (criterionId !== undefined)
+    audit.criterionId = criterionId;
   if (directiveText !== undefined)
     audit.directiveText = directiveText;
   if (promptSignature !== undefined)
@@ -3382,15 +3380,15 @@ function validateOrder(plan, proposal, reasons) {
 }
 function validateCriterion(plan, proposal, reasons) {
   const target = goal2(plan, targets2(proposal)[0]);
-  const criterionId2 = text4(proposal, "criterionId");
+  const criterionId = text4(proposal, "criterionId");
   if (target === undefined)
     reasons.push("revise_criterion requires goalId");
-  else if (criterionId2 === undefined || target.successCriteria.every((item) => item.id !== criterionId2))
+  else if (criterionId === undefined || target.successCriteria.every((item) => item.id !== criterionId))
     reasons.push("revise_criterion requires criterionId");
-  const model2 = read3(proposal, "userModel");
-  if (read3(proposal, "scenario") === undefined && read3(proposal, "expectedEvidence") === undefined && model2 === undefined)
+  const model = read3(proposal, "userModel");
+  if (read3(proposal, "scenario") === undefined && read3(proposal, "expectedEvidence") === undefined && model === undefined)
     reasons.push("revise_criterion requires update");
-  if (model2 !== undefined && !isModel3(model2))
+  if (model !== undefined && !isModel3(model))
     reasons.push("invalid userModel");
 }
 function applySteeringMutation(plan, proposal, audit, surface = "lazycodex") {
@@ -3417,8 +3415,8 @@ function applySteeringMutation(plan, proposal, audit, surface = "lazycodex") {
 function isProposal(value) {
   return isPlain2(value) && isKind2(read3(value, "kind")) && isSource2(read3(value, "source")) && isText2(read3(value, "evidence")) && isText2(read3(value, "rationale"));
 }
-function parseUlwLoopSteeringDirective(text5) {
-  const match = /(?:^|\s)(?:OMO_ULW_LOOP_STEER|omo\.ulw-loop\.steer|omo ulw-loop steer|omo-agent-toolkit ulw-loop steer):\s*([\s\S]+)$/u.exec(text5);
+function parseUlwLoopSteeringDirective(text) {
+  const match = /(?:^|\s)(?:OMO_ULW_LOOP_STEER|omo\.ulw-loop\.steer|omo ulw-loop steer|omo-agent-toolkit ulw-loop steer):\s*([\s\S]+)$/u.exec(text);
   if (match?.[1] === undefined)
     return null;
   try {
@@ -3694,7 +3692,7 @@ function createAgentToolkit(context, deps = {}) {
     createGoals: (args) => invoke("create-goals", () => createUlwLoopPlan(context.cwd, args, scope, context.surface)),
     status: () => invoke("status", async () => {
       const plan = await readUlwLoopPlan(context.cwd, scope);
-      const active = plan.goals.find((goal3) => goal3.id === plan.activeGoalId);
+      const active = plan.goals.find((goal) => goal.id === plan.activeGoalId);
       return {
         plan,
         summary: summarizeUlwLoopPlan(plan),
@@ -3709,10 +3707,10 @@ function createAgentToolkit(context, deps = {}) {
     addGoal: (args) => invoke("add-goal", () => addUlwLoopGoal(context.cwd, args, scope, context.surface)),
     criteria: (args) => invoke("criteria", async () => {
       const plan = await readUlwLoopPlan(context.cwd, scope);
-      const goal3 = plan.goals.find((candidate) => candidate.id === args.goalId);
-      if (goal3 === undefined)
+      const goal = plan.goals.find((candidate) => candidate.id === args.goalId);
+      if (goal === undefined)
         throw new UlwLoopError(`Unknown ulw-loop id: ${args.goalId}.`, "ULW_LOOP_GOAL_NOT_FOUND");
-      return { goalId: goal3.id, criteria: goal3.successCriteria };
+      return { goalId: goal.id, criteria: goal.successCriteria };
     }),
     recordEvidence: (args) => invoke("record-evidence", () => recordEvidence(context.cwd, args, scope)),
     recordReviewBlockers: (args) => invoke("record-review-blockers", () => recordFinalReviewBlockers(context.cwd, args, scope))
@@ -3751,16 +3749,16 @@ async function prepareBatch(repoRoot, plan, proposals, scope) {
     const key = proposal.idempotencyKey ?? proposal.promptSignature;
     const prior = key === undefined ? undefined : await findAcceptedSteeringLedgerEntry(repoRoot, key, scope);
     if (prior?.steering !== undefined) {
-      const result2 = { accepted: true, deduped: true, audit: { ...prior.steering, deduped: true }, rejectedReasons: [] };
-      items.push({ kind: "deduped", result: result2 });
-      results.push(result2);
+      const result = { accepted: true, deduped: true, audit: { ...prior.steering, deduped: true }, rejectedReasons: [] };
+      items.push({ kind: "deduped", result });
+      results.push(result);
       continue;
     }
     const audit = validateUlwLoopSteeringProposal(current, proposal);
     if (!audit.invariant.accepted) {
-      const result2 = { accepted: false, deduped: false, audit, rejectedReasons: audit.invariant.rejectedReasons };
-      items.push({ kind: "deduped", result: result2 });
-      results.push(result2);
+      const result = { accepted: false, deduped: false, audit, rejectedReasons: audit.invariant.rejectedReasons };
+      items.push({ kind: "deduped", result });
+      results.push(result);
       continue;
     }
     const next = applySteeringMutation(current, proposal, audit);
@@ -3825,11 +3823,11 @@ ledger: ${plan.ledgerPath}
   return 0;
 }
 async function status(repoRoot, json, scope) {
-  const status2 = unwrap(await toolkitFor(repoRoot, scope).status());
+  const status = unwrap(await toolkitFor(repoRoot, scope).status());
   if (json)
-    printJson({ ok: true, ...status2 });
+    printJson({ ok: true, ...status });
   else
-    printStatus(status2.plan);
+    printStatus(status.plan);
   return 0;
 }
 async function completeGoals(repoRoot, argv, json, scope) {
@@ -3862,9 +3860,9 @@ async function steer(repoRoot, argv, json, scope) {
   const proposals = await parseSteeringProposals(argv);
   const single = proposals[0];
   if (single !== undefined && proposals.length === 1 && readValue(argv, "--proposals-json") === undefined) {
-    const result2 = unwrap(await toolkitFor(repoRoot, scope).steer(single));
-    printSteerResult(result2, json);
-    return result2.accepted ? 0 : 1;
+    const result = unwrap(await toolkitFor(repoRoot, scope).steer(single));
+    printSteerResult(result, json);
+    return result.accepted ? 0 : 1;
   }
   const result = await steerUlwLoopBatch(repoRoot, proposals, scope);
   printSteerBatchResult(result, json);
@@ -4054,13 +4052,13 @@ function sessionIdFlagPresent(argv) {
 }
 function commandScope(repoRoot, argv) {
   if (sessionIdFlagPresent(argv)) {
-    const sessionId2 = readValue(argv, SESSION_ID_FLAG)?.trim();
-    if (!sessionId2) {
+    const sessionId = readValue(argv, SESSION_ID_FLAG)?.trim();
+    if (!sessionId) {
       throw new UlwLoopError(sessionIdRequiredMessage(SESSION_ID_FLAG), "ULW_LOOP_SESSION_ID_REQUIRED", {
         details: { flag: SESSION_ID_FLAG }
       });
     }
-    return { sessionId: sessionId2 };
+    return { sessionId };
   }
   const sessionId = resolveUlwLoopSessionIdFromEnv();
   if (sessionId !== null)
@@ -4349,38 +4347,95 @@ function optionalString(value) {
   return value === undefined || typeof value === "string";
 }
 function readAll(stdin) {
-  return new Promise((resolve5, reject) => {
+  return new Promise((resolve, reject) => {
     let data = "";
     stdin.setEncoding("utf8");
     stdin.on("data", (chunk) => {
       data += chunk instanceof Buffer ? chunk.toString() : String(chunk);
     });
     stdin.once("error", reject);
-    stdin.once("end", () => resolve5(data));
+    stdin.once("end", () => resolve(data));
   });
 }
 
 // components/ulw-loop/src/spawn-guard.ts
 import { mkdirSync as mkdirSync3 } from "node:fs";
-import { join as join7 } from "node:path";
+import { join as join8 } from "node:path";
+
+// components/ulw-loop/src/registered-agent-roles.ts
+import { readdirSync as readdirSync3, readFileSync as readFileSync6 } from "node:fs";
+import { homedir } from "node:os";
+import { basename, dirname as dirname3, join as join6, resolve as resolve5 } from "node:path";
+var NAME_LINE = /^\s*name\s*=\s*"([^"\n]+)"\s*(?:#.*)?$/m;
+var AGENT_TABLE = /^\s*\[agents\.(?:"([^"\n]+)"|([A-Za-z0-9_-]+))\]\s*(?:#.*)?$/gm;
+function readText(path) {
+  try {
+    return readFileSync6(path, "utf8");
+  } catch {
+    return null;
+  }
+}
+function standaloneRoleNames(agentsDir) {
+  let entries;
+  try {
+    entries = readdirSync3(agentsDir);
+  } catch {
+    return [];
+  }
+  const names = [];
+  for (const entry of entries) {
+    if (!entry.endsWith(".toml"))
+      continue;
+    const text = readText(join6(agentsDir, entry));
+    if (text === null)
+      continue;
+    names.push(text.match(NAME_LINE)?.[1] ?? basename(entry, ".toml"));
+  }
+  return names;
+}
+function configTableRoleNames(configPath) {
+  const text = readText(configPath);
+  if (text === null)
+    return [];
+  return [...text.matchAll(AGENT_TABLE)].map((match) => match[1] ?? match[2] ?? "").filter(Boolean);
+}
+function codexDirs(cwd, env) {
+  const dirs = [resolve5(env["CODEX_HOME"]?.trim() || join6(homedir(), ".codex"))];
+  for (let dir = resolve5(cwd);; dir = dirname3(dir)) {
+    dirs.push(join6(dir, ".codex"));
+    if (dirname3(dir) === dir)
+      break;
+  }
+  return [...new Set(dirs)];
+}
+function registeredAgentRoles(cwd, env = process.env) {
+  const names = new Set;
+  for (const dir of codexDirs(cwd, env)) {
+    for (const name of standaloneRoleNames(join6(dir, "agents")))
+      names.add(name);
+    for (const name of configTableRoleNames(join6(dir, "config.toml")))
+      names.add(name);
+  }
+  return names;
+}
 
 // components/ulw-loop/src/spawn-budget-io.ts
 import { randomBytes } from "node:crypto";
-import { existsSync as existsSync7, readFileSync as readFileSync6, renameSync as renameSync2, statSync as statSync3, writeFileSync as writeFileSync2 } from "node:fs";
-import { dirname as dirname3, join as join6 } from "node:path";
+import { existsSync as existsSync7, readFileSync as readFileSync7, renameSync as renameSync2, statSync as statSync3, writeFileSync as writeFileSync2 } from "node:fs";
+import { dirname as dirname4, join as join7 } from "node:path";
 function readAdmissionBreaker(sessionId) {
   const dataDir = process.env["PLUGIN_DATA"];
   if (typeof dataDir !== "string")
     return null;
   try {
-    const value = JSON.parse(readFileSync6(join6(dataDir, "spawn-breaker", `${sessionId}.json`), "utf8"));
+    const value = JSON.parse(readFileSync7(join7(dataDir, "spawn-breaker", `${sessionId}.json`), "utf8"));
     return typeof value === "object" && value !== null && "reason" in value && typeof value.reason === "string" ? value.reason : "capacity limit";
   } catch {
     return null;
   }
 }
 function atomicWriteJson(targetPath, data) {
-  const tmp = join6(dirname3(targetPath), `.tmp-${randomBytes(6).toString("hex")}`);
+  const tmp = join7(dirname4(targetPath), `.tmp-${randomBytes(6).toString("hex")}`);
   writeFileSync2(tmp, JSON.stringify(data));
   renameSync2(tmp, targetPath);
 }
@@ -4395,7 +4450,7 @@ function isNonEmptyFile(path) {
 }
 function readCount(counterPath) {
   try {
-    const parsed = JSON.parse(readFileSync6(counterPath, "utf8"));
+    const parsed = JSON.parse(readFileSync7(counterPath, "utf8"));
     return typeof parsed === "object" && parsed !== null && "count" in parsed && typeof parsed.count === "number" && parsed.count >= 0 ? parsed.count : 0;
   } catch (error) {
     if (error instanceof Error)
@@ -4405,7 +4460,7 @@ function readCount(counterPath) {
 }
 function readCounts(counterPath) {
   try {
-    const parsed = JSON.parse(readFileSync6(counterPath, "utf8"));
+    const parsed = JSON.parse(readFileSync7(counterPath, "utf8"));
     if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed))
       return {};
     const counts = {};
@@ -4435,11 +4490,15 @@ var LAZYCODEX_SPAWN_ROLES = new Set([
   "momus",
   "plan"
 ]);
-function spawnRoleDenial(input) {
+function spawnRoleDenial(input, registeredRoles = () => new Set) {
   const role = typeof input === "object" && input !== null && "agent_type" in input ? input.agent_type : undefined;
   if (typeof role === "string" && LAZYCODEX_SPAWN_ROLES.has(role))
     return null;
-  return `LazyCodex requires an explicit registered agent_type: ${[...LAZYCODEX_SPAWN_ROLES].join(", ")}. Received ${JSON.stringify(role) ?? "no agent_type"}. Use the matching role and fork_turns: "none" (V2) or fork_context: false (V1), unless full history is deliberately required. The hook cannot see the tool schema; if agent_type is unavailable, stop and report incompatible role routing rather than spawning a generic agent. Describing a role in message does not select its TOML.`;
+  const registered = typeof role === "string" && role.trim() !== "" ? registeredRoles() : new Set;
+  if (typeof role === "string" && registered.has(role))
+    return null;
+  const known = [...new Set([...LAZYCODEX_SPAWN_ROLES, ...registered])];
+  return `LazyCodex requires an explicit registered agent_type: ${known.join(", ")}. Received ${JSON.stringify(role) ?? "no agent_type"}. Use the matching role and fork_turns: "none" (V2) or fork_context: false (V1), unless full history is deliberately required. The hook cannot see the tool schema; if agent_type is unavailable, stop and report incompatible role routing rather than spawning a generic agent. Describing a role in message does not select its TOML.`;
 }
 
 // components/ulw-loop/src/spawn-guard.ts
@@ -4463,7 +4522,7 @@ function applySpawnGuards(payload, options = {}) {
   if (payload.hook_event_name !== "PreToolUse" || !SPAWN_TOOL_TOKENS.has(payload.tool_name))
     return "";
   if (resolveToolkitSurface() === "lazycodex") {
-    const reason = spawnRoleDenial(payload.tool_input);
+    const reason = spawnRoleDenial(payload.tool_input, () => registeredAgentRoles(payload.cwd));
     if (reason !== null)
       return deny(reason);
   }
@@ -4480,9 +4539,9 @@ function applySpawnBudgetGuards(payload, options = {}) {
   const plan = readPlan(payload.cwd, payload.session_id);
   if (plan === null)
     return "";
-  const lockOptions2 = options.lockTimeoutMs === undefined ? {} : { timeoutMs: options.lockTimeoutMs };
+  const lockOptions = options.lockTimeoutMs === undefined ? {} : { timeoutMs: options.lockTimeoutMs };
   try {
-    return withStateLockSync(ulwLoopStateLockPath(payload.cwd, scope), () => evaluateGuards(payload, plan, stateDir), lockOptions2);
+    return withStateLockSync(ulwLoopStateLockPath(payload.cwd, scope), () => evaluateGuards(payload, plan, stateDir), lockOptions);
   } catch (error) {
     if (isStateLockTimeout(error))
       return deny(`ulw-loop spawn guard could not take the session state lock: ${error.message}`);
@@ -4516,10 +4575,10 @@ async function runSpawnAdmissionRecorderCli(stdin, stdout) {
     const dataDir = process.env["PLUGIN_DATA"];
     if (typeof dataDir !== "string" || typeof payload["session_id"] !== "string")
       return;
-    const markerDir = join7(dataDir, "spawn-breaker");
+    const markerDir = join8(dataDir, "spawn-breaker");
     try {
       mkdirSync3(markerDir, { recursive: true });
-      atomicWriteJson(join7(markerDir, `${payload["session_id"]}.json`), {
+      atomicWriteJson(join8(markerDir, `${payload["session_id"]}.json`), {
         reason: response,
         at: new Date().toISOString()
       });
@@ -4548,7 +4607,7 @@ async function runSpawnGuardCli(stdin, stdout) {
   }
 }
 function peekFanOutBudget(stateDir) {
-  const counterPath = join7(stateDir, "spawn-count.json");
+  const counterPath = join8(stateDir, "spawn-count.json");
   const count = readCount(counterPath) + 1;
   const limit = fanOutLimit();
   if (count <= limit)
@@ -4556,7 +4615,7 @@ function peekFanOutBudget(stateDir) {
   return `ulw-loop spawn fan-out cap reached (${count}/${limit}). Consolidate work into the agents already running, or raise OMO_SPAWN_FANOUT_LIMIT if this volume is intentional.`;
 }
 function consumeFanOutBudget(stateDir) {
-  const counterPath = join7(stateDir, "spawn-count.json");
+  const counterPath = join8(stateDir, "spawn-count.json");
   const count = readCount(counterPath) + 1;
   atomicWriteJson(counterPath, { count });
   const limit = fanOutLimit();
@@ -4568,16 +4627,16 @@ function consumeReviewSpawnBudget(payload, plan, stateDir) {
   const agentType = reviewAgentType(payload.tool_input);
   if (agentType === null)
     return null;
-  const goal3 = plan.goals.find((candidate) => candidate.id === plan.activeGoalId) ?? plan.goals.find((candidate) => isFinalRunCompletionCandidate(plan, candidate));
-  if (goal3 === undefined)
+  const goal = plan.goals.find((candidate) => candidate.id === plan.activeGoalId) ?? plan.goals.find((candidate) => isFinalRunCompletionCandidate(plan, candidate));
+  if (goal === undefined)
     return null;
-  const counterPath = join7(stateDir, "review-spawn-counts.json");
+  const counterPath = join8(stateDir, "review-spawn-counts.json");
   const limit = reviewSpawnLimit();
   const counts = readCounts(counterPath);
-  const key = `${agentType}:${goal3.id}:a${goal3.attempt}`;
+  const key = `${agentType}:${goal.id}:a${goal.attempt}`;
   const count = (counts[key] ?? 0) + 1;
   if (count > limit)
-    return `ulw-loop reviewer no-progress cap reached (${agentType} ${count}/${limit}) for ${goal3.id} attempt ${goal3.attempt}. Consolidate existing review findings, or checkpoint and start a new attempt after concrete progress.`;
+    return `ulw-loop reviewer no-progress cap reached (${agentType} ${count}/${limit}) for ${goal.id} attempt ${goal.attempt}. Consolidate existing review findings, or checkpoint and start a new attempt after concrete progress.`;
   counts[key] = count;
   atomicWriteJson(counterPath, counts);
   return null;
@@ -4585,24 +4644,24 @@ function consumeReviewSpawnBudget(payload, plan, stateDir) {
 function missingGateArtifact(payload, plan) {
   if (!isGateReviewerSpawn(payload.tool_input))
     return null;
-  const goal3 = plan.goals.find((candidate) => isFinalRunCompletionCandidate(plan, candidate));
-  if (goal3 === undefined || goal3.status === "complete")
+  const goal = plan.goals.find((candidate) => isFinalRunCompletionCandidate(plan, candidate));
+  if (goal === undefined || goal.status === "complete")
     return null;
-  if (!goal3.successCriteria.every((criterion) => criterion.status === "pass"))
+  if (!goal.successCriteria.every((criterion) => criterion.status === "pass"))
     return null;
   const scope = { sessionId: payload.session_id };
-  const requiredArtifacts = [`${goal3.id}-manual-qa.md`];
+  const requiredArtifacts = [`${goal.id}-manual-qa.md`];
   if (plan.evidenceLayoutVersion === 2) {
-    const attemptDir = ulwLoopAttemptEvidenceDir(goal3.id, goal3.attempt, scope);
+    const attemptDir = ulwLoopAttemptEvidenceDir(goal.id, goal.attempt, scope);
     for (const name of requiredArtifacts) {
-      const relative3 = `${attemptDir}/${name}`;
-      if (!isNonEmptyFile(join7(payload.cwd, relative3)))
-        return relative3;
+      const relative = `${attemptDir}/${name}`;
+      if (!isNonEmptyFile(join8(payload.cwd, relative)))
+        return relative;
     }
     return null;
   }
-  const manualQa = `.omo/evidence/${goal3.id}-manual-qa.md`;
-  return isNonEmptyFile(join7(payload.cwd, manualQa)) ? null : manualQa;
+  const manualQa = `.omo/evidence/${goal.id}-manual-qa.md`;
+  return isNonEmptyFile(join8(payload.cwd, manualQa)) ? null : manualQa;
 }
 function isGateReviewerSpawn(toolInput) {
   const agentType = reviewAgentType(toolInput);
@@ -4686,8 +4745,8 @@ function readPlan(repoRoot, sessionId) {
 }
 
 // components/ulw-loop/src/stop-resume-hook.ts
-import { existsSync as existsSync8, readFileSync as readFileSync7, writeFileSync as writeFileSync3 } from "node:fs";
-import { isAbsolute as isAbsolute3, join as join8, resolve as resolve5, sep as sep3 } from "node:path";
+import { existsSync as existsSync8, readFileSync as readFileSync8, writeFileSync as writeFileSync3 } from "node:fs";
+import { isAbsolute as isAbsolute3, join as join9, resolve as resolve6, sep as sep3 } from "node:path";
 var RESUME_CAP = 2;
 var CONTEXT_PRESSURE_MARKERS2 = [
   "context compacted",
@@ -4711,14 +4770,14 @@ function runStopResumeHook(input) {
   const plan = readPlan2(payload.cwd, payload.session_id);
   if (plan === null || plan.aggregateCompletion?.status === "complete")
     return "";
-  const goal3 = resumableGoal(plan);
-  if (goal3 === undefined)
+  const goal = resumableGoal(plan);
+  if (goal === undefined)
     return "";
-  if (!consumeResumeBudgetLocked(ulwLoopStateLockPath(payload.cwd, scope), stateDir, goal3.id))
+  if (!consumeResumeBudgetLocked(ulwLoopStateLockPath(payload.cwd, scope), stateDir, goal.id))
     return "";
   const output = {
     decision: "block",
-    reason: renderResumeDirective(plan, goal3, payload.session_id)
+    reason: renderResumeDirective(plan, goal, payload.session_id)
   };
   return JSON.stringify(output);
 }
@@ -4736,13 +4795,13 @@ async function runStopResumeHookCli(stdin, stdout) {
   }
 }
 function resumableGoal(plan) {
-  const active = plan.goals.find((goal3) => goal3.id === plan.activeGoalId);
+  const active = plan.goals.find((goal) => goal.id === plan.activeGoalId);
   if (active !== undefined && isResumableStatus(active.status))
     return active;
-  return plan.goals.find((goal3) => isResumableStatus(goal3.status));
+  return plan.goals.find((goal) => isResumableStatus(goal.status));
 }
-function isResumableStatus(status2) {
-  return status2 === "pending" || status2 === "in_progress";
+function isResumableStatus(status) {
+  return status === "pending" || status === "in_progress";
 }
 function consumeResumeBudgetLocked(lockPath, stateDir, goalId) {
   try {
@@ -4755,8 +4814,8 @@ function consumeResumeBudgetLocked(lockPath, stateDir, goalId) {
 }
 function consumeResumeBudget(stateDir, goalId) {
   const ledgerLineCount = readLedgerAt(stateDir).length;
-  const counterPath = resolve5(stateDir, `auto-resume-${goalId}.json`);
-  const stuckPath = resolve5(stateDir, `auto-resume-${goalId}.stuck`);
+  const counterPath = resolve6(stateDir, `auto-resume-${goalId}.json`);
+  const stuckPath = resolve6(stateDir, `auto-resume-${goalId}.stuck`);
   if (!isInsideDir(stateDir, counterPath) || !isInsideDir(stateDir, stuckPath))
     return false;
   const previous = readCounter(counterPath);
@@ -4770,13 +4829,13 @@ function consumeResumeBudget(stateDir, goalId) {
   return true;
 }
 function isInsideDir(dir, candidate) {
-  return candidate.startsWith(resolve5(dir) + sep3);
+  return candidate.startsWith(resolve6(dir) + sep3);
 }
-function renderResumeDirective(plan, goal3, sessionId) {
+function renderResumeDirective(plan, goal, sessionId) {
   const normalized = normalizeUlwLoopSessionId(sessionId);
   const option = normalized !== null && plan.goalsPath.includes(`/${normalized}/`) ? ` --session-id ${normalized}` : "";
   return [
-    `The ulw-loop run in this session still has unfinished goals (next: ${goal3.id} — ${goal3.title}).`,
+    `The ulw-loop run in this session still has unfinished goals (next: ${goal.id} - ${goal.title}).`,
     "The turn ended before the loop completed. Resume it now:",
     `1. Run \`omo-agent-toolkit ulw-loop status${option} --json\` to reload the plan, the active goal, and currentAttemptDir.`,
     "2. Continue the active goal's remaining success criteria, recording evidence with record-evidence.",
@@ -4798,7 +4857,7 @@ function readCounter(counterPath) {
   try {
     if (!existsSync8(counterPath))
       return null;
-    const parsed = JSON.parse(readFileSync7(counterPath, "utf8"));
+    const parsed = JSON.parse(readFileSync8(counterPath, "utf8"));
     if (typeof parsed["count"] !== "number" || typeof parsed["ledgerLineCount"] !== "number")
       return null;
     return { count: parsed["count"], ledgerLineCount: parsed["ledgerLineCount"] };
@@ -4810,7 +4869,7 @@ function readCounter(counterPath) {
 }
 function boulderContinuationWillFire(cwd, sessionId) {
   try {
-    const raw = JSON.parse(readFileSync7(join8(cwd, ".omo", "boulder.json"), "utf8"));
+    const raw = JSON.parse(readFileSync8(join9(cwd, ".omo", "boulder.json"), "utf8"));
     const works = raw["works"];
     const entries = typeof works === "object" && works !== null ? Object.values(works) : [raw];
     return entries.some((work) => {
@@ -4829,7 +4888,7 @@ function boulderContinuationWillFire(cwd, sessionId) {
 }
 function transcriptShowsContextPressure(transcriptPath) {
   try {
-    const transcript = readFileSync7(transcriptPath, "utf8").toLowerCase();
+    const transcript = readFileSync8(transcriptPath, "utf8").toLowerCase();
     return CONTEXT_PRESSURE_MARKERS2.some((marker) => transcript.includes(marker));
   } catch (error) {
     if (error instanceof Error)
@@ -4841,12 +4900,12 @@ function boulderPlanHasChecklist(cwd, entry) {
   const activePlan = entry["active_plan"];
   if (typeof activePlan !== "string" || activePlan.trim().length === 0)
     return false;
-  const planPath = isAbsolute3(activePlan) ? activePlan : join8(cwd, activePlan);
+  const planPath = isAbsolute3(activePlan) ? activePlan : join9(cwd, activePlan);
   const worktree = entry["worktree_path"];
-  const candidates = typeof worktree === "string" && worktree.trim().length > 0 && !isAbsolute3(activePlan) ? [join8(isAbsolute3(worktree) ? worktree : join8(cwd, worktree), activePlan), planPath] : [planPath];
+  const candidates = typeof worktree === "string" && worktree.trim().length > 0 && !isAbsolute3(activePlan) ? [join9(isAbsolute3(worktree) ? worktree : join9(cwd, worktree), activePlan), planPath] : [planPath];
   for (const candidate of candidates) {
     try {
-      return readFileSync7(candidate, "utf8").split(/\r?\n/).some((line) => line.startsWith("- [ ] ") || line.startsWith("- [x] ") || line.startsWith("- [X] "));
+      return readFileSync8(candidate, "utf8").split(/\r?\n/).some((line) => line.startsWith("- [ ] ") || line.startsWith("- [x] ") || line.startsWith("- [X] "));
     } catch (error) {
       if (!(error instanceof Error))
         throw error;

@@ -35,6 +35,10 @@ export declare const CategoryConfigSchema: z.ZodObject<{
             budgetTokens: z.ZodOptional<z.ZodNumber>;
         }, z.core.$strip>>;
     }, z.core.$strip>]>>>;
+    models_distribution: z.ZodOptional<z.ZodEnum<{
+        round_robin: "round_robin";
+        sequential: "sequential";
+    }>>;
     fallback_models: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>, z.ZodArray<z.ZodObject<{
         model: z.ZodString;
         reasoning: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{
@@ -190,6 +194,10 @@ export declare const CategoriesConfigSchema: z.ZodRecord<z.ZodString, z.ZodObjec
             budgetTokens: z.ZodOptional<z.ZodNumber>;
         }, z.core.$strip>>;
     }, z.core.$strip>]>>>;
+    models_distribution: z.ZodOptional<z.ZodEnum<{
+        round_robin: "round_robin";
+        sequential: "sequential";
+    }>>;
     fallback_models: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>, z.ZodArray<z.ZodObject<{
         model: z.ZodString;
         reasoning: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{

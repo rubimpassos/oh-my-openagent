@@ -12,7 +12,7 @@ export interface WorktreeRecord {
     readonly prunable: boolean;
 }
 export type WorktreeDecision = "SWEEP" | "KEEP" | "PRUNE";
-export type WorktreeKeepReason = "locked" | "external" | "unmerged" | "dirty";
+export type WorktreeKeepReason = "locked" | "external" | "unmerged" | "dirty" | "current";
 export interface WorktreeClassification {
     readonly path: string;
     /** Branch name when attached, otherwise the HEAD sha; empty when neither is known. */
@@ -30,6 +30,8 @@ export interface ClassificationInput {
     readonly dirty: boolean;
     /** True when the path lives under one of the configured protected prefixes. */
     readonly external: boolean;
+    /** True when the sweep was started from inside this linked worktree. */
+    readonly current?: boolean;
 }
 export interface WorktreeSweepRepoReport {
     readonly repo: string;

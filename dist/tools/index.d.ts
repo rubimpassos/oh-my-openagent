@@ -13,7 +13,7 @@ export { createCallOmoAgent } from "./call-omo-agent";
 export { createLookAt } from "./look-at";
 export { createMonitorTools } from "./monitor";
 export { createDelegateTask } from "./delegate-task";
-export { createTaskCreateTool, createTaskGetTool, createTaskList, createTaskUpdateTool, } from "./task";
+export { createTaskCreateTool, createTaskGetTool, createTaskList, createTaskUpdateTool } from "./task";
 export { createHashlineEditTool } from "./hashline-edit";
 export { createTeamSendMessageTool } from "../features/team-mode/tools/messaging";
 export declare function createBackgroundTools(manager: BackgroundManager, client: OpencodeClient): Record<string, ToolDefinition>;

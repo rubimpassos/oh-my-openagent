@@ -1,4 +1,4 @@
-export { resolveGrepCli, resolveGrepCliWithAutoInstall, type GrepBackend, DEFAULT_RG_THREADS } from "../../shared/ripgrep-cli";
+export { resolveGrepCli, resolveGrepCliWithAutoInstall, type GrepBackend, DEFAULT_RG_THREADS, } from "../../shared/ripgrep-cli";
 export declare const DEFAULT_TIMEOUT_MS = 60000;
 export declare const DEFAULT_LIMIT = 100;
 export declare const DEFAULT_MAX_DEPTH = 20;

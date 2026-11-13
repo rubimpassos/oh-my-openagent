@@ -1,4 +1,5 @@
 import type { CreatedHooks } from "../create-hooks";
+import type { SkillMcpManager } from "../features/skill-mcp-manager";
 type CommandExecuteBeforeInput = {
     command: string;
     sessionID: string;
@@ -16,5 +17,7 @@ export declare function consumeNativeGoalCommandMarker(parts: CommandExecuteBefo
 export declare function createCommandExecuteBeforeHandler(args: {
     directory: string;
     hooks: CreatedHooks;
+    mcpManager?: SkillMcpManager;
+    notify?: (message: string) => void;
 }): (input: CommandExecuteBeforeInput, output: CommandExecuteBeforeOutput) => Promise<void>;
 export {};

@@ -24,5 +24,8 @@ export type OpenCodeStartupMigrationResult = {
     readonly reloadRequired: boolean;
     readonly results: readonly MigrationRunResult[];
     readonly skippedConflictCount: number;
+    /** Every pre-write copy of an existing target this run kept, including one a resumed journal kept. */
+    readonly targetBackupPaths: readonly string[];
+    readonly resumedTargetBackupPath?: string;
 };
 export declare function runOpenCodeStartupMigration(options: OpenCodeStartupMigrationOptions): OpenCodeStartupMigrationResult;

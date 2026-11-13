@@ -18,13 +18,15 @@ var __toESM = (mod, isNodeMode, target) => {
       return cached;
   }
   target = mod != null ? __create(__getProtoOf(mod)) : {};
-  const to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
-  for (let key of __getOwnPropNames(mod))
-    if (!__hasOwnProp.call(to, key))
-      __defProp(to, key, {
-        get: __accessProp.bind(mod, key),
-        enumerable: true
-      });
+  const to = isNodeMode || !mod || !mod.__esModule || !__hasOwnProp.call(mod, "default") ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
+  if (mod && typeof mod === "object" || typeof mod === "function") {
+    for (let key of __getOwnPropNames(mod))
+      if (!__hasOwnProp.call(to, key))
+        __defProp(to, key, {
+          get: __accessProp.bind(mod, key),
+          enumerable: true
+        });
+  }
   if (canCache)
     cache.set(mod, to);
   return to;
@@ -32,7 +34,7 @@ var __toESM = (mod, isNodeMode, target) => {
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
 
 // ../../../node_modules/.bun/picomatch@4.0.7/node_modules/picomatch/lib/constants.js
-var require_constants = __commonJS((exports, module) => {
+var require_constants = __commonJS(function(exports, module) {
   var WIN_SLASH = "\\\\/";
   var WIN_NO_SLASH = `[^${WIN_SLASH}]`;
   var DEFAULT_MAX_EXTGLOB_RECURSION = 0;
@@ -177,7 +179,7 @@ var require_constants = __commonJS((exports, module) => {
 });
 
 // ../../../node_modules/.bun/picomatch@4.0.7/node_modules/picomatch/lib/utils.js
-var require_utils = __commonJS((exports) => {
+var require_utils = __commonJS(function(exports) {
   var {
     REGEX_BACKSLASH,
     REGEX_REMOVE_BACKSLASH,
@@ -240,7 +242,7 @@ var require_utils = __commonJS((exports) => {
 });
 
 // ../../../node_modules/.bun/picomatch@4.0.7/node_modules/picomatch/lib/scan.js
-var require_scan = __commonJS((exports, module) => {
+var require_scan = __commonJS(function(exports, module) {
   var utils = require_utils();
   var {
     CHAR_ASTERISK,
@@ -528,21 +530,21 @@ var require_scan = __commonJS((exports, module) => {
     if (opts.parts === true || opts.tokens === true) {
       let prevIndex;
       for (let idx = 0;idx < slashes.length; idx++) {
-        const n2 = prevIndex !== undefined ? prevIndex + 1 : start;
+        const n = prevIndex !== undefined ? prevIndex + 1 : start;
         const i = slashes[idx];
-        const value2 = input.slice(n2, i);
+        const value = input.slice(n, i);
         if (opts.tokens) {
           if (idx === 0 && start !== 0) {
             tokens[idx].isPrefix = true;
             tokens[idx].value = prefix;
           } else {
-            tokens[idx].value = value2;
+            tokens[idx].value = value;
           }
           depth(tokens[idx]);
           state.maxDepth += tokens[idx].depth;
         }
         if (i >= start) {
-          parts.push(value2);
+          parts.push(value);
           prevIndex = i;
         }
       }
@@ -563,7 +565,7 @@ var require_scan = __commonJS((exports, module) => {
 });
 
 // ../../../node_modules/.bun/picomatch@4.0.7/node_modules/picomatch/lib/parse.js
-var require_parse = __commonJS((exports, module) => {
+var require_parse = __commonJS(function(exports, module) {
   var constants = require_constants();
   var utils = require_utils();
   var {
@@ -750,7 +752,7 @@ var require_parse = __commonJS((exports, module) => {
       if (!match || match.type !== "*") {
         return;
       }
-      const branches = splitTopLevel(match.body).map((branch2) => branch2.trim());
+      const branches = splitTopLevel(match.body).map((branch) => branch.trim());
       if (branches.length !== 1) {
         return;
       }
@@ -843,8 +845,8 @@ var require_parse = __commonJS((exports, module) => {
       STAR,
       START_ANCHOR
     } = PLATFORM_CHARS;
-    const globstar = (opts2) => {
-      return `(${capture}(?:(?!${START_ANCHOR}${opts2.dot ? DOTS_SLASH : DOT_LITERAL}).)*?)`;
+    const globstar = (opts) => {
+      return `(${capture}(?:(?!${START_ANCHOR}${opts.dot ? DOTS_SLASH : DOT_LITERAL}).)*?)`;
     };
     const nodot = opts.dot ? "" : NO_DOT;
     const qmarkNoDot = opts.dot ? QMARK : QMARK_NO_DOT;
@@ -883,8 +885,8 @@ var require_parse = __commonJS((exports, module) => {
     const peek = state.peek = (n = 1) => input[state.index + n];
     const advance = state.advance = () => input[++state.index] || "";
     const remaining = () => input.slice(state.index + 1);
-    const consume = (value2 = "", num = 0) => {
-      state.consumed += value2;
+    const consume = (value = "", num = 0) => {
+      state.consumed += value;
       state.index += num;
     };
     const append = (token) => {
@@ -939,8 +941,8 @@ var require_parse = __commonJS((exports, module) => {
       tokens.push(tok);
       prev = tok;
     };
-    const extglobOpen = (type, value2) => {
-      const token = { ...EXTGLOB_CHARS[value2], conditions: 1, inner: "" };
+    const extglobOpen = (type, value) => {
+      const token = { ...EXTGLOB_CHARS[value], conditions: 1, inner: "" };
       token.prev = prev;
       token.parens = state.parens;
       token.output = state.output;
@@ -948,7 +950,7 @@ var require_parse = __commonJS((exports, module) => {
       token.tokensIndex = tokens.length;
       const output = (opts.capture ? "(" : "") + token.open;
       increment("parens");
-      push({ type, value: value2, output: state.output ? "" : ONE_CHAR });
+      push({ type, value, output: state.output ? "" : ONE_CHAR });
       push({ type: "paren", extglob: true, value: advance(), output });
       extglobs.push(token);
     };
@@ -1082,8 +1084,8 @@ var require_parse = __commonJS((exports, module) => {
             if (inner.includes(":")) {
               const idx = prev.value.lastIndexOf("[");
               const pre = prev.value.slice(0, idx);
-              const rest2 = prev.value.slice(idx + 2);
-              const posix = POSIX_REGEX_SOURCE[rest2];
+              const rest = prev.value.slice(idx + 2);
+              const posix = POSIX_REGEX_SOURCE[rest];
               if (posix) {
                 prev.value = pre + posix;
                 state.backtrack = true;
@@ -1538,10 +1540,10 @@ var require_parse = __commonJS((exports, module) => {
     if (opts.capture) {
       star = `(${star})`;
     }
-    const globstar = (opts2) => {
-      if (opts2.noglobstar === true)
+    const globstar = (opts) => {
+      if (opts.noglobstar === true)
         return star;
-      return `(${capture}(?:(?!${START_ANCHOR}${opts2.dot ? DOTS_SLASH : DOT_LITERAL}).)*?)`;
+      return `(${capture}(?:(?!${START_ANCHOR}${opts.dot ? DOTS_SLASH : DOT_LITERAL}).)*?)`;
     };
     const create = (str) => {
       switch (str) {
@@ -1565,10 +1567,10 @@ var require_parse = __commonJS((exports, module) => {
           const match = /^(.*?)\.(\w+)$/.exec(str);
           if (!match)
             return;
-          const source2 = create(match[1]);
-          if (!source2)
+          const source = create(match[1]);
+          if (!source)
             return;
-          return source2 + DOT_LITERAL + match[2];
+          return source + DOT_LITERAL + match[2];
         }
       }
     };
@@ -1583,7 +1585,7 @@ var require_parse = __commonJS((exports, module) => {
 });
 
 // ../../../node_modules/.bun/picomatch@4.0.7/node_modules/picomatch/lib/picomatch.js
-var require_picomatch = __commonJS((exports, module) => {
+var require_picomatch = __commonJS(function(exports, module) {
   var scan = require_scan();
   var parse = require_parse();
   var utils = require_utils();
@@ -1594,9 +1596,9 @@ var require_picomatch = __commonJS((exports, module) => {
       const fns = glob.map((input) => picomatch(input, options, returnState));
       const arrayMatcher = (str) => {
         for (const isMatch of fns) {
-          const state2 = isMatch(str);
-          if (state2)
-            return state2;
+          const state = isMatch(str);
+          if (state)
+            return state;
         }
         return false;
       };
@@ -1723,7 +1725,7 @@ var require_picomatch = __commonJS((exports, module) => {
 });
 
 // ../../../node_modules/.bun/picomatch@4.0.7/node_modules/picomatch/index.js
-var require_picomatch2 = __commonJS((exports, module) => {
+var require_picomatch2 = __commonJS(function(exports, module) {
   var pico = require_picomatch();
   var utils = require_utils();
   function picomatch(glob, options, returnState = false) {
@@ -4547,7 +4549,7 @@ function isRecord5(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function readStdin() {
-  return new Promise((resolve11, reject) => {
+  return new Promise((resolve, reject) => {
     let data = "";
     processStdin.setEncoding("utf8");
     processStdin.on("data", (chunk) => {
@@ -4556,7 +4558,7 @@ function readStdin() {
     processStdin.once("error", reject);
     processStdin.once("end", () => {
       processStdin.pause();
-      resolve11(data);
+      resolve(data);
     });
     processStdin.resume();
   });
@@ -4564,13 +4566,13 @@ function readStdin() {
 function writeStdout(output) {
   if (output.length === 0)
     return Promise.resolve();
-  return new Promise((resolve11, reject) => {
+  return new Promise((resolve, reject) => {
     processStdout.write(output, (error) => {
       if (error) {
         reject(error);
         return;
       }
-      resolve11();
+      resolve();
     });
   });
 }

@@ -5,6 +5,7 @@ export declare const RuntimeFallbackConfigSchema: z.ZodObject<{
     max_fallback_attempts: z.ZodOptional<z.ZodNumber>;
     cooldown_seconds: z.ZodOptional<z.ZodNumber>;
     timeout_seconds: z.ZodOptional<z.ZodNumber>;
+    first_prompt_timeout_seconds: z.ZodOptional<z.ZodNumber>;
     notify_on_fallback: z.ZodOptional<z.ZodBoolean>;
     restore_primary_after_cooldown: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strip>;

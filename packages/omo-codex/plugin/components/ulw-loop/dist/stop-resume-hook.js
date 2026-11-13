@@ -104,7 +104,7 @@ function renderResumeDirective(plan, goal, sessionId) {
     const normalized = normalizeUlwLoopSessionId(sessionId);
     const option = normalized !== null && plan.goalsPath.includes(`/${normalized}/`) ? ` --session-id ${normalized}` : "";
     return [
-        `The ulw-loop run in this session still has unfinished goals (next: ${goal.id} — ${goal.title}).`,
+        `The ulw-loop run in this session still has unfinished goals (next: ${goal.id} - ${goal.title}).`,
         "The turn ended before the loop completed. Resume it now:",
         `1. Run \`omo-agent-toolkit ulw-loop status${option} --json\` to reload the plan, the active goal, and currentAttemptDir.`,
         "2. Continue the active goal's remaining success criteria, recording evidence with record-evidence.",

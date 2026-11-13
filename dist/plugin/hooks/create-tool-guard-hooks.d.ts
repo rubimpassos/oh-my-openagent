@@ -1,7 +1,7 @@
 import type { HookName, OhMyOpenCodeConfig } from "../../config";
 import type { ModelCacheState } from "../../plugin-state";
 import type { PluginContext } from "../types";
-import { createCommentCheckerHooks, createToolOutputTruncatorHook, createDirectoryAgentsInjectorHook, createDirectoryReadmeInjectorHook, createEmptyTaskResponseDetectorHook, createRulesInjectorHook, createTasksTodowriteDisablerHook, createWriteExistingFileGuardHook, createBashFileReadGuardHook, createHashlineReadEnhancerHook, createReadImageResizerHook, createJsonErrorRecoveryHook, createTodoDescriptionOverrideHook, createWebFetchRedirectGuardHook, createTeamToolGating, createFsyncSkipWarningHook, createNotepadWriteGuardHook, createPlanFormatValidatorHook } from "../../hooks";
+import { createCommentCheckerHooks, createToolOutputTruncatorHook, createDirectoryAgentsInjectorHook, createDirectoryReadmeInjectorHook, createEmptyTaskResponseDetectorHook, createRulesInjectorHook, createTasksTodowriteDisablerHook, createWriteExistingFileGuardHook, createBashFileReadGuardHook, createHashlineReadEnhancerHook, createReadImageResizerHook, createJsonErrorRecoveryHook, createTodoDescriptionOverrideHook, createWebFetchRedirectGuardHook, createTeamToolGating, createFsyncSkipWarningHook, createNotepadWriteGuardHook, createPlanFormatValidatorHook, createMomusReviewPersistenceHook } from "../../hooks";
 export type ToolGuardHooks = {
     commentChecker: ReturnType<typeof createCommentCheckerHooks> | null;
     toolOutputTruncator: ReturnType<typeof createToolOutputTruncatorHook> | null;
@@ -21,6 +21,7 @@ export type ToolGuardHooks = {
     teamToolGating: ReturnType<typeof createTeamToolGating> | null;
     notepadWriteGuard: ReturnType<typeof createNotepadWriteGuardHook> | null;
     planFormatValidator: ReturnType<typeof createPlanFormatValidatorHook> | null;
+    momusReviewPersistence: ReturnType<typeof createMomusReviewPersistenceHook> | null;
 };
 export declare function createToolGuardHooks(args: {
     ctx: PluginContext;

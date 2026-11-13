@@ -6,6 +6,12 @@ export declare class ConcurrencyManager {
     constructor(config?: BackgroundTaskConfig);
     getConcurrencyLimit(model: string): number;
     getConcurrencyKey(model: string): string;
+    /**
+     * Non-blocking acquire: takes a slot immediately when one is free.
+     * Returns true when a slot was taken, false when the group is full (in
+     * which case nothing is held and the caller decides whether to queue).
+     */
+    tryAcquire(model: string): boolean;
     acquire(model: string, taskId?: string): Promise<void>;
     release(model: string): void;
     /**

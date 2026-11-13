@@ -146,6 +146,34 @@ function joinPatchLines(lines) {
 `)}
 `;
 }
+// ../../comment-checker-core/src/package-binary.ts
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+var COMMENT_CHECKER_PACKAGE_NAME = "@code-yeongyu/comment-checker";
+function isModuleResolutionMiss(error) {
+  return error instanceof Error || typeof error === "object" && error !== null && "name" in error && error.name === "ResolveMessage";
+}
+function findCommentCheckerPackageBinary(input) {
+  const packageName = input.packageName ?? COMMENT_CHECKER_PACKAGE_NAME;
+  const platformKey = `${input.platform ?? process.platform}-${input.arch ?? process.arch}`;
+  const packageDir = dirname(input.packageJsonPath);
+  const candidates = [
+    resolvePlatformPackageBinary(input.packageJsonPath, `${packageName}-${platformKey}`, input.binaryName),
+    join(packageDir, "vendor", platformKey, input.binaryName),
+    join(packageDir, "bin", input.binaryName)
+  ];
+  return candidates.find((candidate) => candidate !== null && input.existsSync(candidate)) ?? null;
+}
+function resolvePlatformPackageBinary(packageJsonPath, platformPackageName, binaryName) {
+  try {
+    const manifestPath = createRequire(packageJsonPath).resolve(`${platformPackageName}/package.json`);
+    return join(dirname(manifestPath), "bin", binaryName);
+  } catch (error) {
+    if (isModuleResolutionMiss(error))
+      return null;
+    throw error;
+  }
+}
 // components/comment-checker/src/hook-input.ts
 function toHookInput(request, context) {
   return {
@@ -302,8 +330,7 @@ function getContentText(content) {
 // components/comment-checker/src/runner.ts
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
+import { createRequire as createRequire2 } from "node:module";
 var MAX_PROCESS_OUTPUT_BYTES = 64 * 1024;
 async function runCommentChecker2(input, options = {}) {
   const binaryPath = options.binaryPath ?? (options.resolveBinary ? options.resolveBinary() : resolveCommentCheckerBinary2());
@@ -361,7 +388,7 @@ function resolveCommentCheckerBinary2() {
 }
 function resolvePackageApiBinary() {
   try {
-    const require2 = createRequire(import.meta.url);
+    const require2 = createRequire2(import.meta.url);
     const packageExports = require2(commentCheckerPackageName());
     if (!isCommentCheckerPackage(packageExports))
       return;
@@ -373,10 +400,9 @@ function resolvePackageApiBinary() {
 }
 function resolvePackageBinary(binaryName) {
   try {
-    const require2 = createRequire(import.meta.url);
-    const packagePath = require2.resolve(`${commentCheckerPackageName()}/package.json`);
-    const binaryPath = join(dirname(packagePath), "bin", binaryName);
-    return existsSync(binaryPath) ? binaryPath : undefined;
+    const require2 = createRequire2(import.meta.url);
+    const packageJsonPath = require2.resolve(`${commentCheckerPackageName()}/package.json`);
+    return findCommentCheckerPackageBinary({ packageJsonPath, binaryName, existsSync }) ?? undefined;
   } catch {
     return;
   }

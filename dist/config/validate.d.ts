@@ -1,8 +1,10 @@
-import type { OmoConfigEnv } from "@oh-my-opencode/omo-config-core";
+import { type OmoConfigEnv } from "@oh-my-opencode/omo-config-core";
 import { type OhMyOpenCodeConfig } from "./schema";
 export type PluginConfigValidation = {
     readonly valid: boolean;
     readonly messages: readonly string[];
+    /** One line per value that was ignored while the rest of its file still loaded. */
+    readonly warnings: readonly string[];
     readonly path: string | null;
     readonly config: OhMyOpenCodeConfig;
 };

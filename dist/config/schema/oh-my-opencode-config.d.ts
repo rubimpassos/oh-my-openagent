@@ -59,6 +59,10 @@ export declare const OhMyOpenCodeConfigSchema: z.ZodObject<{
                     budgetTokens: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>;
             }, z.core.$strip>]>>>;
+            models_distribution: z.ZodOptional<z.ZodEnum<{
+                round_robin: "round_robin";
+                sequential: "sequential";
+            }>>;
             fallback_models: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>, z.ZodArray<z.ZodObject<{
                 model: z.ZodString;
                 reasoning: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{
@@ -278,6 +282,10 @@ export declare const OhMyOpenCodeConfigSchema: z.ZodObject<{
                     budgetTokens: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>;
             }, z.core.$strip>]>>>;
+            models_distribution: z.ZodOptional<z.ZodEnum<{
+                round_robin: "round_robin";
+                sequential: "sequential";
+            }>>;
             fallback_models: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>, z.ZodArray<z.ZodObject<{
                 model: z.ZodString;
                 reasoning: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{
@@ -497,6 +505,10 @@ export declare const OhMyOpenCodeConfigSchema: z.ZodObject<{
                     budgetTokens: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>;
             }, z.core.$strip>]>>>;
+            models_distribution: z.ZodOptional<z.ZodEnum<{
+                round_robin: "round_robin";
+                sequential: "sequential";
+            }>>;
             fallback_models: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>, z.ZodArray<z.ZodObject<{
                 model: z.ZodString;
                 reasoning: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{
@@ -716,6 +728,10 @@ export declare const OhMyOpenCodeConfigSchema: z.ZodObject<{
                     budgetTokens: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>;
             }, z.core.$strip>]>>>;
+            models_distribution: z.ZodOptional<z.ZodEnum<{
+                round_robin: "round_robin";
+                sequential: "sequential";
+            }>>;
             fallback_models: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>, z.ZodArray<z.ZodObject<{
                 model: z.ZodString;
                 reasoning: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{
@@ -936,6 +952,10 @@ export declare const OhMyOpenCodeConfigSchema: z.ZodObject<{
                     budgetTokens: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>;
             }, z.core.$strip>]>>>;
+            models_distribution: z.ZodOptional<z.ZodEnum<{
+                round_robin: "round_robin";
+                sequential: "sequential";
+            }>>;
             fallback_models: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>, z.ZodArray<z.ZodObject<{
                 model: z.ZodString;
                 reasoning: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{
@@ -1155,6 +1175,10 @@ export declare const OhMyOpenCodeConfigSchema: z.ZodObject<{
                     budgetTokens: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>;
             }, z.core.$strip>]>>>;
+            models_distribution: z.ZodOptional<z.ZodEnum<{
+                round_robin: "round_robin";
+                sequential: "sequential";
+            }>>;
             fallback_models: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>, z.ZodArray<z.ZodObject<{
                 model: z.ZodString;
                 reasoning: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{
@@ -1374,6 +1398,10 @@ export declare const OhMyOpenCodeConfigSchema: z.ZodObject<{
                     budgetTokens: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>;
             }, z.core.$strip>]>>>;
+            models_distribution: z.ZodOptional<z.ZodEnum<{
+                round_robin: "round_robin";
+                sequential: "sequential";
+            }>>;
             fallback_models: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>, z.ZodArray<z.ZodObject<{
                 model: z.ZodString;
                 reasoning: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{
@@ -1593,6 +1621,10 @@ export declare const OhMyOpenCodeConfigSchema: z.ZodObject<{
                     budgetTokens: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>;
             }, z.core.$strip>]>>>;
+            models_distribution: z.ZodOptional<z.ZodEnum<{
+                round_robin: "round_robin";
+                sequential: "sequential";
+            }>>;
             fallback_models: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>, z.ZodArray<z.ZodObject<{
                 model: z.ZodString;
                 reasoning: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{
@@ -1812,6 +1844,10 @@ export declare const OhMyOpenCodeConfigSchema: z.ZodObject<{
                     budgetTokens: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>;
             }, z.core.$strip>]>>>;
+            models_distribution: z.ZodOptional<z.ZodEnum<{
+                round_robin: "round_robin";
+                sequential: "sequential";
+            }>>;
             fallback_models: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>, z.ZodArray<z.ZodObject<{
                 model: z.ZodString;
                 reasoning: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{
@@ -2031,6 +2067,10 @@ export declare const OhMyOpenCodeConfigSchema: z.ZodObject<{
                     budgetTokens: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>;
             }, z.core.$strip>]>>>;
+            models_distribution: z.ZodOptional<z.ZodEnum<{
+                round_robin: "round_robin";
+                sequential: "sequential";
+            }>>;
             fallback_models: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>, z.ZodArray<z.ZodObject<{
                 model: z.ZodString;
                 reasoning: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{
@@ -2250,6 +2290,10 @@ export declare const OhMyOpenCodeConfigSchema: z.ZodObject<{
                     budgetTokens: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>;
             }, z.core.$strip>]>>>;
+            models_distribution: z.ZodOptional<z.ZodEnum<{
+                round_robin: "round_robin";
+                sequential: "sequential";
+            }>>;
             fallback_models: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>, z.ZodArray<z.ZodObject<{
                 model: z.ZodString;
                 reasoning: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{
@@ -2469,6 +2513,10 @@ export declare const OhMyOpenCodeConfigSchema: z.ZodObject<{
                     budgetTokens: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>;
             }, z.core.$strip>]>>>;
+            models_distribution: z.ZodOptional<z.ZodEnum<{
+                round_robin: "round_robin";
+                sequential: "sequential";
+            }>>;
             fallback_models: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>, z.ZodArray<z.ZodObject<{
                 model: z.ZodString;
                 reasoning: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{
@@ -2688,6 +2736,10 @@ export declare const OhMyOpenCodeConfigSchema: z.ZodObject<{
                     budgetTokens: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>;
             }, z.core.$strip>]>>>;
+            models_distribution: z.ZodOptional<z.ZodEnum<{
+                round_robin: "round_robin";
+                sequential: "sequential";
+            }>>;
             fallback_models: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>, z.ZodArray<z.ZodObject<{
                 model: z.ZodString;
                 reasoning: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{
@@ -2907,6 +2959,10 @@ export declare const OhMyOpenCodeConfigSchema: z.ZodObject<{
                     budgetTokens: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>;
             }, z.core.$strip>]>>>;
+            models_distribution: z.ZodOptional<z.ZodEnum<{
+                round_robin: "round_robin";
+                sequential: "sequential";
+            }>>;
             fallback_models: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>, z.ZodArray<z.ZodObject<{
                 model: z.ZodString;
                 reasoning: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{
@@ -3126,6 +3182,10 @@ export declare const OhMyOpenCodeConfigSchema: z.ZodObject<{
                 budgetTokens: z.ZodOptional<z.ZodNumber>;
             }, z.core.$strip>>;
         }, z.core.$strip>]>>>;
+        models_distribution: z.ZodOptional<z.ZodEnum<{
+            round_robin: "round_robin";
+            sequential: "sequential";
+        }>>;
         fallback_models: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>, z.ZodArray<z.ZodObject<{
             model: z.ZodString;
             reasoning: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{
@@ -3346,6 +3406,10 @@ export declare const OhMyOpenCodeConfigSchema: z.ZodObject<{
                 budgetTokens: z.ZodOptional<z.ZodNumber>;
             }, z.core.$strip>>;
         }, z.core.$strip>]>>>;
+        models_distribution: z.ZodOptional<z.ZodEnum<{
+            round_robin: "round_robin";
+            sequential: "sequential";
+        }>>;
         fallback_models: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>, z.ZodArray<z.ZodObject<{
             model: z.ZodString;
             reasoning: z.ZodOptional<z.ZodUnion<readonly [z.ZodEnum<{
@@ -3549,6 +3613,7 @@ export declare const OhMyOpenCodeConfigSchema: z.ZodObject<{
         max_fallback_attempts: z.ZodOptional<z.ZodNumber>;
         cooldown_seconds: z.ZodOptional<z.ZodNumber>;
         timeout_seconds: z.ZodOptional<z.ZodNumber>;
+        first_prompt_timeout_seconds: z.ZodOptional<z.ZodNumber>;
         notify_on_fallback: z.ZodOptional<z.ZodBoolean>;
         restore_primary_after_cooldown: z.ZodOptional<z.ZodBoolean>;
     }, z.core.$strip>]>>;

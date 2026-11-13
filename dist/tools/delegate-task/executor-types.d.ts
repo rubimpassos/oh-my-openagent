@@ -12,6 +12,7 @@ export interface ExecutorContext {
     browserProvider?: BrowserAutomationProvider;
     agentOverrides?: AgentOverrides;
     sisyphusAgentConfig?: SisyphusAgentConfig;
+    claudeCodeAgentsEnabled?: boolean;
     modelFallbackControllerAccessor?: ModelFallbackControllerAccessor;
     onSyncSessionCreated?: (event: {
         sessionID: string;
@@ -19,6 +20,7 @@ export interface ExecutorContext {
         title: string;
     }) => Promise<void>;
     syncPollTimeoutMs?: number;
+    taskCleanupDelayMs?: number;
 }
 export interface ParentContext {
     sessionID: string;

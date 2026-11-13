@@ -6,9 +6,9 @@ export function sessionIdFrom(input) {
 }
 export function readLspPostEditCache(sessionId) {
     if (sessionId === undefined)
-        return { notConfiguredExtensions: new Set() };
+        return { notConfiguredExtensions: new Set(), notInstalledServers: new Set() };
     const state = readSessionState(sessionStatePath(sessionId));
-    return { notConfiguredExtensions: new Set(state.notConfiguredExtensions) };
+    return { notConfiguredExtensions: new Set(state.notConfiguredExtensions), notInstalledServers: new Set() };
 }
 export function writeLspPostEditCache(sessionId, cache) {
     if (sessionId === undefined)

@@ -62,6 +62,7 @@ export declare class BackgroundManager {
     private processingKeys;
     private completionTimers;
     private readonly syncAttachedSessions;
+    private readonly resumesAwaitingAdmission;
     private completedTaskArchive;
     private completedTaskSummaries;
     private idleDeferralTimers;
@@ -165,6 +166,7 @@ export declare class BackgroundManager {
         concurrencyKey?: string;
     }): Promise<BackgroundTask>;
     resume(input: ResumeInput): Promise<BackgroundTask>;
+    private startResumedTask;
     private checkSessionTodos;
     private markSessionOutputObserved;
     private clearDispatchedParentWake;
@@ -177,6 +179,7 @@ export declare class BackgroundManager {
     handleEvent(event: Event): void;
     private interruptTaskFromAsyncPromptFailure;
     private handleSessionErrorEvent;
+    private recoverDeclinedSessionError;
     private tryFallbackRetry;
     markForNotification(task: BackgroundTask): void;
     getPendingNotifications(sessionID: string): BackgroundTask[];
@@ -194,6 +197,7 @@ export declare class BackgroundManager {
      * Prevents premature completion when session.idle fires before agent responds.
      */
     private validateSessionHasOutput;
+    private readStoppedSessionError;
     private clearNotificationsForTask;
     /**
      * Remove task from pending tracking for its parent session.

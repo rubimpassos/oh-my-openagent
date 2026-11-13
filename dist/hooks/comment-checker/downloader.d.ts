@@ -9,7 +9,9 @@ export declare function getCacheDir(): string;
  */
 export declare function getBinaryName(): string;
 /**
- * Get the cached binary path if it exists.
+ * Get the cached binary path if it exists and was recorded at the pinned release. The slot is shared
+ * with the OmO Native edition and carries no version in its name, so an unrecorded or older binary is
+ * left for the downloader to replace (#8850).
  */
 export declare function getCachedBinaryPath(): string | null;
 /**

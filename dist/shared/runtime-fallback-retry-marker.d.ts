@@ -1,4 +1,5 @@
 export declare const OMO_RUNTIME_FALLBACK_RETRY_MARKER = "<!-- OMO_RUNTIME_FALLBACK_RETRY -->";
+export declare const RUNTIME_FALLBACK_RETRY_CONTINUATION_TEXT = "continue";
 type RuntimeFallbackRetryTextPartLike = {
     type?: string;
     text?: string;
@@ -13,4 +14,5 @@ export declare function createRuntimeFallbackRetryTextPart(text: string): {
     text: string;
 };
 export declare function isRuntimeFallbackRetryTextParts(parts: readonly RuntimeFallbackRetryTextPartLike[] | undefined): boolean;
+export declare function hasSubstantivePromptText(parts: unknown): boolean;
 export {};

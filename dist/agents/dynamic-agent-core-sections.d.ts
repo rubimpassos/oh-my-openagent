@@ -13,6 +13,5 @@ export declare function buildExploreSection(agents: AvailableAgent[]): string;
 export declare function buildLibrarianSection(agents: AvailableAgent[]): string;
 export declare function buildDelegationTable(agents: AvailableAgent[]): string;
 export declare function buildOracleSection(agents: AvailableAgent[]): string;
-export declare function buildFrontendGuidanceSection(categories: AvailableCategory[]): string;
 export declare function buildNonClaudePlannerSection(model: string): string;
 export declare function buildParallelDelegationSection(model: string, categories: AvailableCategory[]): string;

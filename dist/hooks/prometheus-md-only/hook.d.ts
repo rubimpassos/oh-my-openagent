@@ -1,4 +1,8 @@
 import type { PluginInput } from "@opencode-ai/plugin";
+export interface PrometheusExecutionArguments {
+    readonly original: Record<string, unknown>;
+    approved?: Record<string, unknown>;
+}
 export declare function createPrometheusMdOnlyHook(ctx: PluginInput): {
     "tool.execute.before": (input: {
         tool: string;
@@ -7,5 +11,5 @@ export declare function createPrometheusMdOnlyHook(ctx: PluginInput): {
     }, output: {
         args: Record<string, unknown>;
         message?: string;
-    }) => Promise<void>;
+    }, execution: PrometheusExecutionArguments) => Promise<void>;
 };

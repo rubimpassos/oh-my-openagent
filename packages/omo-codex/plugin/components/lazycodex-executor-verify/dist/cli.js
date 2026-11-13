@@ -222,13 +222,13 @@ function parseHookInput(raw) {
   }
 }
 function readStdin() {
-  return new Promise((resolve2) => {
+  return new Promise((resolve) => {
     let data = "";
     processStdin.setEncoding("utf8");
     processStdin.on("data", (chunk) => {
       data += chunk;
     });
-    processStdin.once("error", () => resolve2(data));
-    processStdin.once("end", () => resolve2(data));
+    processStdin.once("error", () => resolve(data));
+    processStdin.once("end", () => resolve(data));
   });
 }

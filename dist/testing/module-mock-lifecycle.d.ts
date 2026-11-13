@@ -13,7 +13,7 @@ type ModuleLoadResult = {
 type ModuleMockLifecycleOptions = {
     getCallerUrl?: () => string;
     resolveSpecifier?: (specifier: string, callerUrl: string) => string;
-    loadOriginalModule?: (specifier: string, callerUrl: string) => ModuleLoadResult;
+    loadUnmockedModule?: (specifier: string, callerUrl: string) => ModuleLoadResult;
     shouldPreserveActiveMocksOnRestore?: () => boolean;
     registerGlobalRestore?: boolean;
 };

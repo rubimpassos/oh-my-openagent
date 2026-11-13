@@ -14,9 +14,10 @@ var TODO_HEADING_PATTERN = /^##[ \t]+TODOs(?:[ \t]+#+)?[ \t]*$/i;
 var FINAL_VERIFICATION_HEADING_PATTERN = /^##[ \t]+Final Verification Wave(?:[ \t]+#+)?[ \t]*$/i;
 var SECTION_BOUNDARY_HEADING_PATTERN = /^#{1,2}(?:[ \t]+|$)/;
 var FENCE_PATTERN = /^[ \t]{0,3}(`{3,}|~{3,})(.*)$/;
-var SIMPLE_CHECKBOX_PATTERN = /^[-*][ \t]*\[[ \t]*([xX]?)[ \t]*\][ \t]+(.+)$/;
-var TODO_CHECKBOX_PATTERN = /^- \[([ xX])\] ([1-9]\d*\. .+)$/;
-var FINAL_WAVE_CHECKBOX_PATTERN = /^- \[([ xX])\] (F[1-9]\d*\. .+)$/i;
+var SIMPLE_CHECKBOX_PATTERN = /^[-*][ \t]*\[[ \t]*([xX~]?)[ \t]*\][ \t]+(.+)$/;
+var STRUCTURED_CHECKBOX_PATTERN = /^- \[([ xX~])\] (.+)$/;
+var TODO_TASK_LABEL_PATTERN = /^([1-9]\d*|T[1-9]\d*(?:\.[1-9]\d*[a-z]?)?)(?:\.[ \t]+|[ \t]+(?:[-\u2014][ \t]+)?)(.+)$/i;
+var FINAL_WAVE_TASK_LABEL_PATTERN = /^([FH][1-9]\d*(?:\.[1-9]\d*[a-z]?)?)(?:\.[ \t]+|[ \t]+(?:[-\u2014][ \t]+)?)(.+)$/i;
 function getPlanChecklist(planPath) {
   if (!existsSync(planPath))
     return emptyChecklist();
@@ -32,9 +33,8 @@ function parsePlanChecklist(markdown) {
   const lines = markdown.split(/\r?\n/);
   if (!hasStructuredSection(lines))
     return parseSimpleChecklist(lines);
-  let completed = 0;
-  let remaining = 0;
-  let nextTaskLabel = null;
+  const counter = emptyCounter();
+  let hasUntrackedTopLevelCheckbox = false;
   let section = "other";
   let fence = null;
   for (const line of lines) {
@@ -52,19 +52,30 @@ function parsePlanChecklist(markdown) {
       section = parseStructuredSectionHeading(line);
       continue;
     }
-    if (section === "other")
+    if (section === "other") {
+      if (parseSimpleTopLevelCheckbox(line) !== null)
+        hasUntrackedTopLevelCheckbox = true;
       continue;
-    const checkbox = parseStructuredCheckbox(line, section);
-    if (checkbox === null)
-      continue;
-    if (checkbox.checked)
-      completed += 1;
-    else {
-      remaining += 1;
-      nextTaskLabel = nextTaskLabel ?? checkbox.label;
     }
+    const checkbox = parseStructuredCheckbox(line, section);
+    if (checkbox !== null)
+      countCheckbox(counter, checkbox);
   }
-  return { completed, remaining, total: completed + remaining, nextTaskLabel };
+  if (counter.total === 0 && hasUntrackedTopLevelCheckbox)
+    return parseSimpleChecklist(lines);
+  return { ...counter };
+}
+function emptyCounter() {
+  return { completed: 0, remaining: 0, total: 0, nextTaskLabel: null };
+}
+function countCheckbox(counter, checkbox) {
+  counter.total += 1;
+  if (checkbox.status === "done")
+    counter.completed += 1;
+  else if (checkbox.status === "open") {
+    counter.remaining += 1;
+    counter.nextTaskLabel = counter.nextTaskLabel ?? checkbox.label;
+  }
 }
 function hasStructuredSection(lines) {
   let fence = null;
@@ -85,9 +96,7 @@ function hasStructuredSection(lines) {
   return false;
 }
 function parseSimpleChecklist(lines) {
-  let completed = 0;
-  let remaining = 0;
-  let nextTaskLabel = null;
+  const counter = emptyCounter();
   let fence = null;
   for (const line of lines) {
     if (fence !== null) {
@@ -101,16 +110,10 @@ function parseSimpleChecklist(lines) {
       continue;
     }
     const checkbox = parseSimpleTopLevelCheckbox(line);
-    if (checkbox === null)
-      continue;
-    if (checkbox.checked)
-      completed += 1;
-    else {
-      remaining += 1;
-      nextTaskLabel = nextTaskLabel ?? checkbox.label;
-    }
+    if (checkbox !== null)
+      countCheckbox(counter, checkbox);
   }
-  return { completed, remaining, total: completed + remaining, nextTaskLabel };
+  return { ...counter };
 }
 function parseStructuredSectionHeading(line) {
   if (TODO_HEADING_PATTERN.test(line))
@@ -120,13 +123,15 @@ function parseStructuredSectionHeading(line) {
   return "other";
 }
 function parseStructuredCheckbox(line, section) {
-  const pattern = section === "todo" ? TODO_CHECKBOX_PATTERN : FINAL_WAVE_CHECKBOX_PATTERN;
-  const match = line.match(pattern);
+  const match = line.match(STRUCTURED_CHECKBOX_PATTERN);
   const marker = match?.[1];
   const label = match?.[2];
   if (marker === undefined || label === undefined)
     return null;
-  return { checked: marker.toLowerCase() === "x", label };
+  const labelPattern = section === "todo" ? TODO_TASK_LABEL_PATTERN : FINAL_WAVE_TASK_LABEL_PATTERN;
+  if (!labelPattern.test(label))
+    return null;
+  return { status: parseCheckboxStatus(marker), label };
 }
 function parseSimpleTopLevelCheckbox(line) {
   const match = line.match(SIMPLE_CHECKBOX_PATTERN);
@@ -134,7 +139,12 @@ function parseSimpleTopLevelCheckbox(line) {
   const label = match?.[2];
   if (marker === undefined || label === undefined)
     return null;
-  return { checked: marker.toLowerCase() === "x", label };
+  return { status: parseCheckboxStatus(marker), label };
+}
+function parseCheckboxStatus(marker) {
+  if (marker.toLowerCase() === "x")
+    return "done";
+  return marker === "~" ? "in-progress" : "open";
 }
 function parseOpeningFence(line) {
   const match = line.match(FENCE_PATTERN);
@@ -422,13 +432,13 @@ function parseHookInput(raw) {
   }
 }
 function readStdin() {
-  return new Promise((resolve2) => {
+  return new Promise((resolve) => {
     let data = "";
     processStdin.setEncoding("utf8");
     processStdin.on("data", (chunk) => {
       data += chunk;
     });
-    processStdin.once("error", () => resolve2(data));
-    processStdin.once("end", () => resolve2(data));
+    processStdin.once("error", () => resolve(data));
+    processStdin.once("end", () => resolve(data));
   });
 }

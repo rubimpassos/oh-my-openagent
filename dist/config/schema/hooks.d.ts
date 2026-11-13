@@ -27,6 +27,7 @@ export declare const HookNameSchema: z.ZodEnum<{
     "keyword-detector": "keyword-detector";
     "legacy-plugin-toast": "legacy-plugin-toast";
     "model-fallback": "model-fallback";
+    "momus-review-persistence": "momus-review-persistence";
     "monitor-status-injector": "monitor-status-injector";
     "native-edition-nudge": "native-edition-nudge";
     "no-hephaestus-non-gpt": "no-hephaestus-non-gpt";

@@ -22,7 +22,7 @@ Codex exposes ONE of two subagent tool surfaces per session; check your own tool
 
 When translating `load_skills=[...]`, include the requested skill names in the spawned agent's `message`. If a code block below conflicts with this section, this section wins.
 
-Omit optional keys you do not set. Never send `items: []`, `message: ""`, `model: ""`, `reasoning_effort: ""`, or `service_tier: ""` — Codex rejects them (`Items can't be empty`, `reasoning_effort must not be empty`).
+Omit optional keys you do not set. Never send `items: []`, `message: ""`, `model: ""`, `reasoning_effort: ""`, or `service_tier: ""`. Codex rejects them (`Items can't be empty`, `reasoning_effort must not be empty`).
 
 For work likely to exceed one wait cycle, require the child to send `WORKING: <task> - <current phase>` before long passes and `BLOCKED: <reason>` only when progress stops. A `multi_agent_v1.wait_agent` timeout only means no new mailbox update arrived; back off between waits (double the timeout up to ~5 minutes) instead of spinning short cycles. Treat a running child as alive. Fallback only when the child is completed without the deliverable, ack-only after followup, explicitly `BLOCKED:`, or no longer running.
 
@@ -87,7 +87,7 @@ compaction, re-read that record and require the exact lane/SHA pair. Memory,
 chat history, or an unstamped report is not coverage; a new commit requires
 fresh applicable lane records.
 
-A rejecting lane must name its blockers inline in its final message — each
+A rejecting lane must name its blockers inline in its final message; each
 blocker cites the violated goal criterion or requirement plus an evidence
 pointer. A bare REJECT/FAIL token without findings is not a verdict; treat it
 as an inconclusive lane (one bounded respawn, then record it inconclusive with
@@ -163,7 +163,7 @@ For GOAL, CONSTRAINTS, BACKGROUND - review the full conversation history. The us
 
 ## Phase 1: Manual QA (you run it)
 
-You are the QA lane. Do not delegate hands-on QA to a sub-agent: the orchestrator owns the real-surface proof, exactly as the ulw-loop final gate records `manualQa` under the main session.
+You are the QA lane. Do not delegate hands-on QA to a sub-agent: the orchestrator owns the real-surface proof, exactly as the ulw-loop final gate records `manualQa` under the main session. One exception: inside a `ulw-execute` run, whose root never runs QA itself, dispatch these scenarios to one QA worker and build the matrix from the artifacts it captures.
 
 1. **Reuse first.** If this session already captured real-surface evidence for the FINAL tree (an ultrawork or ulw-loop evidence directory, a `visual-qa` verdict on this same build), consume it as QA rows instead of re-running. A fix committed after a capture stales that capture: re-run the rows it covered.
 2. **Pick the channel that faithfully exercises the surface** and capture the artifact:
@@ -282,7 +282,7 @@ Store the lane verdicts independently:
 | Manual QA (Phase 1) | PASS/FAIL | rows, artifact paths |
 | Gate review | pending/APPROVE/REJECT/INCONCLUSIVE | - |
 
-If the reviewer stays silent after the reliability followup, record the lane INCONCLUSIVE and respawn one smaller reviewer scoped to the same inputs. If that retry also ends without a verdict, close the still-running agent if safe, keep the lane INCONCLUSIVE, and emit the final result naming the incomplete lane. Do not spin in repeated wait/followup cycles, and do not use a queued followup as a cancellation.
+If the reviewer ends without a verdict (it completed without one, answered ack-only to one follow-up, or reported `BLOCKED:`), record the lane INCONCLUSIVE and respawn one smaller reviewer scoped to the same inputs. A reviewer that is still running is alive, not silent. If that retry also ends without a verdict, close the still-running agent if safe, keep the lane INCONCLUSIVE, and emit the final result naming the incomplete lane. Do not spin in repeated wait/followup cycles, and do not use a queued followup as a cancellation.
 
 After the lane reaches a terminal state and before delivering the verdict, tear down the review worktree: run `git worktree unlock <path>` followed by `git worktree remove <path>`. The reviewer runs inside that worktree, so removing it earlier destroys its working directory; a crashed review leaves the locked tree as a recoverable marker for manual cleanup.
 

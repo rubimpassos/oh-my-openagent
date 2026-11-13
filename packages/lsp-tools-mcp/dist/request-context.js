@@ -5,18 +5,17 @@ import { homedir } from "node:os";
 import { basename, delimiter, dirname, isAbsolute, join, relative, resolve } from "node:path";
 
 class LspRequestContextParseError extends Error {
-  code;
-  name = "LspRequestContextParseError";
   constructor(code, message) {
     super(message);
     this.code = code;
+    this.name = "LspRequestContextParseError";
   }
 }
 
 class LspRequestContextUnavailableError extends Error {
-  name = "LspRequestContextUnavailableError";
   constructor() {
     super("LSP request context is required. Standalone MCP startup must install one with runWithRequestContext(createStandaloneMcpRequestContext()).");
+    this.name = "LspRequestContextUnavailableError";
   }
 }
 var storage = new AsyncLocalStorage;
@@ -177,14 +176,14 @@ function errorCode(error) {
   return typeof code === "string" ? code : undefined;
 }
 export {
-  runWithRequestContext,
-  parseLspRequestContext,
-  lspRequestContext,
-  isPathInside,
-  createStandaloneMcpRequestContext,
-  contextEnv,
-  contextCwd,
-  canonicalizeExistingOrNearestAncestor,
+  LspRequestContextParseError,
   LspRequestContextUnavailableError,
-  LspRequestContextParseError
+  canonicalizeExistingOrNearestAncestor,
+  contextCwd,
+  contextEnv,
+  createStandaloneMcpRequestContext,
+  isPathInside,
+  lspRequestContext,
+  parseLspRequestContext,
+  runWithRequestContext
 };

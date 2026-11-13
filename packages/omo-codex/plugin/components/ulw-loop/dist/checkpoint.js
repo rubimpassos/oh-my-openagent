@@ -188,7 +188,7 @@ export async function checkpointUlwLoop(repoRoot, args, scope, dependencies) {
         if (aggregateCompletion !== undefined)
             plan.aggregateCompletion = aggregateCompletion;
         if (aggregateCompletion !== undefined)
-            nextActions = [...nextActions, 'aggregate complete — now update_goal({status:"complete"})'];
+            nextActions = [...nextActions, 'aggregate complete: now update_goal({status:"complete"})'];
         plan.updatedAt = now;
         const ledgerEntry = buildLedger(now, args, goal, qualityGate, codexGoal, aggregateCompletion);
         const entries = [ledgerEntry];

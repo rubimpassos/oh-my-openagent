@@ -19,6 +19,12 @@ export type SisyphusRuntimePromptContext = {
 export declare function setSisyphusRuntimePromptContext(ctx: SisyphusRuntimePromptContext): void;
 export declare function clearSisyphusRuntimePromptContext(): void;
 /**
+ * The plugin's config hook rewrites registered prompts after registration (Native frame tool snippets and
+ * permission rules). When `registered` is the baked Sisyphus prompt, track the rewritten prompt instead and
+ * apply the same rewrite to every rebuild, so the runtime swap still finds the prompt opencode sends.
+ */
+export declare function rebaseSisyphusRuntimePrompt(registered: string, rewritten: string, rewrite: (prompt: string) => string): void;
+/**
  * The Sisyphus prompt body is baked at registration from the *configured* model
  * in `.omo/omo.jsonc`. When the user switches to a different model in
  * the TUI, the baked body may be wrong for the runtime model

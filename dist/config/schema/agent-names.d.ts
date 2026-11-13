@@ -17,6 +17,7 @@ export declare const BuiltinSkillNameSchema: z.ZodEnum<{
     "dev-browser": "dev-browser";
     frontend: "frontend";
     "git-master": "git-master";
+    hyperplan: "hyperplan";
     "init-deep": "init-deep";
     playwright: "playwright";
     "remove-ai-slops": "remove-ai-slops";

@@ -8,7 +8,10 @@ export declare function pruneStaleTasksAndNotifications(args: {
     notifications: Map<string, BackgroundTask[]>;
     onTaskPruned: (taskId: string, task: BackgroundTask, errorMessage: string) => void;
     taskTtlMs?: number;
+    taskCleanupDelayMs?: number;
     sessionStatuses?: SessionStatusMap;
+    hasPendingRemovalTimer?: (taskId: string) => boolean;
+    hasAttachedSyncSession?: (sessionID: string) => boolean;
 }): void;
 export type SessionStatusMap = Record<string, {
     type: string;

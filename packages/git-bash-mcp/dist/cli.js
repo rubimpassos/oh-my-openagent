@@ -390,7 +390,7 @@ function isKnownNonGitBashLauncher(path) {
 }
 function whereCommand(command) {
   try {
-    return execFileSync("where", [command], { encoding: "utf8" }).split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0);
+    return execFileSync("where", [command], { encoding: "utf8", windowsHide: true }).split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0);
   } catch (error) {
     if (error instanceof Error)
       return [];

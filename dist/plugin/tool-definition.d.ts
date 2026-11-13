@@ -1,6 +1,7 @@
 import type { CreatedHooks } from "../create-hooks";
 export declare function createToolDefinitionHandler(args: {
     hooks: CreatedHooks;
+    onDefinition?: (name: string, description: string) => void;
 }): (input: {
     toolID: string;
 }, output: {

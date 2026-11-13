@@ -14,6 +14,7 @@ export declare class TaskHistory {
     record(parentSessionID: string | undefined, entry: TaskHistoryEntry): void;
     getByParentSession(parentSessionID: string): TaskHistoryEntry[];
     clearSession(parentSessionID: string): void;
+    restoreEntry(parentSessionID: string, taskID: string, entry: TaskHistoryEntry | undefined): void;
     clearAll(): void;
     formatForCompaction(parentSessionID: string): string | null;
 }

@@ -7,4 +7,5 @@ export declare function handleGoalMessage(args: {
     readonly isFirstMessage: boolean;
     readonly pluginConfig: OhMyOpenCodeConfig;
     readonly nativeGoalCommand: boolean;
+    readonly originalPromptText?: string;
 }): void;

@@ -3,6 +3,7 @@ import type { OhMyOpenCodeConfig } from "../config";
 import type { BrowserAutomationProvider } from "../config/schema/browser-automation";
 import type { LoadedSkill } from "../features/opencode-skill-loader/types";
 import { collectDisabledSkillAliases } from "../features/opencode-skill-loader";
+import { type SkillDiagnosticSink } from "@oh-my-opencode/skills-loader-core/opencode-skill-loader/skill-provenance";
 export type SkillContext = {
     mergedSkills: LoadedSkill[];
     availableSkills: AvailableSkill[];
@@ -22,4 +23,5 @@ export declare function createSkillContext(args: {
         paths?: string[];
         urls?: string[];
     };
+    onDiagnostic?: SkillDiagnosticSink;
 }): Promise<SkillContext>;

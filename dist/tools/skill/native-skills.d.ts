@@ -7,6 +7,6 @@ export type NativeSkillEntry = {
     content: string;
 };
 export declare function loadedSkillToInfo(skill: LoadedSkill): SkillInfo;
-export declare function mergeNativeSkills(skills: LoadedSkill[], nativeSkills: NativeSkillEntry[], disabledSkills?: ReadonlySet<string>): void;
-export declare function mergeNativeSkillInfos(skillInfos: SkillInfo[], nativeSkills: NativeSkillEntry[], disabledSkills?: ReadonlySet<string>): void;
+export declare function mergeNativeSkills(skills: LoadedSkill[], nativeSkills: NativeSkillEntry[], disabledSkills?: ReadonlySet<string>, directory?: string, onRejected?: (name: string, error: Error) => void): void;
+export declare function mergeNativeSkillInfos(skillInfos: SkillInfo[], nativeSkills: NativeSkillEntry[], disabledSkills?: ReadonlySet<string>, directory?: string, onRejected?: (name: string, error: Error) => void): void;
 export declare function isPromiseLike<TValue>(value: TValue | Promise<TValue>): value is Promise<TValue>;

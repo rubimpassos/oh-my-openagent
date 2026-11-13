@@ -9,3 +9,6 @@ export interface RunAgentDisplayNameConfig {
     } | undefined>>;
 }
 export declare function resolveRunnableRunAgent(client: RunAgentListClient, resolvedAgent: string, config?: RunAgentDisplayNameConfig): Promise<string>;
+export declare class UnknownRunAgentError extends Error {
+    readonly name = "UnknownRunAgentError";
+}

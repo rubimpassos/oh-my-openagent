@@ -5,6 +5,7 @@ export declare function createSyncSession(client: OpencodeClient, input: {
     agentToUse: string;
     description: string;
     defaultDirectory: string;
+    category?: string;
     categoryModel?: DelegatedModelConfig;
 }): Promise<{
     ok: true;

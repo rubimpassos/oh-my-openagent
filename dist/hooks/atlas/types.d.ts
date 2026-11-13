@@ -19,7 +19,15 @@ export interface AtlasHookOptions {
     idleSettleMs?: number;
     /** Enable auto-commit after each atomic task completion (default: true) */
     autoCommit?: boolean;
+    /** Schedules the delayed continuation retry (default: the global setTimeout) */
+    retryScheduler?: AtlasRetryScheduler;
 }
+/** A scheduled delayed continuation retry; cancel() drops it before it fires. */
+export interface AtlasRetryTimer {
+    cancel: () => void;
+}
+/** Schedules the hook's delayed continuation retry, so tests can drive it without patching global timers. */
+export type AtlasRetryScheduler = (callback: () => Promise<void>, delayMs: number) => AtlasRetryTimer;
 export interface ToolExecuteAfterInput {
     tool: string;
     sessionID?: string;
@@ -50,7 +58,7 @@ export interface SessionState {
     isInjectingContinuation?: boolean;
     promptFailureCount: number;
     lastFailureAt?: number;
-    pendingRetryTimer?: ReturnType<typeof setTimeout>;
+    pendingRetryTimer?: AtlasRetryTimer;
     waitingForFinalWaveApproval?: boolean;
     pendingFinalWaveTaskCount?: number;
     approvedFinalWaveTaskCount?: number;
