@@ -7,6 +7,7 @@ import { computeView, viewKey } from "./features/tui-sidebar/compute-view"
 import { POLL_INTERVAL_MS } from "./features/tui-sidebar/constants"
 import { deriveAgents, deriveConfig, deriveJobBoard, deriveLoop, deriveRoster } from "./features/tui-sidebar/derivers"
 import type { ViewNode } from "./features/tui-sidebar/element-helpers"
+import { text } from "./features/tui-sidebar/element-helpers"
 import { readMirror } from "./features/tui-sidebar/mirror-io"
 import { buildViewNodes } from "./features/tui-sidebar/render-view"
 import type { RosterRow } from "./features/tui-sidebar/state-types"
@@ -197,20 +198,24 @@ const module: TuiPluginModule = {
   },
 }
 
-export function registerV2Sidebar(context: {
-  data: { session: { list: () => ReadonlyArray<{ id: string; title?: string }> } }
-  ui: {
-    toast: { show: (options: { title?: string; message: string; variant?: "info" | "success" | "error" | "warning" }) => void }
-    slot: (claim: { append: "sidebar.content"; render: (input: { sessionID: string }) => unknown }) => void
-  }
-}): () => ReadonlyArray<string> {
+export function registerV2Sidebar<Node>(
+  context: {
+    data: { session: { list: () => ReadonlyArray<{ id: string; title?: string }> } }
+    ui: {
+      toast: { show: (options: { title?: string; message: string; variant?: "info" | "success" | "error" | "warning" }) => void }
+      slot: (claim: { append: "sidebar.content"; render: (input: { sessionID: string }) => unknown }) => void
+    }
+  },
+  solid: SolidRuntime<Node>,
+): () => ReadonlyArray<string> {
   context.ui.toast.show({ title: "oh-my-openagent", message: "Sidebar ready", variant: "info" })
   let lines: ReadonlyArray<string> = []
   context.ui.slot({
     append: "sidebar.content",
     render() {
+      // Why: OpenTUI throws "Orphan text error" for a bare string child of a <box>; strings must live inside a <text>.
       lines = context.data.session.list().map((session) => session.title ?? session.id)
-      return lines
+      return materialize(lines.map((line) => text({}, line)), solid)
     },
   })
   return () => lines
@@ -222,8 +227,19 @@ export default {
   ...TuiPlugin.define({
     id: "oh-my-openagent",
     setup(context) {
-      registerV2Sidebar(context)
-      log("[oh-my-openagent] OpenCode V2 TUI plugin loaded")
+      // Why: V2 setup is synchronous but the slot needs the @opentui/solid peer resolved at runtime; defer registration.
+      import("@opentui/solid")
+        .catch(() => null)
+        .then((solid) => {
+          if (!solid) {
+            return
+          }
+          registerV2Sidebar(context, solid)
+          log("[oh-my-openagent] OpenCode V2 TUI plugin loaded")
+        })
+        .catch((error) => {
+          log("[oh-my-openagent] OpenCode V2 TUI plugin setup failed", { error })
+        })
     },
   }),
   tui: module.tui,
