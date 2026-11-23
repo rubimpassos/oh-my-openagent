@@ -18,6 +18,7 @@ their original prompts without a Native core.
 The OpenCode adapter selects Native's `chat` surface for model cores. Replies
 use the conversation's language, and the todo tool carries plan and progress.
 The initial prompt and request-time reconstruction share this surface choice.
+Sisyphus's role classifies intent internally before routing the work.
 
 ## OVERVIEW
 
