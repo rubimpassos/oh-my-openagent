@@ -15,6 +15,10 @@ Do not add copies of Native model bodies. Existing role variants are separate
 from Native model calibration. Explore, librarian and multimodal-looker keep
 their original prompts without a Native core.
 
+The OpenCode adapter selects Native's `chat` surface for model cores. Replies
+use the conversation's language, and the todo tool carries plan and progress.
+The initial prompt and request-time reconstruction share this surface choice.
+
 ## OVERVIEW
 
 11 built-in agents. Type enum: [`src/config/schema/agent-names.ts`](../config/schema/agent-names.ts) `BuiltinAgentNameSchema`. 10 of them register via [`builtin-agents.ts`](builtin-agents.ts) `agentSources` record (factory functions). **Prometheus is special-cased** — it has no `createPrometheusAgent` factory; instead [`prometheus-agent-config-builder.ts`](../plugin-handlers/prometheus-agent-config-builder.ts) constructs its config directly during `agent-config-handler` Phase 3.
