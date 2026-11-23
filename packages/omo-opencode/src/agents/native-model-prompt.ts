@@ -45,7 +45,7 @@ export function nativePromptOptions(
     promptGuidelines: [],
     contextFiles: [],
     skills: [],
-    surface: "terminal",
+    surface: "chat",
     appName: "OmO",
   }
 }

@@ -10,6 +10,11 @@ import { createSisyphusAgent } from "./sisyphus"
 import { frameNativePrompt } from "./native-prompt-frame"
 
 describe("OpenCode host transform", () => {
+  test("uses the chat surface for OpenCode native prompts", () => {
+    const options = nativePromptOptions(["question", "todowrite"])
+    expect(options.surface).toBe("chat")
+  })
+
   test("translates only Native tool identifiers", () => {
     const input = "ask_user_question `todo` todo todos todo_context MY_BODY"
     expect(adaptNativePrompt(input)).toBe("question `todowrite` todo todos todo_context MY_BODY")

@@ -83,7 +83,7 @@ describe("Native rendered-content parity (#9851)", () => {
             promptGuidelines: [],
             contextFiles: [],
             skills: [],
-            surface: "terminal" as const,
+            surface: "chat" as const,
             appName: "OmO",
           }
           const preset = resolvePreset(model, { promptPreset: "auto" }, options)
