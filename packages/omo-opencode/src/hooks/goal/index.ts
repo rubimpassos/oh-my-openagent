@@ -6,6 +6,7 @@ import { buildContinuationPrompt, buildResumePrompt } from "./prompt"
 import { registerGoalWake, syncGoalFromClient } from "./sync-bridge"
 import { goalUsageFromMessages } from "./usage"
 import type { Goal } from "./types"
+import { log } from "../../shared/logger"
 
 export type GoalHookOptions = {
   readonly projectDir: string
@@ -74,18 +75,22 @@ export function createGoalHook(ctx: PluginInput, options: GoalHookOptions): Goal
   }
 
   async function handleSessionIdle(sessionID: string, resumed = false): Promise<void> {
-    if (controller.getGoal(sessionID)?.status !== "active") {
+    const observed = controller.getGoal(sessionID)
+    if (observed?.status !== "active") {
       return
     }
-    // A Pause in OpenChamber aborts the turn, and that abort is this idle:
-    // take the user's change in before deciding to continue.
+    let clientCurrent: () => boolean
     try {
-      await syncGoalFromClient(options.projectDir, sessionID)
-    } catch {
-      // The sync logs its own failures; the loop goes on with what it has.
+      clientCurrent = await syncGoalFromClient(options.projectDir, sessionID, observed.id)
+    } catch (error) {
+      log("[goal] client synchronization blocked continuation", {
+        sessionID,
+        error: error instanceof Error ? error.message : String(error),
+      })
+      return
     }
     const initial = controller.getGoal(sessionID)
-    if (initial === null || initial.status !== "active") {
+    if (!clientCurrent() || initial === null || initial.id !== observed.id || initial.status !== "active") {
       return
     }
     // Background work launched from this session reports back by waking it;
@@ -99,9 +104,10 @@ export function createGoalHook(ctx: PluginInput, options: GoalHookOptions): Goal
     inFlightContinuations.add(sessionID)
     try {
       const messages = await readMessages(sessionID)
+      if (!clientCurrent()) return
       if (messages) controller.recordUsage(sessionID, goalUsageFromMessages(messages, initial.createdAt))
       const goal = controller.getGoal(sessionID)
-      if (goal === null || goal.status !== "active") return
+      if (goal === null || goal.id !== initial.id || goal.status !== "active") return
       if (goal.tokenBudget !== undefined && goal.tokensUsed >= goal.tokenBudget) {
         controller.settle(sessionID, "budgetLimited")
         return
@@ -118,6 +124,9 @@ export function createGoalHook(ctx: PluginInput, options: GoalHookOptions): Goal
         source: `${HOOK_NAME}:idle-continuation`,
         settleMs: 150,
         queueBehavior: "defer",
+        shouldDispatch: () => clientCurrent()
+          && controller.getGoal(sessionID)?.id === goal.id
+          && controller.getGoal(sessionID)?.status === "active",
         // Every continuation reads alike, so the gate's semantic dedupe would
         // swallow the next one when a turn takes under its hold window. One
         // key per goal turn keeps duplicates of the same turn out and lets
@@ -134,7 +143,7 @@ export function createGoalHook(ctx: PluginInput, options: GoalHookOptions): Goal
         },
       })
       if (promptResult.status === "dispatched" || (promptResult.status === "failed" && isInternalPromptDispatchAccepted(promptResult))) {
-        controller.noteContinuation(sessionID)
+        if (controller.getGoal(sessionID)?.id === goal.id) controller.noteContinuation(sessionID)
       } else if (promptResult.status === "reserved") {
         // The gate still holds the previous dispatch (a short turn finished
         // inside its hold window). No idle will come again on its own, so look
@@ -151,7 +160,7 @@ export function createGoalHook(ctx: PluginInput, options: GoalHookOptions): Goal
     }
   }
 
-  // A goal resumed in OpenChamber continues now; if the session is busy, the
+  // A goal resumed by a client continues now; if the session is busy, the
   // prompt gate holds the continuation and the next idle picks it up.
   registerGoalWake(options.projectDir, (sessionID) => { void handleSessionIdle(sessionID, true) })
 

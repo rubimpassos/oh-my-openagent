@@ -143,6 +143,61 @@ describe("goal continuation loop", () => {
     expect(sent).toEqual([])
   })
 
+  test("does not continue when the client synchronization fails", async () => {
+    // given
+    const { ctx, sent } = loopInput()
+    releaseAllPromptAsyncReservationsForTesting()
+    const hook = createGoalHook(ctx, { projectDir: ctx.directory, hasActiveBackgroundTasks: () => false })
+    hook.setGoal("s1", "Ship it")
+    let failed = false
+    const stop = registerGoalSync(ctx.directory, async () => {
+      if (failed) return
+      failed = true
+      throw new TypeError("callback unavailable")
+    })
+    onTestFinished(stop)
+    // when
+    await hook.event(idle)
+    // then
+    expect({ sent, turns: hook.getGoal("s1")?.turnsUsed }).toEqual({ sent: [], turns: 0 })
+  })
+
+  for (const boundary of ["client synchronization", "usage read"] as const) {
+    test(`does not continue a replacement goal created during ${boundary}`, async () => {
+      // given
+      const { ctx, sent } = loopInput()
+      releaseAllPromptAsyncReservationsForTesting()
+      const hook = createGoalHook(ctx, { projectDir: ctx.directory, hasActiveBackgroundTasks: () => false })
+      hook.setGoal("s1", "Original task")
+      const replace = () => { hook.setGoal("s1", "Replacement task") }
+      if (boundary === "client synchronization") {
+        onTestFinished(registerGoalSync(ctx.directory, async () => { replace() }))
+      } else {
+        Object.assign(ctx.client.session, { messages: async () => { replace(); return { data: [] } } })
+      }
+      // when
+      await hook.event(idle)
+      // then
+      expect({ sent, objective: hook.getGoal("s1")?.objective, turns: hook.getGoal("s1")?.turnsUsed })
+        .toEqual({ sent: [], objective: "Replacement task", turns: 0 })
+    })
+  }
+
+  test("does not dispatch after the client detaches during usage inspection", async () => {
+    // given
+    const { ctx, sent } = loopInput()
+    releaseAllPromptAsyncReservationsForTesting()
+    const hook = createGoalHook(ctx, { projectDir: ctx.directory, hasActiveBackgroundTasks: () => false })
+    hook.setGoal("s1", "Ship it")
+    const stop = registerGoalSync(ctx.directory, async () => undefined)
+    onTestFinished(stop)
+    Object.assign(ctx.client.session, { messages: async () => { stop(); return { data: [] } } })
+    // when
+    await hook.event(idle)
+    // then
+    expect({ sent, turns: hook.getGoal("s1")?.turnsUsed }).toEqual({ sent: [], turns: 0 })
+  })
+
   test("a resume right after a continuation is sent as a resume, not swallowed as a duplicate", async () => {
     const { ctx, sent } = loopInput()
     releaseAllPromptAsyncReservationsForTesting()
