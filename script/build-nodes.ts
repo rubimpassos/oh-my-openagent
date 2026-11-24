@@ -44,6 +44,23 @@ export const BUILD_NODES: BuildNode[] = [
     deps: [],
   },
   {
+    id: "client-api",
+    command: "bun",
+    args: [
+      "build",
+      "packages/omo-opencode/src/v2/client-api-contract.ts",
+      "--outfile",
+      "dist/client-api-contract.js",
+      "--target",
+      "node",
+      "--format",
+      "esm",
+      "--external",
+      "zod",
+    ],
+    deps: [],
+  },
+  {
     id: "tui",
     command: "bun",
     args: [

@@ -120,6 +120,10 @@
     },
     "./server": "./dist/index.js",
     "./tui": "./dist/tui.js",
+    "./client-api": {
+      "types": "./dist/v2/client-api-contract.d.ts",
+      "import": "./dist/client-api-contract.js"
+    },
     "./schema.json": "./dist/oh-my-opencode.schema.json"
   },
   "scripts": {
