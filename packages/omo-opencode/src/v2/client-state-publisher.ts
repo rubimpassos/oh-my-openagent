@@ -5,7 +5,10 @@ import type { TeamModeConfig } from "@oh-my-opencode/team-core/config"
 import { listRegisteredBackgroundTasks, type BackgroundTaskControl } from "../features/background-agent/task-registry"
 import type { BackgroundTask } from "../features/background-agent/types"
 import { log } from "../shared/logger"
+import { readConnectedProvidersCache, readProviderModelsCache } from "../shared/connected-providers-cache"
+import { fetchAvailableModels } from "../shared/model-availability"
 import { CLIENT_STATE_SCHEMA, processClientRequests, providerHealth } from "./client-control"
+import { buildClientModelDefaults } from "./client-model-defaults"
 import { backgroundTasksByParent, configPathsOf, goalsBySession, plansBySession, teamRunsByLead } from "./client-state"
 
 const META_INTERVAL_MS = 30_000
@@ -62,6 +65,24 @@ export function startClientStatePublisher(input: {
       if (now - metaAt >= META_INTERVAL_MS) {
         metaAt = now
         writeIfChanged(input.stateDirectory, "meta.json", { schema: CLIENT_STATE_SCHEMA, publishedAt: metaAt, heartbeatMs: META_INTERVAL_MS, ...configPaths })
+        try {
+          const connectedProviders = readConnectedProvidersCache()
+          const providerModelsConnected = connectedProviders ? (readProviderModelsCache()?.connected ?? []) : []
+          const mergedConnectedProviders = Array.from(new Set([...(connectedProviders ?? []), ...providerModelsConnected]))
+          // Cache-only, like builtin-agents: client API calls can deadlock initialization.
+          const availableModels = await fetchAvailableModels(undefined, {
+            connectedProviders: mergedConnectedProviders.length > 0 ? mergedConnectedProviders : undefined,
+          })
+          if (stopped) return
+          writeIfChanged(input.stateDirectory, "defaults.json", buildClientModelDefaults(
+            availableModels,
+            mergedConnectedProviders.length > 0 ? mergedConnectedProviders : connectedProviders,
+          ))
+        } catch (error) {
+          log("[oh-my-openagent] client model defaults publish failed", {
+            error: error instanceof Error ? error.message : String(error),
+          })
+        }
       }
       if (input.teamMode?.enabled) {
         const teams = await teamRunsByLead(input.teamMode)
