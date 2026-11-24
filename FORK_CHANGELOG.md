@@ -10,6 +10,20 @@ Releases of [rubimpassos/oh-my-openagent](https://github.com/rubimpassos/oh-my-o
 
 To release: add a `## [<version>] - YYYY-MM-DD` section here on `main` (with the `Fork-Patch: v2-support` trailer), then run the **Fork release** workflow with that version.
 
+## [5.1.69-fork.16] - 2026-11-24
+
+### Built-in model defaults for clients
+
+- OmO publishes `defaults.json` beside the other schema 2 files in
+  `.omo/v2-state`: for each built-in agent and category, its built-in model
+  chain and the model that chain resolves to with the providers connected
+  now. User configuration never enters the file; it refreshes every 30
+  seconds, so a provider connected later appears within that interval. See
+  the [client integration API](docs/reference/client-api.md).
+- The OpenChamber extension 0.7.0 shows that model as each unset agent's or
+  category's "OMO default", and recommends it where your first choice
+  differs. Older extensions ignore the file.
+
 ## [5.1.69-fork.15] - 2026-11-24
 
 ### Client integration API
