@@ -123123,7 +123123,7 @@ function getCachedVersion(options = {}) {
 // package.json
 var package_default = {
   name: "oh-my-opencode",
-  version: "5.1.69-fork.15",
+  version: "5.1.69-fork.16",
   description: "The Best AI Agent Harness - Batteries-Included OpenCode Plugin with Multi-Model Orchestration, Parallel Background Agents, and Crafted LSP/AST Tools",
   main: "./dist/index.js",
   types: "dist/index.d.ts",
@@ -215292,6 +215292,35 @@ async function processClientRequests(stateDirectory, control) {
   return ran;
 }
 
+// packages/omo-opencode/src/v2/client-model-defaults.ts
+function defaultsOf(requirements, constraints) {
+  return Object.fromEntries(Object.entries(requirements).map(([name, requirement]) => {
+    const chain = requirement.fallbackChain.map(({ providers, model, variant }) => ({
+      providers: [...providers],
+      model,
+      ...variant !== undefined ? { variant } : {}
+    }));
+    const resolved = constraints.connectedProviders === null ? undefined : resolveModelPipeline({ constraints, policy: { fallbackChain: chain } });
+    return [name, {
+      chain,
+      ...resolved ? {
+        resolved: {
+          model: resolved.model,
+          ...resolved.variant !== undefined ? { variant: resolved.variant } : {}
+        }
+      } : {}
+    }];
+  }));
+}
+function buildClientModelDefaults(availableModels, connectedProviders) {
+  const constraints = { availableModels, connectedProviders };
+  return {
+    schema: CLIENT_STATE_SCHEMA,
+    agents: defaultsOf(AGENT_MODEL_REQUIREMENTS, constraints),
+    categories: defaultsOf(CATEGORY_MODEL_REQUIREMENTS, constraints)
+  };
+}
+
 // packages/omo-opencode/src/v2/client-state-publisher.ts
 var META_INTERVAL_MS = 30000;
 var SNAPSHOT_INTERVAL_MS = 5000;
@@ -215339,6 +215368,21 @@ function startClientStatePublisher(input) {
       if (now - metaAt >= META_INTERVAL_MS) {
         metaAt = now;
         writeIfChanged(input.stateDirectory, "meta.json", { schema: CLIENT_STATE_SCHEMA, publishedAt: metaAt, heartbeatMs: META_INTERVAL_MS, ...configPaths });
+        try {
+          const connectedProviders = readConnectedProvidersCache();
+          const providerModelsConnected = connectedProviders ? readProviderModelsCache()?.connected ?? [] : [];
+          const mergedConnectedProviders = Array.from(new Set([...connectedProviders ?? [], ...providerModelsConnected]));
+          const availableModels = await fetchAvailableModels(undefined, {
+            connectedProviders: mergedConnectedProviders.length > 0 ? mergedConnectedProviders : undefined
+          });
+          if (stopped)
+            return;
+          writeIfChanged(input.stateDirectory, "defaults.json", buildClientModelDefaults(availableModels, mergedConnectedProviders.length > 0 ? mergedConnectedProviders : connectedProviders));
+        } catch (error) {
+          log4("[oh-my-openagent] client model defaults publish failed", {
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
       }
       if (input.teamMode?.enabled) {
         const teams = await teamRunsByLead(input.teamMode);
