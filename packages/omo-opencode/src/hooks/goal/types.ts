@@ -1,8 +1,6 @@
 import { z } from "zod"
 
-// `blocked` (continuation cap reached) and `budgetLimited` (token budget spent)
-// are settled like `complete` but resumable; they match OpenChamber's goal
-// statuses so a mirrored goal reads the same in both.
+// Limit states are settled like `complete` but can be explicitly resumed.
 export const GOAL_STATUS_VALUES = ["active", "paused", "complete", "blocked", "budgetLimited"] as const
 
 export const GoalStatusSchema = z.enum(GOAL_STATUS_VALUES)
