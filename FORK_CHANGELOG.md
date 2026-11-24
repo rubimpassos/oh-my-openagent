@@ -10,6 +10,50 @@ Releases of [rubimpassos/oh-my-openagent](https://github.com/rubimpassos/oh-my-o
 
 To release: add a `## [<version>] - YYYY-MM-DD` section here on `main` (with the `Fork-Patch: v2-support` trailer), then run the **Fork release** workflow with that version.
 
+## [5.1.69-fork.15] - 2026-11-24
+
+### Client integration API
+
+- Exposes the location-scoped [client integration API](docs/reference/client-api.md)
+  `omo.client.v1` RPC for state, task controls,
+  existing-goal controls and consumer presentation. The portable contract is
+  exported as `oh-my-opencode/client-api`; schema 2 state files and task
+  request files remain supported.
+- OmO owns execution, accounting and Native prompt generation. Consumer
+  extensions own their application's metadata and notifications. The
+  OpenChamber bridge now ships in `openchamber-omo` 0.6.0.
+- Standalone Native prompts use the terminal surface. An attached consumer
+  can select chat through the neutral API. Runtime model changes preserve
+  the selected surface, roles, appends and permission filtering.
+- Client synchronization runs before autonomous continuation. Callback
+  failure, goal replacement and stale attachment responses cannot authorize
+  a pending dispatch. Compound objective, budget and resume changes persist
+  before the loop wakes; repeated resume of an active goal preserves its
+  continuation allowance.
+- Sisyphus determines intent internally and retains its routing and explicit
+  implementation authorization rules.
+
+### Updating
+
+Update the OpenChamber extension to 0.6.0 and approve its new **Add a plugin
+to OpenCode** capability before updating OmO. The extension requires the
+OpenChamber fork 2.7.11 or newer. It remains passive with earlier OmO builds,
+which continue to use their existing integration. Update OmO through
+Settings → Plugins.
+
+The extension documents the host's full-record metadata and non-transactional
+unload behavior, including automatic driver takeover. This release does not
+change that OpenChamber policy.
+
+### Validation
+
+- 311 scoped OmO tests, source/script typechecks, builds and declaration
+  generation passed. The extension passed 113 tests plus the compiled-entry
+  checks. Real isolated OpenCode 2.4 and OpenChamber 2.7.11 exercised RPC,
+  goal controls, task cancel/retry, presentation and host notifications.
+- The provider was a local scripted protocol fixture. Real LLM instruction
+  following and desktop OS notification presentation were not evaluated.
+
 ## [5.1.69-fork.14] - 2026-11-13
 
 ### Updates
