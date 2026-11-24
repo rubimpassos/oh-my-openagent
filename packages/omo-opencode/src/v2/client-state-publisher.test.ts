@@ -4,6 +4,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
+import { _resetMemCacheForTesting, writeProviderModelsCache } from "../shared/connected-providers-cache"
+import { getOmoOpenCodeCacheDir } from "../shared/data-path"
 import { startClientStatePublisher } from "./client-state-publisher"
 import { createGoalController } from "../hooks/goal/controller"
 
@@ -102,5 +104,41 @@ describe("client state publisher clocks", () => {
     // then
     expect(clock.reads()).toBe(1)
     expect(existsSync(join(clock.directory, "results.json"))).toBe(false)
+  })
+
+  test("refreshes defaults from provider caches on the meta clock after a provider connects", async () => {
+    // given
+    const cacheDirectory = mkdtempSync(join(tmpdir(), "omo-defaults-cache-"))
+    directories.push(cacheDirectory)
+    const previousCacheHome = process.env.XDG_CACHE_HOME
+    process.env.XDG_CACHE_HOME = cacheDirectory
+    _resetMemCacheForTesting()
+    const cache = getOmoOpenCodeCacheDir()
+    mkdirSync(cache, { recursive: true })
+    writeFileSync(join(cache, "connected-providers.json"), JSON.stringify({ connected: [], updatedAt: "" }))
+    const clock = setup()
+    try {
+      await clock.advance(0)
+      const file = join(clock.directory, "defaults.json")
+      expect(JSON.parse(readFileSync(file, "utf8")).agents.sisyphus).not.toHaveProperty("resolved")
+      // when
+      writeProviderModelsCache({
+        connected: ["anthropic"],
+        models: { anthropic: ["claude-opus-5-5"] },
+      })
+      await clock.advance(25_000)
+      await clock.advance(4_000)
+      expect(JSON.parse(readFileSync(file, "utf8")).agents.sisyphus).not.toHaveProperty("resolved")
+      await clock.advance(1_000)
+      // then
+      expect(JSON.parse(readFileSync(file, "utf8")).agents.sisyphus.resolved).toEqual({
+        model: "anthropic/claude-opus-5-5", variant: "max",
+      })
+    } finally {
+      clock.stop()
+      if (previousCacheHome === undefined) delete process.env.XDG_CACHE_HOME
+      else process.env.XDG_CACHE_HOME = previousCacheHome
+      _resetMemCacheForTesting()
+    }
   })
 })

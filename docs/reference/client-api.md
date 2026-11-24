@@ -98,6 +98,16 @@ Goal and task controls return either `{ok: true, ...}` or
 The schema 2 files under `.omo/v2-state` and the file-based task request
 protocol remain available. Both task transports use the same executor.
 
+`defaults.json` in that directory carries OmO's built-in model choice for each
+built-in agent and category: `{schema, agents, categories}`, each entry
+`{chain, resolved?}`. `chain` is the built-in fallback chain, one
+`{providers, model, variant?}` per rung. `resolved` (`{model, variant?}`, with
+a `provider/model` ID) is the model that chain selects with the providers
+connected now. It is refreshed on the 30-second meta clock and is absent before
+OmO knows the connected providers or when no rung is available. User
+configuration never enters the file: a consumer can show `resolved` as the
+default where the user set no model.
+
 ## Attachment and continuation
 
 An attachment is scoped to one OmO execution in one location. Register a
