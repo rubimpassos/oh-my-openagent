@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { frameNativePrompt, replaceNativePromptFrames } from "./native-prompt-frame"
+import { frameNativePrompt, replaceNativePromptFrames, type NativePromptContext } from "./native-prompt-frame"
 
 const FRAME_HEADER = /^<omo-model-core ref="[0-9a-f]{16}">$/
 
@@ -56,5 +56,39 @@ describe("Native prompt frame boundary", () => {
     })
     expect(system).toEqual([input])
     expect(calls).toBe(0)
+  })
+
+  test.each([
+    { initial: undefined, surface: "chat", model: "same/model", rebuild: true },
+    { initial: "terminal", surface: "chat", model: undefined, rebuild: true },
+    { initial: "chat", surface: "terminal", model: "same/model", rebuild: true },
+    { initial: "chat", surface: "chat", model: "same/model", rebuild: false },
+    { initial: undefined, surface: "terminal", model: "same/model", rebuild: false },
+    { initial: "chat", surface: undefined, model: "same/model", rebuild: false },
+    { initial: "chat", surface: undefined, model: "new/model", rebuild: true },
+    { initial: "terminal", surface: "chat", model: "new/model", rebuild: true },
+    { initial: "chat", surface: undefined, model: undefined, rebuild: true },
+    { initial: "chat", surface: "chat", model: undefined, rebuild: false },
+  ] as const)("reconciles context for %j", ({ initial, surface, model, rebuild }) => {
+    // given
+    const context: NativePromptContext = {
+      model: "same/model", tools: ["read"], toolSnippets: { read: "READ_TOOL" },
+      toolPermissions: [{ pattern: "edit", permission: "deny" }],
+      restriction: "hephaestus", useTaskSystem: true,
+      ...(initial ? { surface: initial } : {}),
+    }
+    const input = frameNativePrompt("CORE", context)
+    const system = [input]
+    const received: NativePromptContext[] = []
+    // when
+    replaceNativePromptFrames(system, model, (next) => {
+      received.push(next)
+      return "REBUILT"
+    }, false, surface)
+    // then
+    expect(received).toEqual(rebuild ? [{
+      ...context, model: model ?? context.model, ...(surface ? { surface } : {}),
+    }] : [])
+    expect(system).toEqual([rebuild ? "REBUILT" : input])
   })
 })

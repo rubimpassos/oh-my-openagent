@@ -16,6 +16,7 @@ export const NativePromptContext = z.object({
     .optional(),
   restriction: z.literal("hephaestus").optional(),
   useTaskSystem: z.boolean().optional(),
+  surface: z.enum(["terminal", "chat"]).optional(),
 })
 
 export type NativePromptContext = z.infer<typeof NativePromptContext>
@@ -52,14 +53,22 @@ export function replaceNativePromptFrames(
   model: string | undefined,
   render: (context: NativePromptContext) => string | undefined,
   refreshTools = false,
+  surface?: NativePromptContext["surface"],
 ): void {
   for (const [index, part] of system.entries()) {
     system[index] = part.replace(
       /<omo-model-core ref="([0-9a-f]{16})">\n[\s\S]*?<\/omo-model-core>/g,
       (frame, ref: string) => {
         const context = recall(ref)
-        if (!context || (!refreshTools && context.model === model)) return frame
-        return render({ ...context, model: model ?? context.model }) ?? frame
+        if (!context) return frame
+        const sameModel = context.model === model || (surface !== undefined && model === undefined)
+        const sameSurface = surface === undefined || (context.surface ?? "terminal") === surface
+        if (!refreshTools && sameModel && sameSurface) return frame
+        return render({
+          ...context,
+          model: model ?? context.model,
+          ...(surface ? { surface } : {}),
+        }) ?? frame
       },
     )
   }
