@@ -15,6 +15,14 @@ Do not add copies of Native model bodies. Existing role variants are separate
 from Native model calibration. Explore, librarian and multimodal-looker keep
 their original prompts without a Native core.
 
+Native prompt surface belongs to the active consumer. Standalone callers default
+to `terminal`; consumers can pass `chat` to the Native builder or reconciler.
+Frame context retains an explicit surface across model/tool refreshes, and a
+surface change rebuilds the core even when model and tools stay the same.
+An omitted reconciliation surface preserves the frame's existing surface.
+The host applies the consumer surface after V1 context transforms; agent code
+does not detect clients or maintain a presentation registry.
+
 ## OVERVIEW
 
 11 built-in agents. Type enum: [`src/config/schema/agent-names.ts`](../config/schema/agent-names.ts) `BuiltinAgentNameSchema`. 10 of them register via [`builtin-agents.ts`](builtin-agents.ts) `agentSources` record (factory functions). **Prometheus is special-cased** — it has no `createPrometheusAgent` factory; instead [`prometheus-agent-config-builder.ts`](../plugin-handlers/prometheus-agent-config-builder.ts) constructs its config directly during `agent-config-handler` Phase 3.
