@@ -5,21 +5,22 @@ import type { TeamModeConfig } from "@oh-my-opencode/team-core/config"
 import { listRegisteredBackgroundTasks, type BackgroundTaskControl } from "../features/background-agent/task-registry"
 import type { BackgroundTask } from "../features/background-agent/types"
 import { log } from "../shared/logger"
-import { CLIENT_STATE_SCHEMA, createTransitionWatcher, processClientRequests, providerHealth, snapshotOf, type Notice } from "./client-control"
+import { CLIENT_STATE_SCHEMA, processClientRequests, providerHealth } from "./client-control"
 import { backgroundTasksByParent, configPathsOf, goalsBySession, plansBySession, teamRunsByLead } from "./client-state"
 
 const META_INTERVAL_MS = 30_000
 const SNAPSHOT_INTERVAL_MS = 5_000
 const CONTROL_INTERVAL_MS = 1_500
 
-function writeIfChanged(directory: string, name: string, value: Record<string, unknown>): void {
+function writeIfChanged(directory: string, name: string, value: Record<string, unknown>): boolean {
   const file = join(directory, name)
   const exists = existsSync(file)
-  if (!exists && Object.keys(value).length === 0) return
+  if (!exists && Object.keys(value).length === 0) return false
   const text = JSON.stringify(value)
-  if (exists && readFileSync(file, "utf8") === text) return
+  if (exists && readFileSync(file, "utf8") === text) return false
   mkdirSync(directory, { recursive: true })
   writeFileSync(file, text)
+  return true
 }
 
 export function startClientStatePublisher(input: {
@@ -30,12 +31,11 @@ export function startClientStatePublisher(input: {
   readonly readTasks?: () => readonly BackgroundTask[]
   readonly categories?: Record<string, string[]>
   readonly control?: () => BackgroundTaskControl | undefined
-  readonly notify?: (notice: Notice) => Promise<void>
+  readonly onStateChanged?: () => Promise<void> | void
 }): () => void {
   const readTasks = input.readTasks ?? (() => listRegisteredBackgroundTasks(input.owner))
   const snapshotIntervalMs = input.intervalMs ?? SNAPSHOT_INTERVAL_MS
   const configPaths = configPathsOf(input.owner)
-  const transitions = createTransitionWatcher()
   let running = false
   let stopped = false
   let publishedAt: number | undefined
@@ -53,24 +53,22 @@ export function startClientStatePublisher(input: {
       const tasks = readTasks()
       const plans = plansBySession(input.owner)
       const goals = goalsBySession(input.owner)
-      writeIfChanged(input.stateDirectory, "background.json", backgroundTasksByParent(tasks))
-      writeIfChanged(input.stateDirectory, "plans.json", plans)
-      writeIfChanged(input.stateDirectory, "goals.json", goals)
-      writeIfChanged(input.stateDirectory, "health.json", { categories: input.categories ?? {}, providers: providerHealth(tasks, now) })
+      let changed = [
+        writeIfChanged(input.stateDirectory, "background.json", backgroundTasksByParent(tasks)),
+        writeIfChanged(input.stateDirectory, "plans.json", plans),
+        writeIfChanged(input.stateDirectory, "goals.json", goals),
+        writeIfChanged(input.stateDirectory, "health.json", { categories: input.categories ?? {}, providers: providerHealth(tasks, now) }),
+      ].some(Boolean)
       if (now - metaAt >= META_INTERVAL_MS) {
         metaAt = now
         writeIfChanged(input.stateDirectory, "meta.json", { schema: CLIENT_STATE_SCHEMA, publishedAt: metaAt, heartbeatMs: META_INTERVAL_MS, ...configPaths })
       }
-      for (const notice of transitions(snapshotOf({ tasks, goals, plans }))) {
-        if (stopped) return
-        await input.notify?.(notice)
-      }
-      if (stopped) return
       if (input.teamMode?.enabled) {
         const teams = await teamRunsByLead(input.teamMode)
         if (stopped) return
-        writeIfChanged(input.stateDirectory, "teams.json", teams)
+        changed = writeIfChanged(input.stateDirectory, "teams.json", teams) || changed
       }
+      if (changed) await input.onStateChanged?.()
       publishedAt = now
     } catch (error) {
       log("[oh-my-openagent] client state publish failed", {

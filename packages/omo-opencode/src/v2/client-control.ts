@@ -6,6 +6,7 @@ import { z } from "zod"
 import type { BackgroundTaskControl } from "../features/background-agent/task-registry"
 import type { BackgroundTask } from "../features/background-agent/types"
 import { log } from "../shared/logger"
+import { clientRpc, type ClientApiFailure } from "./client-api-contract"
 
 /**
  * Version of the `.omo/v2-state` files. A client that needs a newer one tells
@@ -71,13 +72,11 @@ export function providerHealth(tasks: readonly BackgroundTask[], now: number): C
  * `results.json`. Only these actions exist, on tasks of this plugin instance.
  */
 const RequestSchema = z.discriminatedUnion("action", [
-  z.object({ id: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/), action: z.literal("cancel"), taskId: z.string().min(1).max(128) }),
-  z.object({
+  clientRpc.methods.controlTask.input.options[0].omit({ attachment: true }).extend({
     id: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/),
-    action: z.literal("retry"),
-    taskId: z.string().min(1).max(128),
-    /** `provider/model`; absent retries on the model the task last used. */
-    model: z.string().regex(/^[^/\s]+\/\S+$/).max(200).optional(),
+  }),
+  clientRpc.methods.controlTask.input.options[1].omit({ attachment: true }).extend({
+    id: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/),
   }),
 ])
 export type ClientRequest = z.infer<typeof RequestSchema>
@@ -85,16 +84,32 @@ export type ClientRequestResult = { ok: boolean; message: string; at: number; ac
 
 const RESULTS_KEPT = 20
 
-async function runRequest(request: ClientRequest, control: BackgroundTaskControl): Promise<{ ok: boolean; message: string }> {
+type TaskRequest = z.infer<typeof clientRpc.methods.controlTask.input>
+type TaskResult = { readonly ok: true; readonly message: string } | (ClientApiFailure & { readonly message: string })
+
+export async function runClientRequest(request: TaskRequest, control: BackgroundTaskControl, current: () => boolean = () => true): Promise<TaskResult> {
+  if (!current()) return { ok: false, message: "Client attachment changed.", error: { code: "stale_attachment", message: "Client attachment changed." } }
   const task = control.getTask(request.taskId)
-  if (!task) return { ok: false, message: `Task ${request.taskId} is not known to this OMO instance.` }
-  if (request.action === "cancel") {
-    const cancelled = await control.cancelTask(task.id, { source: "openchamber", reason: "Cancelled from the Oh-My-OpenAgent panel" })
-    return cancelled ? { ok: true, message: `Cancelled "${task.description}".` } : { ok: false, message: `"${task.description}" is not running.` }
+  if (!task) {
+    const message = `Task ${request.taskId} is not known to this OMO instance.`
+    return { ok: false, message, error: { code: "not_found", message } }
+  }
+  switch (request.action) {
+    case "cancel": {
+      const cancelled = await control.cancelTask(task.id, { source: "client", reason: "Cancelled by client" })
+      const message = `"${task.description}" is not running.`
+      return cancelled ? { ok: true, message: `Cancelled "${task.description}".` } : { ok: false, message, error: { code: "unsupported", message } }
+    }
+    case "retry":
+      break
+    default:
+      request satisfies never
+      throw new TypeError("Unknown client task action")
   }
   if (task.status === "running" || task.status === "pending") {
-    await control.cancelTask(task.id, { source: "openchamber", reason: "Retried from the Oh-My-OpenAgent panel" })
+    await control.cancelTask(task.id, { source: "client", reason: "Retried by client" })
   }
+  if (!current()) return { ok: false, message: "Client attachment changed.", error: { code: "stale_attachment", message: "Client attachment changed." } }
   const [providerID, ...rest] = (request.model ?? (task.model ? `${task.model.providerID}/${task.model.modelID}` : "")).split("/")
   const modelID = rest.join("/")
   const retried = await control.launch({
@@ -133,7 +148,7 @@ export async function processClientRequests(stateDirectory: string, control: Bac
     try { unlinkSync(file) } catch { /* another instance took it */ continue }
     if (!parsed) continue
     const outcome = control
-      ? await runRequest(parsed, control).catch((error: unknown) => ({ ok: false, message: error instanceof Error ? error.message : String(error) }))
+      ? await runClientRequest(parsed, control).catch((error: unknown) => ({ ok: false, message: error instanceof Error ? error.message : String(error) }))
       : { ok: false, message: "No background manager is running in this project." }
     log("[oh-my-openagent] client request", { action: parsed.action, taskId: parsed.taskId, ok: outcome.ok })
     let results: Record<string, ClientRequestResult> = {}
@@ -145,103 +160,4 @@ export async function processClientRequests(stateDirectory: string, control: Bac
     ran += 1
   }
   return ran
-}
-
-// --- native notifications ----------------------------------------------------
-
-export type Notice = { title: string; body: string; sessionId?: string; tag: string }
-
-/**
- * OpenChamber's notification route for plugins in the OpenCode it manages
- * (`POST /api/notifications/emit`, bearer = the agent-tool token in this
- * process's environment). Without that environment nothing is sent.
- */
-export function createNotifier(env: NodeJS.ProcessEnv = process.env, fetchImpl: typeof fetch = fetch): ((notice: Notice) => Promise<void>) | undefined {
-  const endpoint = env.OPENCHAMBER_AGENT_TOOL_URL
-  const token = env.OPENCHAMBER_AGENT_TOOL_TOKEN
-  if (!endpoint || !token || !URL.canParse(endpoint)) return undefined
-  const url = `${new URL(endpoint).origin}/api/notifications/emit`
-  return async (notice) => {
-    const response = await fetchImpl(url, {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-      body: JSON.stringify({ title: notice.title.slice(0, 120), body: notice.body.slice(0, 500), tag: notice.tag.slice(0, 128), ...(notice.sessionId ? { sessionId: notice.sessionId } : {}) }),
-    }).catch(() => undefined)
-    if (response && !response.ok) log("[oh-my-openagent] notification refused", { status: response.status })
-  }
-}
-
-type Snapshot = {
-  tasks: Map<string, { status: string; description: string; parent: string; error?: string }>
-  goals: Map<string, string>
-  plans: Map<string, { completed: number; total: number; name: string }>
-}
-
-const TERMINAL = new Set(["completed", "error", "cancelled", "interrupt"])
-
-/**
- * What changed since the last look that the user would want to hear about
- * with OpenChamber in the background: a failed task, all of a session's
- * tasks finishing, a plan completing, a goal settling. The first look only
- * records the state.
- */
-export function createTransitionWatcher() {
-  let previous: Snapshot | undefined
-  return (current: Snapshot): Notice[] => {
-    const before = previous
-    previous = current
-    if (!before) return []
-    const notices: Notice[] = []
-    const finishedParents = new Set<string>()
-    for (const [id, task] of current.tasks) {
-      const was = before.tasks.get(id)
-      if (!was || was.status === task.status || !TERMINAL.has(task.status) || TERMINAL.has(was.status)) continue
-      finishedParents.add(task.parent)
-      if (task.status === "error") {
-        notices.push({ title: "Background task failed", body: `${task.description}${task.error ? `: ${task.error}` : ""}`, sessionId: task.parent, tag: `omo-task-${id}` })
-      }
-    }
-    for (const parent of finishedParents) {
-      const siblings = [...current.tasks.values()].filter((task) => task.parent === parent)
-      if (siblings.every((task) => TERMINAL.has(task.status))) {
-        const failed = siblings.filter((task) => task.status === "error").length
-        notices.push({
-          title: failed > 0 ? "Background tasks finished with failures" : "Background tasks complete",
-          body: `${siblings.length - failed} of ${siblings.length} finished${failed > 0 ? `, ${failed} failed` : ""}.`,
-          sessionId: parent,
-          tag: `omo-tasks-${parent}`,
-        })
-      }
-    }
-    for (const [session, plan] of current.plans) {
-      const was = before.plans.get(session)
-      if (plan.total > 0 && plan.completed === plan.total && was && was.completed < was.total) {
-        notices.push({ title: "Plan complete", body: plan.name, sessionId: session, tag: `omo-plan-${session}` })
-      }
-    }
-    for (const [session, status] of current.goals) {
-      const was = before.goals.get(session)
-      if (!was || was === status || was !== "active") continue
-      const title = status === "complete" ? "Goal complete" : status === "blocked" ? "Goal stopped at its continuation limit" : status === "budgetLimited" ? "Goal stopped: token budget spent" : ""
-      if (title) notices.push({ title, body: "Oh-My-OpenAgent goal", sessionId: session, tag: `omo-goal-${session}` })
-    }
-    return notices
-  }
-}
-
-export function snapshotOf(input: {
-  tasks: readonly BackgroundTask[]
-  goals: Record<string, { status: string }>
-  plans: Record<string, { completed: number; total: number; planName: string }>
-}): Snapshot {
-  return {
-    tasks: new Map(input.tasks.map((task) => [task.id, {
-      status: task.status,
-      description: task.description,
-      parent: task.parentSessionId,
-      ...(task.error ? { error: task.error } : {}),
-    }])),
-    goals: new Map(Object.entries(input.goals).map(([session, goal]) => [session, goal.status])),
-    plans: new Map(Object.entries(input.plans).map(([session, plan]) => [session, { completed: plan.completed, total: plan.total, name: plan.planName }])),
-  }
 }

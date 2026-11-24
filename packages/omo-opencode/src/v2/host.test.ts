@@ -230,6 +230,12 @@ function createFakeContext(): {
     permission: {
       hook: async () => ({ async dispose() {} }),
     },
+    rpc: Object.assign(() => { throw new TypeError("No callback RPC registered in this fixture") }, {
+      register: async () => ({
+        events: { emit: async () => undefined },
+        dispose: async () => undefined,
+      }),
+    }),
   }
 
   return {

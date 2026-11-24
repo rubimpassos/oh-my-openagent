@@ -5,6 +5,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 import { startClientStatePublisher } from "./client-state-publisher"
+import { createGoalController } from "../hooks/goal/controller"
 
 const directories: string[] = []
 const stops: Array<() => void> = []
@@ -22,13 +23,15 @@ function setup() {
   let now = 100_000
   jest.spyOn(Date, "now").mockImplementation(() => now)
   let reads = 0
+  let changes = 0
   const stop = startClientStatePublisher({
     owner: directory,
     stateDirectory: directory,
     readTasks: () => { reads += 1; return [] },
+    onStateChanged: () => { changes += 1 },
   })
   stops.push(stop)
-  return { directory, stop, reads: () => reads, advance: async (ms: number) => {
+  return { directory, stop, reads: () => reads, changes: () => changes, advance: async (ms: number) => {
     now += ms
     jest.advanceTimersByTime(ms)
     for (let i = 0; i < 10; i++) await Promise.resolve()
@@ -36,6 +39,20 @@ function setup() {
 }
 
 describe("client state publisher clocks", () => {
+  test("invalidates client state for changed data and leaves unchanged snapshots quiet", async () => {
+    // given
+    const clock = setup()
+    await clock.advance(0)
+    await clock.advance(5_000)
+    expect(clock.changes()).toBe(1)
+    createGoalController({ projectDir: clock.directory }).setGoal("session", "Publish state")
+    // when
+    await clock.advance(5_000)
+    // then
+    expect(clock.changes()).toBe(2)
+    expect(JSON.parse(readFileSync(join(clock.directory, "goals.json"), "utf8")).session.objective).toBe("Publish state")
+  })
+
   test("publishes immediately but does not rescan on control-only ticks", async () => {
     // given
     const clock = setup()

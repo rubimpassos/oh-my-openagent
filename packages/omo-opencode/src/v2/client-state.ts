@@ -15,12 +15,11 @@ import { loadRuntimeState } from "@oh-my-opencode/team-core/team-state-store/sto
 import { listUnreadMessages } from "@oh-my-opencode/team-core/team-mailbox"
 
 import type { BackgroundTask } from "../features/background-agent/types"
-import { GoalFileSchema } from "../hooks/goal/types"
+import { GoalFileSchema, type Goal } from "../hooks/goal/types"
 import { log } from "../shared/logger"
 export { startClientStatePublisher } from "./client-state-publisher"
 
-// Clients such as the OpenChamber extension read these files from
-// `<project>/.omo/v2-state/`, keyed by the session that owns the work.
+// Client snapshots are keyed by the session that owns the work.
 export type ClientBackgroundTask = {
   id: string
   description: string
@@ -63,7 +62,7 @@ export type ClientPlan = {
 }
 
 /** The `/goal` a session is pursuing (OMO's continuation loop). */
-export type ClientGoal = {
+export type ClientGoal = Pick<Goal, "id" | "sessionID"> & {
   objective: string
   status: "active" | "paused" | "complete" | "blocked" | "budgetLimited"
   tokensUsed: number
@@ -182,6 +181,8 @@ export function goalsBySession(directory: string): Record<string, ClientGoal> {
       const goal = GoalFileSchema.parse(JSON.parse(readFileSync(join(goalDir, name), "utf8"))).goal
       if (!goal) continue
       bySession[goal.sessionID] = {
+        id: goal.id,
+        sessionID: goal.sessionID,
         objective: goal.objective,
         status: goal.status,
         tokensUsed: goal.tokensUsed,
@@ -224,39 +225,6 @@ export async function teamRunsByLead(config: TeamModeConfig): Promise<Record<str
     })
   }
   return byLead
-}
-
-/**
- * Runs `task` every `intervalMs`, one run at a time. A run that takes longer
- * than `timeoutMs` is abandoned (logged) so a hung call cannot stop the loop.
- */
-export function startSerialLoop(name: string, task: () => Promise<void>, intervalMs: number, timeoutMs: number): () => void {
-  let running = false
-  const run = async () => {
-    if (running) return
-    running = true
-    let timer: ReturnType<typeof setTimeout> | undefined
-    try {
-      await Promise.race([
-        task(),
-        new Promise<void>((resolve) => {
-          timer = setTimeout(() => {
-            log(`[oh-my-openagent] ${name} took longer than ${timeoutMs} ms; continuing`)
-            resolve()
-          }, timeoutMs)
-          timer.unref?.()
-        }),
-      ])
-    } catch (error) {
-      log(`[oh-my-openagent] ${name} failed`, { error: error instanceof Error ? error.message : String(error) })
-    } finally {
-      if (timer) clearTimeout(timer)
-      running = false
-    }
-  }
-  const interval = setInterval(() => void run(), intervalMs)
-  interval.unref?.()
-  return () => clearInterval(interval)
 }
 
 /** The OMO config files this instance loads, so a client can show or edit them. */

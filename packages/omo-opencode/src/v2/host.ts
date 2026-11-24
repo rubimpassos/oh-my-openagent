@@ -4,15 +4,12 @@ import { log } from "../shared/logger"
 import { setVersionCache } from "../shared/opencode-version"
 import { validatePluginConfig } from "../config/validate"
 import { createAdapterState } from "./adapter-state"
-import { startClientStatePublisher, startSerialLoop } from "./client-state"
+import { startClientStatePublisher } from "./client-state"
 import { createV1PluginInput } from "./context-facade"
 import { registerV1Hooks, type V1HookMap } from "./hook-bridge"
-import { createGoalSync } from "./goal-sync"
-import { registerGoalSync } from "../hooks/goal/sync-bridge"
-import { categoryModels, createNotifier } from "./client-control"
+import { startClientApi } from "./client-api"
+import { categoryModels } from "./client-control"
 import { getBackgroundTaskControl } from "../features/background-agent/task-registry"
-import { serveOrigin } from "./catalog"
-import { getSessionRecord, listenPortOf, patchSessionMetadata } from "./serve-http"
 import { projectV1Surface } from "./project-config"
 
 type V1Server = (input: never, options: unknown) => Promise<V1HookMap>
@@ -46,7 +43,10 @@ export async function setupOpenCodeV2(
     return
   }
 
-  const stopEvents = await registerV1Hooks(ctx, hooks, state)
+  let api: Awaited<ReturnType<typeof startClientApi>> | undefined
+  const stopEvents = await registerV1Hooks(ctx, hooks, state, {
+    surface: () => api?.surface() ?? "terminal",
+  })
   const scratch: Record<string, unknown> = {}
   if (typeof hooks.config === "function") {
     try {
@@ -77,73 +77,36 @@ export async function setupOpenCodeV2(
     })
   }
 
-  const notifier = createNotifier()
-  let cachedOrigin: string | undefined
-  const goalOrigin = async () => (cachedOrigin ??= await serveOrigin(process.argv, listenPortOf))
-  const syncGoals = goalEnabled(v1Input.directory)
-    ? createGoalSync({
-      projectDir: v1Input.directory,
-      session: {
-        get: async ({ sessionID }) => {
-          const origin = await goalOrigin()
-          if (!origin) throw new Error("OpenCode server origin unknown")
-          return getSessionRecord(origin, sessionID, fetch)
-        },
-        update: async ({ sessionID, metadata }) => {
-          const origin = await goalOrigin()
-          if (!origin) throw new Error("OpenCode server origin unknown")
-          await patchSessionMetadata(origin, sessionID, jsonRecord(metadata), fetch)
-        },
-      },
+  const teamMode = teamModeConfig(v1Input.directory)
+  const categories = categoryChains(v1Input.directory)
+  try {
+    api = await startClientApi({
+      ctx,
+      owner: v1Input.directory,
+      goalEnabled: goalEnabled(v1Input.directory),
+      teamMode,
+      categories,
     })
-    : undefined
+  } catch (error) {
+    stopEvents()
+    throw error
+  }
   const stopPublisher = startClientStatePublisher({
     stateDirectory: state.directory,
     owner: v1Input.directory,
-    teamMode: teamModeConfig(v1Input.directory),
-    categories: categoryChains(v1Input.directory),
+    teamMode,
+    categories,
     control: () => getBackgroundTaskControl(v1Input.directory),
-    ...(notifier ? { notify: notifier } : {}),
+    onStateChanged: api.invalidate,
   })
-  // Separate from the file publisher: it calls OpenCode, which can be slow or
-  // not ready while this location boots, and must never hold the files back.
-  const stopGoalLoop = syncGoals ? startSerialLoop("goal sync", syncGoals, 2000, 10_000) : () => {}
-  // The goal loop syncs a session before each continuation (see hooks/goal/sync-bridge.ts).
-  const stopGoalBridge = syncGoals ? registerGoalSync(v1Input.directory, syncGoals.session) : () => {}
-  const stopGoalSync = () => {
-    stopGoalLoop()
-    stopGoalBridge()
-  }
 
   const dispose = hooks.dispose
   return async () => {
     stopEvents()
     stopPublisher()
-    stopGoalSync()
+    await api?.dispose()
     if (typeof dispose === "function") await dispose()
   }
-}
-
-type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
-
-// Session metadata goes to OpenCode as JSON; anything else (undefined, functions) is dropped.
-function jsonValue(value: unknown): JsonValue | undefined {
-  if (value === null || typeof value === "string" || typeof value === "boolean") return value
-  if (typeof value === "number") return Number.isFinite(value) ? value : undefined
-  if (Array.isArray(value)) return value.flatMap((item) => {
-    const json = jsonValue(item)
-    return json === undefined ? [] : [json]
-  })
-  return isRecord(value) ? jsonRecord(value) : undefined
-}
-
-function jsonRecord(value: Record<string, unknown>): { [key: string]: JsonValue } {
-  const record: { [key: string]: JsonValue } = {}
-  for (const [key, item] of Object.entries(value)) {
-    const json = jsonValue(item)
-    if (json !== undefined) record[key] = json
-  }
-  return record
 }
 
 function categoryChains(directory: string): Record<string, string[]> {
@@ -156,7 +119,8 @@ function categoryChains(directory: string): Record<string, string[]> {
 
 function goalEnabled(directory: string): boolean {
   try {
-    return validatePluginConfig(directory).config.goal?.enabled === true
+    const config = validatePluginConfig(directory).config
+    return config.goal?.enabled === true && !config.disabled_hooks?.includes("goal")
   } catch {
     return false
   }

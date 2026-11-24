@@ -8,11 +8,9 @@ import type { BackgroundTaskControl } from "../features/background-agent/task-re
 import type { BackgroundTask, LaunchInput } from "../features/background-agent/types"
 import {
   categoryModels,
-  createNotifier,
-  createTransitionWatcher,
   processClientRequests,
   providerHealth,
-  snapshotOf,
+  runClientRequest,
 } from "./client-control"
 
 const directories: string[] = []
@@ -67,6 +65,21 @@ const request = (directory: string, body: Record<string, unknown>) => {
 }
 
 describe("client requests", () => {
+  test("a detached retry cannot launch after cancellation returns", async () => {
+    // given
+    const { control, launched } = fakeControl([task()])
+    let current = true
+    const pending = Promise.withResolvers<boolean>()
+    control.cancelTask = () => pending.promise
+    // when
+    const retry = runClientRequest({ action: "retry", taskId: "bg_1" }, control, () => current)
+    current = false
+    pending.resolve(true)
+    // then
+    expect(await retry).toMatchObject({ ok: false, error: { code: "stale_attachment" } })
+    expect(launched).toEqual([])
+  })
+
   test("cancel stops the task, removes the request and records the outcome", async () => {
     const directory = stateDir()
     const { control, cancelled } = fakeControl([task()])
@@ -117,39 +130,5 @@ describe("model health", () => {
       { provider: "zai", failures: 2, lastError: "quota", lastModel: "zai/m", lastAt: now - 500 },
       { provider: "openai", failures: 1, lastError: "no balance", lastModel: "openai/m", lastAt: now - 2000 },
     ])
-  })
-})
-
-describe("notifications", () => {
-  test("a failed task, all tasks of a session finishing, a plan completing and a goal settling are announced once", () => {
-    const watch = createTransitionWatcher()
-    const snapshot = (tasks: BackgroundTask[], goal: string, completed: number) => snapshotOf({
-      tasks,
-      goals: { ses_parent: { status: goal } },
-      plans: { ses_parent: { completed, total: 2, planName: "auth" } },
-    })
-    expect(watch(snapshot([task(), task({ id: "bg_2" })], "active", 1))).toEqual([])
-    const notices = watch(snapshot([task({ status: "error", error: "boom" }), task({ id: "bg_2", status: "completed" })], "complete", 2))
-    expect(notices.map((notice) => notice.title)).toEqual([
-      "Background task failed",
-      "Background tasks finished with failures",
-      "Plan complete",
-      "Goal complete",
-    ])
-    expect(watch(snapshot([task({ status: "error", error: "boom" }), task({ id: "bg_2", status: "completed" })], "complete", 2))).toEqual([])
-  })
-
-  test("notices go to OpenChamber's plugin route with the agent-tool token, and nowhere without it", async () => {
-    const calls: Array<{ url: string; init: RequestInit }> = []
-    const fetchImpl = (async (url: string, init: RequestInit) => {
-      calls.push({ url, init })
-      return new Response("{}")
-    }) as unknown as typeof fetch
-    expect(createNotifier({}, fetchImpl)).toBeUndefined()
-    const notify = createNotifier({ OPENCHAMBER_AGENT_TOOL_URL: "http://127.0.0.1:3200/api/openchamber/agent-tool", OPENCHAMBER_AGENT_TOOL_TOKEN: "t0k" }, fetchImpl)
-    await notify?.({ title: "Plan complete", body: "auth", sessionId: "ses_1", tag: "omo-plan-ses_1" })
-    expect(calls[0]?.url).toBe("http://127.0.0.1:3200/api/notifications/emit")
-    expect((calls[0]?.init.headers as Record<string, string>).authorization).toBe("Bearer t0k")
-    expect(JSON.parse(String(calls[0]?.init.body))).toEqual({ title: "Plan complete", body: "auth", tag: "omo-plan-ses_1", sessionId: "ses_1" })
   })
 })
