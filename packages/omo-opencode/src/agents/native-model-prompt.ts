@@ -31,6 +31,7 @@ export function getNativePromptSource(model?: string): string {
 export function nativePromptOptions(
   selectedTools: readonly string[] = [],
   toolSnippets: Readonly<Record<string, string>> = {},
+  surface: NativePromptContext["surface"] = "terminal",
 ): BuildDynamicSystemPromptOptions {
   const nativeName = (name: string) =>
     name === "question" ? "ask_user_question" : name === "todowrite" ? "todo" : name
@@ -45,7 +46,7 @@ export function nativePromptOptions(
     promptGuidelines: [],
     contextFiles: [],
     skills: [],
-    surface: "terminal",
+    surface,
     appName: "OmO",
   }
 }
@@ -66,10 +67,11 @@ export function buildNativeAgentPrompt(
   useTaskSystem = false,
   toolSnippets?: Record<string, string>,
   toolPermissions?: NativePromptContext["toolPermissions"],
+  surface?: NativePromptContext["surface"],
 ): string {
   if (restriction === "hephaestus") assertHephaestusSupportedModel(model)
   const identity = resolveNativePromptModel(model)
-  const options = nativePromptOptions(selectedTools, toolSnippets)
+  const options = nativePromptOptions(selectedTools, toolSnippets, surface)
   const preset = resolvePreset(identity, { promptPreset: "auto" }, options)
   const core = preset?.prompt ?? buildDynamicSystemPrompt(options)
   const modelIdentity = model
@@ -83,6 +85,7 @@ export function buildNativeAgentPrompt(
     ...(toolPermissions ? { toolPermissions } : {}),
     ...(restriction ? { restriction } : {}),
     ...(useTaskSystem ? { useTaskSystem } : {}),
+    ...(surface ? { surface } : {}),
   })
   return role ? `${framed}\n\n${role}` : framed
 }
@@ -93,8 +96,9 @@ export function reconcileNativeModelPrompts(
   toolSnippets?: Record<string, string>,
   toolPermissions?: NativePromptContext["toolPermissions"],
   runtimePermissions?: NativePromptContext["toolPermissions"],
+  surface?: NativePromptContext["surface"],
 ): void {
-  if (!model && !toolSnippets) return
+  if (!model && !toolSnippets && !surface) return
   replaceNativePromptFrames(
     system,
     model,
@@ -137,8 +141,10 @@ export function reconcileNativeModelPrompts(
         context.useTaskSystem,
         selectedSnippets,
         rules,
+        context.surface,
       )
     },
     toolSnippets !== undefined,
+    surface,
   )
 }
