@@ -44,9 +44,9 @@ export function dispatchInternalPrompt<TInput>(args: InternalPromptDispatchArgs<
   return dispatchSharedInternalPrompt({
     ...args,
     shouldDispatch: async () => {
-      if (args.shouldDispatch && !(await args.shouldDispatch())) return false
-      await syncGoalFromClient(directory, args.sessionID)
-      return !isGoalPaused(directory, args.sessionID)
+      const current = await syncGoalFromClient(directory, args.sessionID)
+      const allowed = args.shouldDispatch ? await args.shouldDispatch() : true
+      return allowed && current() && !isGoalPaused(directory, args.sessionID)
     },
   })
 }

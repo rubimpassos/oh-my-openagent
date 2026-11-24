@@ -5,7 +5,6 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { createGoalController } from "../hooks/goal/controller"
 import { registerGoalSync } from "../hooks/goal/sync-bridge"
-import { createGoalSync, goalMirror } from "../v2/goal-sync"
 import { dispatchInternalPrompt, releaseAllPromptAsyncReservationsForTesting } from "./prompt-async-gate"
 
 describe("paused goal autonomous dispatch", () => {
@@ -123,28 +122,22 @@ describe("paused goal autonomous dispatch", () => {
     expect({ status: result.status, dispatched }).toEqual({ status: "cancelled", dispatched: 0 })
   })
 
-  test("honors paused OpenChamber metadata through the real goal sync", async () => {
+  test("cancels dispatch when the client guard becomes stale during final inspection", async () => {
     // given
     const controller = createGoalController({ projectDir: directory })
-    const goal = controller.setGoal("session", "Finish the task")
-    let metadata: Record<string, unknown> = { openchamber: { goal: goalMirror(goal) } }
-    const sync = createGoalSync({ projectDir: directory, session: {
-      get: async () => ({ metadata }),
-      update: async (input) => { metadata = input.metadata },
-    } })
-    await sync.session("session")
-    metadata = { openchamber: { goal: { ...goalMirror(goal), status: "paused" } } }
-    unregister = registerGoalSync(directory, sync.session)
+    controller.setGoal("session", "Finish the task")
+    let current = true
+    unregister = registerGoalSync(directory, async () => () => current)
     let dispatched = 0
     // when
     const result = await dispatchInternalPrompt({
       mode: "async", source: "atlas", sessionID: "session", settleMs: 0, queueBehavior: "defer",
+      shouldDispatch: async () => { current = false; return true },
       client: { session: { promptAsync: async () => { dispatched++; return {} } } },
       input: { path: { id: "session" }, query: { directory } },
     })
     // then
-    expect({ status: result.status, dispatched, goal: controller.getGoal("session")?.status })
-      .toEqual({ status: "cancelled", dispatched: 0, goal: "paused" })
+    expect({ status: result.status, dispatched }).toEqual({ status: "cancelled", dispatched: 0 })
   })
 
   test("resumes the same session after its paused dispatch was cancelled", async () => {
