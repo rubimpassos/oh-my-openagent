@@ -3,13 +3,12 @@ import type { Plugin } from "@opencode/plugin"
 import { log } from "../shared/logger"
 import type { AdapterState } from "./adapter-state"
 import { toV1Event } from "./event-shape"
-import { hookMessagesToV1, writeHookMessagesBack } from "./message-shape"
 import { followSessionMove } from "./session-move"
 import { jsonMetadata } from "./tool-schema"
+import { safeCall, type V1Handler } from "./hook-invocation"
+import { registerContextHook, type ClientPresentation } from "./context-hook"
 
 type V2Context = Plugin.Context
-
-type V1Handler = (input: unknown, output?: unknown) => Promise<void> | void
 
 export type V1HookMap = Record<string, unknown>
 
@@ -30,21 +29,6 @@ function textParts(parts: unknown): string {
     })
     .filter((text) => text.length > 0)
     .join("\n")
-}
-
-function systemText(system: readonly { type?: string; text?: string }[]): string[] {
-  return system.map((part) => (typeof part.text === "string" ? part.text : ""))
-}
-
-async function safeCall(name: string, action: () => Promise<void> | void): Promise<void> {
-  try {
-    await action()
-  } catch (error) {
-    log("[oh-my-openagent] v2 hook failed", {
-      hook: name,
-      error: error instanceof Error ? error.message : String(error),
-    })
-  }
 }
 
 function noteRuntimeEvent(state: AdapterState | undefined, event: ReturnType<typeof toV1Event>): void {
@@ -136,7 +120,7 @@ function resultText(content: unknown): string {
   return JSON.stringify(content ?? "")
 }
 
-export async function registerV1Hooks(ctx: V2Context, hooks: V1HookMap, state?: AdapterState): Promise<() => void> {
+export async function registerV1Hooks(ctx: V2Context, hooks: V1HookMap, state?: AdapterState, presentation?: ClientPresentation): Promise<() => void> {
   const controller = new AbortController()
   const chatMessage = asHandler(hooks["chat.message"])
   const chatParams = asHandler(hooks["chat.params"])
@@ -162,45 +146,7 @@ export async function registerV1Hooks(ctx: V2Context, hooks: V1HookMap, state?: 
   }
 
   if (systemTransform || messagesTransform || chatParams) {
-    await ctx.session.hook("context", (event) => {
-      return safeCall("context", async () => {
-        if (systemTransform) {
-          const output = { system: systemText(event.system) }
-          await systemTransform({
-            sessionID: event.sessionID,
-            model: { id: event.model.id, providerID: event.model.providerID },
-          }, output)
-          event.system.splice(0, event.system.length, ...output.system.map((text) => ({ type: "text" as const, text })))
-        }
-        if (messagesTransform) {
-          const output = { messages: hookMessagesToV1(event.messages, event.sessionID) }
-          await messagesTransform({}, output)
-          const next = writeHookMessagesBack(event.messages, output.messages)
-          event.messages.splice(0, event.messages.length, ...next)
-        }
-        if (chatParams) {
-          const output: {
-            temperature?: number
-            topP?: number
-            topK?: number
-            maxOutputTokens?: number
-            options: Record<string, unknown>
-          } = { options: {} }
-          await chatParams({
-            sessionID: event.sessionID,
-            agent: { name: String(event.agent) },
-            model: { providerID: event.model.providerID, modelID: event.model.id },
-            provider: { id: event.model.providerID },
-            message: { variant: event.model.variant },
-          }, output)
-          if (output.temperature !== undefined) event.options.temperature = output.temperature
-          if (output.topP !== undefined) event.options.topP = output.topP
-          if (output.topK !== undefined) event.options.topK = output.topK
-          if (output.maxOutputTokens !== undefined) event.options.maxTokens = output.maxOutputTokens
-          Object.assign(event.options, output.options)
-        }
-      })
-    })
+    await registerContextHook(ctx, { systemTransform, messagesTransform, chatParams, presentation })
   }
 
   if (chatHeaders) {
