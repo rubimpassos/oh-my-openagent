@@ -1,6 +1,6 @@
 {
   "name": "oh-my-opencode",
-  "version": "5.1.69-fork.14",
+  "version": "5.1.69-fork.15",
   "description": "The Best AI Agent Harness - Batteries-Included OpenCode Plugin with Multi-Model Orchestration, Parallel Background Agents, and Crafted LSP/AST Tools",
   "main": "./dist/index.js",
   "types": "dist/index.d.ts",
@@ -75,6 +75,10 @@
     },
     "./server": "./dist/index.js",
     "./tui": "./dist/tui.js",
+    "./client-api": {
+      "types": "./dist/v2/client-api-contract.d.ts",
+      "import": "./dist/client-api-contract.js"
+    },
     "./schema.json": "./dist/oh-my-opencode.schema.json"
   },
   "keywords": [

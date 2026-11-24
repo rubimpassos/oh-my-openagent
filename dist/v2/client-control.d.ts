@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { BackgroundTaskControl } from "../features/background-agent/task-registry";
 import type { BackgroundTask } from "../features/background-agent/types";
+import { clientRpc, type ClientApiFailure } from "./client-api-contract";
 /**
  * Version of the `.omo/v2-state` files. A client that needs a newer one tells
  * the user to update the plugin instead of showing empty lists.
@@ -28,15 +29,15 @@ export declare function providerHealth(tasks: readonly BackgroundTask[], now: nu
  * `results.json`. Only these actions exist, on tasks of this plugin instance.
  */
 declare const RequestSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
-    id: z.ZodString;
     action: z.ZodLiteral<"cancel">;
     taskId: z.ZodString;
-}, z.core.$strip>, z.ZodObject<{
     id: z.ZodString;
+}, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"retry">;
     taskId: z.ZodString;
     model: z.ZodOptional<z.ZodString>;
-}, z.core.$strip>], "action">;
+    id: z.ZodString;
+}, z.core.$strict>], "action">;
 export type ClientRequest = z.infer<typeof RequestSchema>;
 export type ClientRequestResult = {
     ok: boolean;
@@ -45,50 +46,14 @@ export type ClientRequestResult = {
     action: string;
     taskId: string;
 };
+type TaskRequest = z.infer<typeof clientRpc.methods.controlTask.input>;
+type TaskResult = {
+    readonly ok: true;
+    readonly message: string;
+} | (ClientApiFailure & {
+    readonly message: string;
+});
+export declare function runClientRequest(request: TaskRequest, control: BackgroundTaskControl, current?: () => boolean): Promise<TaskResult>;
 /** Runs and removes every pending request file; returns how many ran. */
 export declare function processClientRequests(stateDirectory: string, control: BackgroundTaskControl | undefined): Promise<number>;
-export type Notice = {
-    title: string;
-    body: string;
-    sessionId?: string;
-    tag: string;
-};
-/**
- * OpenChamber's notification route for plugins in the OpenCode it manages
- * (`POST /api/notifications/emit`, bearer = the agent-tool token in this
- * process's environment). Without that environment nothing is sent.
- */
-export declare function createNotifier(env?: NodeJS.ProcessEnv, fetchImpl?: typeof fetch): ((notice: Notice) => Promise<void>) | undefined;
-type Snapshot = {
-    tasks: Map<string, {
-        status: string;
-        description: string;
-        parent: string;
-        error?: string;
-    }>;
-    goals: Map<string, string>;
-    plans: Map<string, {
-        completed: number;
-        total: number;
-        name: string;
-    }>;
-};
-/**
- * What changed since the last look that the user would want to hear about
- * with OpenChamber in the background: a failed task, all of a session's
- * tasks finishing, a plan completing, a goal settling. The first look only
- * records the state.
- */
-export declare function createTransitionWatcher(): (current: Snapshot) => Notice[];
-export declare function snapshotOf(input: {
-    tasks: readonly BackgroundTask[];
-    goals: Record<string, {
-        status: string;
-    }>;
-    plans: Record<string, {
-        completed: number;
-        total: number;
-        planName: string;
-    }>;
-}): Snapshot;
 export {};

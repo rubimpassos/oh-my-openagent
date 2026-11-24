@@ -1,5 +1,6 @@
 import type { TeamModeConfig } from "@oh-my-opencode/team-core/config";
 import type { BackgroundTask } from "../features/background-agent/types";
+import { type Goal } from "../hooks/goal/types";
 export { startClientStatePublisher } from "./client-state-publisher";
 export type ClientBackgroundTask = {
     id: string;
@@ -48,7 +49,7 @@ export type ClientPlan = {
     }>;
 };
 /** The `/goal` a session is pursuing (OMO's continuation loop). */
-export type ClientGoal = {
+export type ClientGoal = Pick<Goal, "id" | "sessionID"> & {
     objective: string;
     status: "active" | "paused" | "complete" | "blocked" | "budgetLimited";
     tokensUsed: number;
@@ -75,11 +76,6 @@ export declare function backgroundTasksByParent(tasks: readonly BackgroundTask[]
 export declare function plansBySession(directory: string): Record<string, ClientPlan>;
 export declare function goalsBySession(directory: string): Record<string, ClientGoal>;
 export declare function teamRunsByLead(config: TeamModeConfig): Promise<Record<string, ClientTeamRun[]>>;
-/**
- * Runs `task` every `intervalMs`, one run at a time. A run that takes longer
- * than `timeoutMs` is abandoned (logged) so a hung call cannot stop the loop.
- */
-export declare function startSerialLoop(name: string, task: () => Promise<void>, intervalMs: number, timeoutMs: number): () => void;
 /** The OMO config files this instance loads, so a client can show or edit them. */
 export declare function configPathsOf(directory: string): {
     userConfigPath: string;

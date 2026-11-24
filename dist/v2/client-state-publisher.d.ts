@@ -1,7 +1,6 @@
 import type { TeamModeConfig } from "@oh-my-opencode/team-core/config";
 import { type BackgroundTaskControl } from "../features/background-agent/task-registry";
 import type { BackgroundTask } from "../features/background-agent/types";
-import { type Notice } from "./client-control";
 export declare function startClientStatePublisher(input: {
     readonly stateDirectory: string;
     readonly teamMode?: TeamModeConfig;
@@ -10,5 +9,5 @@ export declare function startClientStatePublisher(input: {
     readonly readTasks?: () => readonly BackgroundTask[];
     readonly categories?: Record<string, string[]>;
     readonly control?: () => BackgroundTaskControl | undefined;
-    readonly notify?: (notice: Notice) => Promise<void>;
+    readonly onStateChanged?: () => Promise<void> | void;
 }): () => void;

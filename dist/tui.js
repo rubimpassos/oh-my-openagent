@@ -67470,6 +67470,7 @@ var init_continuation_policy = __esm(() => {
 // packages/omo-opencode/src/hooks/goal/sync-bridge.ts
 var bridges;
 var init_sync_bridge = __esm(() => {
+  init_store();
   bridges = new Map;
 });
 
@@ -75970,7 +75971,7 @@ init_shared();
 // package.json
 var package_default = {
   name: "oh-my-opencode",
-  version: "5.1.69-fork.14",
+  version: "5.1.69-fork.15",
   description: "The Best AI Agent Harness - Batteries-Included OpenCode Plugin with Multi-Model Orchestration, Parallel Background Agents, and Crafted LSP/AST Tools",
   main: "./dist/index.js",
   types: "dist/index.d.ts",
@@ -76090,6 +76091,10 @@ var package_default = {
     },
     "./server": "./dist/index.js",
     "./tui": "./dist/tui.js",
+    "./client-api": {
+      types: "./dist/v2/client-api-contract.d.ts",
+      import: "./dist/client-api-contract.js"
+    },
     "./schema.json": "./dist/oh-my-opencode.schema.json"
   },
   scripts: {
